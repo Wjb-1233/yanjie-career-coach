@@ -17,6 +17,8 @@ const error = shallowRef('')
 
 const activePlans = computed(() => plans.value.filter((plan) => plan.status === 'ACTIVE'))
 const finishedPlans = computed(() => plans.value.filter((plan) => plan.status === 'COMPLETED'))
+const primaryPlan = computed(() => activePlans.value[0] ?? null)
+const otherActivePlans = computed(() => activePlans.value.slice(1))
 
 onMounted(load)
 
@@ -49,8 +51,8 @@ function formatDate(value: string): string {
     <header class="page-heading">
       <div>
         <p class="eyebrow">能力提升</p>
-        <h1 class="page-title">把一次评分，<br />变成一条练习线。</h1>
-        <p class="page-lead">每份计划由最近一次评分里最弱的一维生成：先专项对练，再回原场景复测，用两次真实回答比较变化。</p>
+        <h1 class="page-title">先看清这场，<br />再决定练什么。</h1>
+        <p class="page-lead">上半页是最近一次报告的复盘与单题改答，下半页是据此排出的练习计划。</p>
       </div>
       <RouterLink class="button secondary" to="/scenes">开始新训练</RouterLink>
     </header>
@@ -60,94 +62,89 @@ function formatDate(value: string): string {
       {{ abilityError }} <button v-if="!practice" type="button" class="inline-action" @click="loadAbility">重试</button>
     </div>
 
-    <section v-if="abilityLoading || practice" class="review-block" aria-label="整场复盘与薄弱项练习">
-      <div v-if="abilityLoading" class="skeleton loading-row" />
+    <section class="section" aria-label="整场复盘与薄弱项练习">
+      <header class="section-head">
+        <h2 class="label">整场复盘</h2>
+        <span class="note">来自最近一次已完成的训练</span>
+      </header>
+
+      <div v-if="abilityLoading" class="skeleton review-loading" />
       <template v-else-if="practice">
         <AbilityReview :practice="practice" :scores="dashboard?.dimensions ?? null" />
         <AbilityScores v-if="dashboard" :scores="dashboard.dimensions" :focus="practice.dimension" />
         <AbilityDrill :practice="practice" :sending="sending" @submit="submit" />
         <AbilityAttempts :attempts="practice.attempts" />
-        <p class="method-note">上方分析依据最近一场完整对话与已保存报告；改答是单题巩固，分数与整场报告分使用不同评价范围，不直接相减。</p>
+        <p class="method-note">改答是单题巩固，与整场报告分的评价范围不同，不直接相减。</p>
       </template>
+      <p v-else class="section-empty">完成一场面试并生成报告后，这里会出现整场复盘和最弱项的单题改答。</p>
     </section>
 
-    <div v-if="loading" class="loading">
-      <div class="skeleton loading-row" />
-      <div class="skeleton loading-row" />
-    </div>
+    <section class="section" aria-label="练习计划">
+      <header class="section-head">
+        <h2 class="label">接下来怎么练</h2>
+        <span class="note">{{ activePlans.length ? `${activePlans.length} 份进行中` : '暂无进行中的计划' }}</span>
+      </header>
 
-    <template v-else>
-      <p v-if="!plans.length" class="empty-state">
+      <div v-if="loading" class="skeleton plan-loading" />
+      <p v-else-if="!plans.length" class="section-empty">
         还没有训练计划。完成一次场景训练并生成评分后，系统会按最弱的一维为你排好练习顺序。
         <RouterLink to="/scenes">选择场景 →</RouterLink>
       </p>
 
       <template v-else>
-        <section class="group">
-          <header class="group-head">
-            <h2 class="label">进行中</h2>
-            <span class="note">{{ activePlans.length }} 份</span>
-          </header>
-          <ul class="plan-list">
-            <li v-for="plan in activePlans" :key="plan.id">
-              <RouterLink class="plan-row" :to="`/plans/${plan.id}`">
-                <span class="plan-copy">
-                  <span class="plan-meta">{{ plan.focusDimension }} · {{ completedCount(plan) }} / {{ plan.tasks.length }} 项 · {{ formatDate(plan.createdAt) }}</span>
-                  <strong>{{ plan.title }}</strong>
-                </span>
-                <span class="plan-progress">
-                  <span class="num">{{ plan.progress }}%</span>
-                  <i><b :style="{ width: `${plan.progress}%` }" /></i>
-                </span>
-              </RouterLink>
-            </li>
-          </ul>
-        </section>
+        <article v-if="primaryPlan" class="plan-featured">
+          <p class="plan-meta">{{ primaryPlan.focusDimension }} · 已完成 {{ completedCount(primaryPlan) }} / {{ primaryPlan.tasks.length }} 项 · {{ formatDate(primaryPlan.createdAt) }}</p>
+          <h3>{{ primaryPlan.title }}</h3>
+          <div class="plan-progress">
+            <i><b :style="{ width: `${primaryPlan.progress}%` }" /></i>
+            <span class="num">{{ primaryPlan.progress }}%</span>
+          </div>
+          <RouterLink class="plan-cta" :to="`/plans/${primaryPlan.id}`">
+            继续这份计划
+            <svg width="14" height="10" viewBox="0 0 14 10" fill="none" aria-hidden="true">
+              <path d="M1 5h11M8.5 1.5 12 5l-3.5 3.5" stroke="currentColor" stroke-width="1.1" />
+            </svg>
+          </RouterLink>
+        </article>
 
-        <section v-if="finishedPlans.length" class="group">
-          <header class="group-head">
-            <h2 class="label">已完成</h2>
-            <span class="note">{{ finishedPlans.length }} 份</span>
-          </header>
-          <ul class="plan-list">
-            <li v-for="plan in finishedPlans" :key="plan.id">
-              <RouterLink class="plan-row" :to="`/plans/${plan.id}`">
-                <span class="plan-copy">
-                  <span class="plan-meta">{{ plan.focusDimension }} · {{ formatDate(plan.createdAt) }} · 已完成</span>
-                  <strong>{{ plan.title }}</strong>
-                </span>
-                <span class="plan-open">查看 →</span>
+        <div v-if="otherActivePlans.length" class="plan-more">
+          <p class="sub-label">其他进行中的计划</p>
+          <ul class="compact-list">
+            <li v-for="plan in otherActivePlans" :key="plan.id">
+              <RouterLink :to="`/plans/${plan.id}`">
+                <span class="compact-title">{{ plan.title }}</span>
+                <span class="compact-meta">{{ plan.focusDimension }} · {{ completedCount(plan) }} / {{ plan.tasks.length }} 项</span>
+                <span class="num compact-percent">{{ plan.progress }}%</span>
               </RouterLink>
             </li>
           </ul>
-        </section>
+        </div>
+
+        <div v-if="finishedPlans.length" class="plan-more">
+          <p class="sub-label">已完成的计划</p>
+          <ul class="compact-list">
+            <li v-for="plan in finishedPlans" :key="plan.id">
+              <RouterLink :to="`/plans/${plan.id}`">
+                <span class="compact-title">{{ plan.title }}</span>
+                <span class="compact-meta">{{ plan.focusDimension }} · {{ formatDate(plan.createdAt) }}</span>
+                <span class="compact-percent">查看 →</span>
+              </RouterLink>
+            </li>
+          </ul>
+        </div>
+
+        <p v-if="!primaryPlan && !finishedPlans.length" class="section-empty">计划暂时为空。</p>
       </template>
-    </template>
+    </section>
   </div>
 </template>
 
 <style scoped>
 .plans-page { max-width: 1080px; }
-.review-block { margin-top: 26px; }
-.method-note { margin: 18px 0 0; color: var(--text-3); font-size: 12px; line-height: 1.7; }
-.inline-action { border: 0; background: transparent; color: inherit; text-decoration: underline; cursor: pointer; }
-.loading { display: grid; gap: 12px; }
-.loading-row { min-height: 96px; }
 
-.empty-state {
-  margin: 40px 0 0;
-  padding: 28px 0;
-  border-top: 1px solid var(--divider);
-  color: var(--text-3);
-  font-size: 13px;
-  line-height: 2;
-}
-.empty-state a { margin-left: 12px; color: var(--text-2); border-bottom: 1px solid var(--border-bright); padding-bottom: 1px; }
-.empty-state a:hover { color: var(--text); }
-
-.group { margin-top: 38px; }
-.group:first-of-type { margin-top: 8px; }
-.group-head {
+.section { margin-top: 44px; }
+.section:first-of-type { margin-top: 8px; }
+.section-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -155,34 +152,65 @@ function formatDate(value: string): string {
   padding-bottom: 14px;
   border-bottom: 1px solid var(--divider);
 }
-.group-head h2 { margin: 0; color: var(--text-3); font-size: 11px; font-weight: 400; letter-spacing: .2em; }
-.group-head .note { color: var(--text-3); font-size: 11px; letter-spacing: .06em; }
+.section-head h2 { margin: 0; color: var(--text-3); font-size: 11px; font-weight: 400; letter-spacing: .2em; }
+.section-head .note { color: var(--text-3); font-size: 11px; letter-spacing: .06em; white-space: nowrap; }
 
-.plan-list { margin: 0; padding: 0; list-style: none; }
-.plan-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 150px;
+.review-loading { min-height: 180px; margin-top: 18px; }
+.plan-loading { min-height: 140px; margin-top: 18px; }
+.section-empty { margin: 20px 0 0; color: var(--text-3); font-size: 13px; line-height: 2; }
+.section-empty a { margin-left: 12px; color: var(--text-2); border-bottom: 1px solid var(--border-bright); padding-bottom: 1px; }
+.section-empty a:hover { color: var(--text); }
+.inline-action { border: 0; background: transparent; color: inherit; text-decoration: underline; cursor: pointer; }
+.method-note { margin: 18px 0 0; color: var(--text-3); font-size: 12px; line-height: 1.7; }
+
+.plan-featured {
+  margin-top: 20px;
+  padding: 26px 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+.plan-meta { margin: 0; color: var(--text-3); font-size: 11px; letter-spacing: .06em; }
+.plan-featured h3 { margin: 12px 0 0; color: var(--text); font-size: 19px; font-weight: 500; line-height: 1.5; letter-spacing: .01em; }
+.plan-progress { display: flex; align-items: center; gap: 16px; margin-top: 22px; }
+.plan-progress i { flex: 1; height: 2px; background: var(--track); }
+.plan-progress i b { display: block; height: 100%; background: var(--accent); }
+.plan-progress .num { color: var(--text-2); font-family: var(--font-num); font-size: 12px; letter-spacing: .02em; }
+.plan-cta {
+  display: inline-flex;
   align-items: center;
-  gap: 28px;
-  padding: 20px 4px;
+  gap: 10px;
+  margin-top: 24px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: .04em;
+}
+.plan-cta svg { transition: transform var(--ease); }
+.plan-cta:hover { color: var(--accent-strong); }
+.plan-cta:hover svg { transform: translateX(3px); }
+
+.plan-more { margin-top: 32px; }
+.sub-label { margin: 0 0 6px; color: var(--text-3); font-size: 11px; letter-spacing: .14em; }
+.compact-list { margin: 0; padding: 0; list-style: none; }
+.compact-list a {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 46px;
+  align-items: baseline;
+  gap: 18px;
+  padding: 14px 2px;
   border-bottom: 1px solid var(--divider);
   transition: background var(--ease);
 }
-.plan-row:hover { background: var(--overlay-1); }
-.plan-copy { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.plan-meta { color: var(--text-3); font-size: 11px; letter-spacing: .06em; }
-.plan-copy strong { color: var(--text); font-size: 15px; font-weight: 500; line-height: 1.5; }
-
-.plan-progress { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
-.plan-progress .num { color: var(--text-2); font-family: var(--font-num); font-size: 13px; letter-spacing: .02em; }
-.plan-progress i { display: block; width: 100%; height: 2px; background: var(--track); }
-.plan-progress i b { display: block; height: 100%; background: var(--accent); }
-.plan-open { color: var(--text-3); font-size: 12px; letter-spacing: .06em; text-align: right; transition: color var(--ease); }
-.plan-row:hover .plan-open { color: var(--text); }
+.compact-list a:hover { background: var(--overlay-1); }
+.compact-title { color: var(--text-2); font-size: 13px; line-height: 1.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.compact-meta { color: var(--text-3); font-size: 11px; letter-spacing: .04em; white-space: nowrap; }
+.compact-percent { color: var(--text-3); font-family: var(--font-num); font-size: 12px; text-align: right; white-space: nowrap; }
+.compact-list a:hover .compact-title { color: var(--text); }
 
 @media (max-width: 640px) {
-  .plan-row { grid-template-columns: 1fr; gap: 12px; }
-  .plan-progress { align-items: stretch; }
-  .plan-open { text-align: left; }
+  .plan-featured { padding: 22px; }
+  .compact-list a { grid-template-columns: minmax(0, 1fr) auto; row-gap: 4px; }
+  .compact-meta { grid-column: 1 / -1; order: 3; }
 }
 </style>
