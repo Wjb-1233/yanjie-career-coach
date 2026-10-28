@@ -1,13 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, shallowRef } from 'vue'
 
-import AbilityAttempts from '@/components/ability/AbilityAttempts.vue'
-import AbilityDrill from '@/components/ability/AbilityDrill.vue'
-import { useAbilityPractice } from '@/composables/useAbilityPractice'
 import { api, errorMessage } from '@/lib/api'
 import type { ApiEnvelope, TrainingPlan } from '@/lib/types'
-
-const { practice, loading: abilityLoading, sending, error: abilityError, load: loadAbility, submit } = useAbilityPractice()
 
 const plans = shallowRef<TrainingPlan[]>([])
 const loading = shallowRef(true)
@@ -50,19 +45,16 @@ function formatDate(value: string): string {
       <div>
         <p class="eyebrow">能力提升</p>
         <h1 class="page-title">把一次评分，<br />变成一条练习线。</h1>
-        <p class="page-lead">每份计划由最近一次评分里最弱的一维生成：先复盘依据，再按四步练习；最下方还可以对最弱项做单题改答。</p>
+        <p class="page-lead">每份计划由最近一次评分里最弱的一维生成：先逐轮复盘批注，再学习一门针对性微课。</p>
       </div>
       <RouterLink class="button secondary" to="/scenes">开始新训练</RouterLink>
     </header>
 
     <div v-if="error" class="error-banner">{{ error }}</div>
-    <div v-if="abilityError" class="error-banner" role="alert">
-      {{ abilityError }} <button v-if="!practice" type="button" class="inline-action" @click="loadAbility">重试</button>
-    </div>
 
         <section class="section" aria-label="练习计划">
       <header class="section-head">
-        <h2 class="label"><span class="step">01</span>接下来怎么练</h2>
+        <h2 class="label">训练计划</h2>
         <span class="note">{{ activePlans.length ? `${activePlans.length} 份进行中` : '暂无进行中的计划' }}</span>
       </header>
 
@@ -120,19 +112,6 @@ function formatDate(value: string): string {
       </template>
     </section>
 
-    <section v-if="abilityLoading || practice" class="section" aria-label="薄弱项单题改答">
-      <header class="section-head">
-        <h2 class="label"><span class="step">02</span>单题改答</h2>
-        <span class="note">针对最近一次报告的最弱项</span>
-      </header>
-
-      <div v-if="abilityLoading" class="skeleton review-loading" />
-      <template v-else-if="practice">
-        <AbilityDrill :practice="practice" :sending="sending" @submit="submit" />
-        <AbilityAttempts :attempts="practice.attempts" />
-        <p class="method-note">改答是单题巩固，与整场报告分的评价范围不同，不直接相减。</p>
-      </template>
-    </section>
   </div>
 </template>
 
@@ -157,8 +136,6 @@ function formatDate(value: string): string {
 .section-empty { margin: 20px 0 0; color: var(--text-3); font-size: 13px; line-height: 2; }
 .section-empty a { margin-left: 12px; color: var(--text-2); border-bottom: 1px solid var(--border-bright); padding-bottom: 1px; }
 .section-empty a:hover { color: var(--text); }
-.inline-action { border: 0; background: transparent; color: inherit; text-decoration: underline; cursor: pointer; }
-.method-note { margin: 18px 0 0; color: var(--text-3); font-size: 12px; line-height: 1.7; }
 
 .plan-featured:hover { border-color: var(--border-bright); }
 .plan-featured {
