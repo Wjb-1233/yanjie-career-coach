@@ -17,6 +17,7 @@ const activePlans = computed(() => plans.value.filter((plan) => plan.status === 
 const finishedPlans = computed(() => plans.value.filter((plan) => plan.status === 'COMPLETED'))
 const primaryPlan = computed(() => activePlans.value[0] ?? null)
 const otherActivePlans = computed(() => activePlans.value.slice(1))
+const supersededPlans = computed(() => plans.value.filter((plan) => plan.status === 'SUPERSEDED'))
 
 onMounted(load)
 
@@ -116,6 +117,19 @@ function formatDate(value: string): string {
           </ul>
         </div>
 
+        <div v-if="supersededPlans.length" class="plan-more">
+          <p class="sub-label">已被新计划替代</p>
+          <ul class="compact-list">
+            <li v-for="plan in supersededPlans" :key="plan.id">
+              <RouterLink :to="`/plans/${plan.id}`">
+                <span class="compact-title">{{ plan.title }}</span>
+                <span class="compact-meta">{{ plan.focusDimension }} · {{ formatDate(plan.createdAt) }}</span>
+                <span class="num compact-percent">{{ plan.progress }}%</span>
+                <span class="chev" aria-hidden="true">→</span>
+              </RouterLink>
+            </li>
+          </ul>
+        </div>
         <p v-if="!primaryPlan && !finishedPlans.length" class="section-empty">计划暂时为空。</p>
       </template>
     </section>

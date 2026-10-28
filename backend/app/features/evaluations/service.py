@@ -1,7 +1,7 @@
 import logging
 import statistics
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppError, not_found
@@ -217,6 +217,12 @@ async def create_training_plan(
                 "evidence": None,
             },
         ],
+    )
+    # 同一时间只保留一份进行中的计划：新计划生成后，旧的进行中计划标记为已被替代
+    await session.execute(
+        update(TrainingPlan)
+        .where(TrainingPlan.user_id == user_id, TrainingPlan.status == "ACTIVE")
+        .values(status="SUPERSEDED")
     )
     session.add(plan)
     await session.flush()

@@ -6,7 +6,7 @@ import PlanTaskCard from '@/components/plans/PlanTaskCard.vue'
 import PlanComparison from '@/components/plans/PlanComparison.vue'
 import { useTrainingPlan } from '@/composables/useTrainingPlan'
 import { api } from '@/lib/api'
-import type { ApiEnvelope, Evaluation, Scores } from '@/lib/types'
+import type { ApiEnvelope, Evaluation, Scores, TrainingSession } from '@/lib/types'
 
 const route = useRoute()
 const trainingPlan = useTrainingPlan(String(route.params.id))
@@ -21,6 +21,17 @@ const baselineSessionId = computed(() => plan.value?.tasks.find((task) => task.s
 const focusKey = computed(() => (Object.entries(labels) as Array<[keyof Scores, string]>)
   .find(([, label]) => label === plan.value?.focusDimension)?.[0])
 const focusScore = computed(() => (focusKey.value && baseline.value ? baseline.value.scores[focusKey.value] : 0))
+const reviewSession = shallowRef<TrainingSession | null>(null)
+const rounds = computed(() => {
+  const messages = reviewSession.value?.messages ?? []
+  const result: Array<{ roundNo: number; question: string; answer: string; flags: readonly string[] }> = []
+  let question = ''
+  for (const message of messages) {
+    if (message.speaker === 'AI') question = message.content
+    else if (message.speaker === 'USER') result.push({ roundNo: message.roundNo, question, answer: message.content, flags: message.flags })
+  }
+  return result
+})
 
 onMounted(trainingPlan.load)
 
@@ -28,6 +39,7 @@ watch(baselineSessionId, async (sessionId) => {
   if (!sessionId) return
   try {
     baseline.value = (await api.get<ApiEnvelope<Evaluation>>(`/evaluations/${sessionId}`)).data.data
+    reviewSession.value = (await api.get<ApiEnvelope<TrainingSession>>(`/training-sessions/${sessionId}`)).data.data
   } catch {
     // 复盘只是补充信息，取不到不影响任务执行
   }
@@ -56,7 +68,7 @@ async function complete(taskKey: string, evidence?: string): Promise<void> {
         <div class="progress-row">
           <span class="num">{{ completedCount }} / {{ totalCount }}</span>
           <i class="bar"><b :style="{ width: `${plan.progress}%` }" /></i>
-          <span class="status">{{ plan.status === 'COMPLETED' ? '已完成' : '进行中' }}</span>
+          <span class="status">{{ plan.status === 'COMPLETED' ? '已完成' : plan.status === 'SUPERSEDED' ? '已被替代' : '进行中' }}</span>
         </div>
       </header>
 
@@ -83,6 +95,20 @@ async function complete(taskKey: string, evidence?: string): Promise<void> {
 
         <p class="review-summary">{{ baseline.summary }}</p>
         <p v-if="baseline.styleTags.length" class="review-tags">表达风格：{{ baseline.styleTags.join(' · ') }}</p>
+
+        <div v-if="rounds.length" class="turns">
+          <p class="turns-head">逐轮回看 · 共 {{ rounds.length }} 轮回答</p>
+          <details v-for="turn in rounds" :key="turn.roundNo" class="turn">
+            <summary>
+              <span class="turn-no num">第 {{ turn.roundNo }} 轮</span>
+              <span class="turn-question">{{ turn.question || "场景开场" }}</span>
+            </summary>
+            <div class="turn-body">
+              <p class="turn-answer">{{ turn.answer }}</p>
+              <p v-if="turn.flags.length" class="turn-flags">表达提醒：{{ turn.flags.join("、") }}</p>
+            </div>
+          </details>
+        </div>
       </section>
 
       <section class="task-list" aria-label="训练计划任务">
@@ -158,6 +184,18 @@ async function complete(taskKey: string, evidence?: string): Promise<void> {
 .review-stats strong.num { font-family: var(--font-num); }
 .review-summary { max-width: 72ch; margin: 18px 0 0; color: var(--text-2); font-size: 13px; line-height: 1.95; }
 .review-tags { margin: 10px 0 0; color: var(--text-3); font-size: 11px; letter-spacing: .06em; }
+
+.turns { margin-top: 26px; }
+.turns-head { margin: 0 0 10px; color: var(--text-3); font-size: 11px; letter-spacing: .12em; }
+.turn { border-bottom: 1px solid var(--divider); }
+.turn summary { display: flex; align-items: baseline; gap: 14px; padding: 12px 2px; cursor: pointer; list-style: none; }
+.turn summary::-webkit-details-marker { display: none; }
+.turn-no { flex: none; color: var(--text-3); font-size: 11px; letter-spacing: .06em; }
+.turn-question { color: var(--text-2); font-size: 13px; line-height: 1.7; }
+.turn[open] .turn-question { color: var(--text); }
+.turn-body { padding: 0 2px 16px 62px; }
+.turn-answer { margin: 0; color: var(--text-2); font-size: 13px; line-height: 1.9; white-space: pre-wrap; }
+.turn-flags { margin: 8px 0 0; color: var(--warning); font-size: 11px; letter-spacing: .04em; }
 
 .text-link {
   color: var(--text-2);
