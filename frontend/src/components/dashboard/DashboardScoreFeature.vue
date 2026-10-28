@@ -149,19 +149,16 @@ function formatDate(value: string): string {
 }
 
 :root[data-theme='dark'] .hero {
-  background: linear-gradient(180deg, rgba(30, 38, 48, .72), rgba(15, 19, 25, .82));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 24px 60px rgba(0, 0, 0, .38);
-  backdrop-filter: blur(18px) saturate(125%);
+  background: var(--card);
 }
 :root[data-theme='dark'] .cta {
-  border-color: rgba(88, 196, 230, .42);
-  background: linear-gradient(180deg, rgba(88, 196, 230, .26), rgba(88, 196, 230, .12));
-  color: #e6f8ff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 10px 26px rgba(0, 0, 0, .32);
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-solid);
 }
 :root[data-theme='dark'] .cta:hover {
-  background: linear-gradient(180deg, rgba(88, 196, 230, .4), rgba(88, 196, 230, .22));
-  border-color: rgba(88, 196, 230, .7);
-  color: #f2fcff;
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: var(--on-solid);
 }
 </style>
