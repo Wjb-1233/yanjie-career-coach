@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>面试情景模拟训练与话术优化系统 · 启动指南</title>
+  <style>
+    :root {
+      --ink: #132d31;
+      --muted: #526b70;
+      --line: #cddcd8;
+      --paper: #f4f8f6;
+      --white: #ffffff;
+      --mint: #d8f3e9;
+      --teal: #077868;
+      --coral: #e78969;
+      --code: #173a3b;
+      font-family: "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid var(--coral); outline-offset: 3px; }
+    .topbar { border-bottom: 1px solid var(--line); background: rgba(255,255,255,.86); }
+    .topbar-inner { max-width: 1180px; padding: 16px 28px; margin: auto; display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+    .brand { font-size: 19px; font-weight: 800; letter-spacing: .08em; }
+    .brand span { color: var(--teal); }
+    .topbar small { color: var(--muted); font-size: 13px; }
+    main { max-width: 1180px; margin: auto; padding: 0 28px 80px; }
+    .hero { padding: 68px 0 54px; display: grid; grid-template-columns: minmax(0, 1fr) 245px; gap: 38px; align-items: end; }
+    .eyebrow { color: var(--teal); font-size: 13px; font-weight: 800; letter-spacing: .18em; margin: 0 0 16px; }
+    h1, h2, h3 { font-family: "Songti SC", "SimSun", serif; }
+    h1 { font-size: clamp(43px, 6vw, 76px); line-height: 1.15; margin: 0 0 20px; letter-spacing: -.04em; }
+    .lead { font-size: 18px; line-height: 1.8; color: var(--muted); max-width: 720px; margin: 0; }
+    .hero-note { border-left: 4px solid var(--coral); padding: 8px 0 8px 18px; color: var(--muted); line-height: 1.7; font-size: 14px; }
+    .hero-note strong { color: var(--ink); display: block; font-size: 17px; margin-bottom: 4px; }
+    .strip { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); background: var(--white); border-radius: 18px; overflow: hidden; }
+    .strip div { padding: 19px 20px; border-right: 1px solid var(--line); }
+    .strip div:last-child { border-right: 0; }
+    .strip b { display: block; font-size: 13px; color: var(--teal); margin-bottom: 7px; }
+    .strip span { font-size: 15px; font-weight: 700; }
+    .layout { margin-top: 48px; display: grid; grid-template-columns: 224px minmax(0, 1fr); gap: 38px; align-items: start; }
+    nav { position: sticky; top: 20px; }
+    nav p { color: var(--muted); font-size: 12px; letter-spacing: .12em; margin: 0 0 15px; }
+    nav a { display: block; color: var(--muted); text-decoration: none; padding: 11px 12px; border-radius: 10px; line-height: 1.45; }
+    nav a:hover { background: var(--mint); color: var(--ink); }
+    nav .aside { margin-top: 24px; font-size: 13px; line-height: 1.7; color: var(--muted); border-top: 1px solid var(--line); padding-top: 18px; }
+    section { scroll-margin-top: 28px; margin-bottom: 46px; }
+    .section-label { color: var(--teal); font-size: 12px; font-weight: 800; letter-spacing: .14em; margin: 0 0 10px; }
+    h2 { font-size: clamp(27px, 3vw, 37px); line-height: 1.25; margin: 0 0 17px; }
+    .section-intro { color: var(--muted); line-height: 1.8; margin: 0 0 22px; }
+    .step { background: var(--white); border: 1px solid var(--line); border-radius: 18px; padding: 26px 28px; margin-bottom: 14px; display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 16px; box-shadow: 0 8px 28px rgba(19,45,49,.04); }
+    .step-no { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; background: var(--mint); color: var(--teal); font-weight: 900; font-size: 15px; }
+    .step h3 { margin: 1px 0 9px; font-size: 25px; }
+    .step p, .panel p, .panel li { line-height: 1.8; color: var(--muted); margin: 0 0 12px; }
+    .step p:last-child { margin-bottom: 0; }
+    .codebox { background: var(--code); border-radius: 12px; margin: 16px 0; overflow: hidden; }
+    .code-head { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px 4px 18px; color: #a6cbc3; font-size: 12px; }
+    .copy { border: 1px solid #6b9992; border-radius: 7px; background: transparent; color: #e4faf1; padding: 6px 10px; cursor: pointer; font: inherit; }
+    .copy:hover { background: rgba(255,255,255,.12); }
+    pre { margin: 0; padding: 8px 18px 18px; overflow-x: auto; color: #f2fff9; font: 14px/1.65 Consolas, "Cascadia Code", monospace; white-space: pre; }
+    code { font: .95em Consolas, "Cascadia Code", monospace; background: #e9f2ef; border-radius: 4px; padding: 2px 5px; color: #174747; }
+    .hint { border-radius: 10px; background: #eff9f5; border-left: 3px solid var(--teal); padding: 12px 14px; color: #365d58 !important; }
+    .panel { border: 1px solid var(--line); background: var(--white); border-radius: 18px; padding: 26px 28px; margin-bottom: 14px; }
+    .panel h3 { margin: 0 0 10px; font-size: 24px; }
+    .panel ul { margin: 7px 0 0; padding-left: 21px; }
+    .link-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+    .link-row a { text-decoration: none; border-radius: 10px; padding: 11px 15px; font-weight: 700; color: var(--white); background: var(--teal); }
+    .link-row a.secondary { color: var(--teal); background: var(--mint); }
+    details { border: 1px solid var(--line); border-radius: 12px; padding: 0 19px; margin-bottom: 10px; background: var(--white); }
+    summary { cursor: pointer; padding: 17px 0; font-weight: 700; }
+    details p, details ul { color: var(--muted); line-height: 1.8; margin: 0 0 16px; }
+    .footer { border-top: 1px solid var(--line); padding-top: 22px; color: var(--muted); font-size: 13px; line-height: 1.8; }
+    @media (max-width: 850px) {
+      .hero { grid-template-columns: 1fr; gap: 20px; padding-top: 48px; }
+      .layout { grid-template-columns: 1fr; gap: 12px; }
+      nav { position: static; display: flex; flex-wrap: wrap; gap: 4px; }
+      nav p, nav .aside { display: none; }
+      nav a { font-size: 13px; padding: 9px 10px; }
+    }
+    @media (max-width: 620px) {
+      main { padding: 0 16px 54px; }
+      .topbar-inner { padding: 14px 16px; }
+      .topbar small { display: none; }
+      .strip { grid-template-columns: 1fr 1fr; }
+      .strip div:nth-child(2) { border-right: 0; }
+      .strip div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+      .step { grid-template-columns: 1fr; padding: 21px; gap: 8px; }
+      .panel { padding: 21px; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+  <header class="topbar"><div class="topbar-inner"><div class="brand">言阶 <span>/ 启动指南</span></div><small>本地运行 · PyCharm + 浏览器</small></div></header>
+  <main>
+    <div class="hero">
+      <div>
+        <p class="eyebrow">GRADUATION PROJECT / QUICK START</p>
+        <h1>打开项目，<br>开始对练。</h1>
+        <p class="lead">尽量不用终端：在 Docker Desktop 启动数据服务，在 PyCharm 点击后端和前端的运行按钮，最后打开浏览器。</p>
+      </div>
+      <div class="hero-note"><strong>这是一份操作指南</strong>网页只负责告诉你点哪里；它不会读取密钥，也不会自动启动服务。首次设置看下方。</div>
+    </div>
+    <div class="strip" aria-label="启动顺序">
+      <div><b>01 / 数据服务</b><span>Docker Desktop</span></div>
+      <div><b>02 / Python 后端</b><span>PyCharm 运行</span></div>
+      <div><b>03 / Vue 前端</b><span>PyCharm 点 dev</span></div>
+      <div><b>04 / 打开页面</b><span>localhost:5173</span></div>
+    </div>
+    <div class="layout">
+      <nav aria-label="页面目录">
+        <p>跳转到</p>
+        <a href="#daily">以后每天启动</a>
+        <a href="#first">第一次准备</a>
+        <a href="#check">检查是否成功</a>
+        <a href="#help">遇到问题</a>
+        <div class="aside">项目位置<br><strong>D:\graduation_design</strong></div>
+      </nav>
+      <div>
+        <section id="daily">
+          <p class="section-label">DAILY START / 每次启动</p>
+          <h2>照着这四步走</h2>
+          <p class="section-intro">先打开 Docker Desktop。第一次运行，或看不到下面说的按钮，请先完成<a href="#first">第一次准备</a>。</p>
+
+          <article class="step">
+            <div class="step-no">01</div><div>
+              <h3>启动数据服务</h3>
+              <p>Docker Desktop 打开 <strong>Containers</strong>。如果有 <strong>career-coach</strong>，点这一行右侧的启动按钮；没有的话，在 PyCharm 右键项目根目录的 <code>docker-compose.yml</code>，选 <strong>Run</strong>，它会创建并启动服务。</p>
+              <p class="hint">等待 MySQL、Redis、Milvus 显示运行中或 healthy，再启动后端。首次下载镜像可能较慢。PyCharm 没有 Run 选项？看<a href="#docker-gui">首次配置 Docker</a>。</p>
+            </div>
+          </article>
+
+          <article class="step">
+            <div class="step-no">02</div><div>
+              <h3>运行 Python 后端</h3>
+              <p>在 PyCharm 右上角选择 <strong>FastAPI 后端</strong>，点击绿色三角形。控制台出现 <code>Application startup complete</code> 就成功。</p>
+              <p>还没有这个运行配置？看下面的<a href="#pycharm">第一次设置 PyCharm</a>。</p>
+            </div>
+          </article>
+
+          <article class="step">
+            <div class="step-no">03</div><div>
+              <h3>运行 Vue 前端</h3>
+              <p>在 PyCharm 打开 <code>frontend/package.json</code>，找到 <code>scripts</code> 里的 <code>dev</code>，点击左侧绿色运行三角；也可以在 <strong>npm</strong> 工具窗口双击 <strong>dev</strong>。保持后端运行。</p>
+            </div>
+          </article>
+
+          <article class="step">
+            <div class="step-no">04</div><div>
+              <h3>打开训练平台</h3>
+              <p>浏览器打开下面的地址。登录后就可以选场景、对话、看评分和训练计划。</p>
+              <div class="link-row"><a href="http://localhost:5173" target="_blank" rel="noopener noreferrer">打开言阶平台 ↗</a><a class="secondary" href="http://localhost:5173/downloads/yanjie-android-test.apk" download="言阶-安卓测试版.apk">下载安卓 App ↓</a><a class="secondary" href="http://127.0.0.1:8081/docs" target="_blank" rel="noopener noreferrer">查看后端接口 ↗</a></div>
+              <p style="margin-top:12px">手机与电脑在同一可互访的局域网时，安装 APK 后可访问电脑运行的服务。</p>
+              <p style="margin-top:16px">学员账号：<code>student@example.com</code> / <code>Student123!</code></p>
+            </div>
+          </article>
+        </section>
+
+        <section id="first">
+          <p class="section-label">ONE-TIME SETUP / 只做一次</p>
+          <h2>第一次准备</h2>
+          <div class="panel">
+            <h3>① 复制配置，填大模型 Key</h3>
+            <p>先用安装程序装好 Docker Desktop、Python 3.10+ 和 Node.js。用 Windows 文件资源管理器打开 <code>D:\graduation_design</code>，复制 <code>.env.example</code>，把副本重命名为 <code>.env</code>。如果看不到副本，先在资源管理器的“查看”里打开<strong>文件扩展名</strong>和<strong>隐藏的项目</strong>。</p>
+            <p>用 PyCharm 打开根目录的 <code>.env</code>，把 <code>LLM_API_KEY=</code> 后面填成你自己的 DeepSeek Key。不要把 Key 发给别人或写进网页。项目默认的 MySQL、Redis、Milvus 地址已经在模板里。</p>
+            <p class="hint">如果你已经有 <code>.env</code>，不要再次覆盖，直接检查 Key 即可。</p>
+          </div>
+          <div class="panel" id="docker-gui">
+            <h3>② 让 PyCharm 识别 Docker Compose</h3>
+            <p>先启动 Docker Desktop。在 PyCharm 的 <strong>Settings → Plugins</strong> 中确认 <strong>Docker</strong> 插件已启用；需要时安装插件并重启 PyCharm。再到 <strong>Settings → Build, Execution, Deployment → Docker</strong> 添加 Docker Desktop 连接。右键 <code>docker-compose.yml</code> 选 <strong>Run</strong>。首次运行会自动创建名为 <code>career-coach</code> 的容器组，以后可直接在 Docker Desktop 的 <strong>Containers</strong> 页面点启动。</p>
+            <p class="hint">如果你的 PyCharm 版本没有 Docker 功能，展开下方“没有 Docker 按钮怎么办”，有一条备用命令；后端和前端仍可在 PyCharm 里点运行。</p>
+          </div>
+          <div class="panel" id="pycharm">
+            <h3>③ 在 PyCharm 设置后端</h3>
+            <p>打开 <code>D:\graduation_design</code>，解释器选择 <code>D:\graduation_design\backend\.venv\Scripts\python.exe</code>。右上角点 <strong>Add Configuration → + → Python</strong>，填写：</p>
+            <ul>
+              <li><strong>Name：</strong>FastAPI 后端</li>
+              <li><strong>Module name：</strong><code>uvicorn</code>（选择 Module name，不是 Script path）</li>
+              <li><strong>Parameters：</strong><code>app.main:app --host 127.0.0.1 --port 8081 --reload</code></li>
+              <li><strong>Working directory：</strong><code>D:\graduation_design\backend</code></li>
+              <li><strong>Interpreter：</strong><code>D:\graduation_design\backend\.venv\Scripts\python.exe</code></li>
+            </ul>
+            <p>如果没有 <code>.venv</code>：打开 <strong>Settings → Project → Python Interpreter → Add Interpreter → Add Local Interpreter → Virtualenv</strong>，位置选 <code>D:\graduation_design\backend\.venv</code>。然后打开 <code>backend/requirements.txt</code>，点击顶部的 <strong>Install requirements</strong> 提示安装依赖；已经装好的无需重复安装。</p>
+          </div>
+          <div class="panel">
+            <h3>④ 安装前端依赖</h3>
+            <p>如果 <code>frontend/node_modules</code> 已存在，可跳过。否则在 PyCharm 右键 <code>frontend/package.json</code>，选择 <strong>Run 'npm install'</strong>；等安装结束，再点 <code>dev</code> 左侧的运行三角。</p>
+          </div>
+        </section>
+
+        <section id="check">
+          <p class="section-label">CHECK / 看是否跑通</p>
+          <h2>三个检查点</h2>
+          <div class="panel">
+            <ul>
+              <li><strong>Docker：</strong>在 Docker Desktop → Containers 展开 <code>career-coach</code>，查看 MySQL、Redis、Milvus 是否运行并通过健康检查。</li>
+              <li><strong>后端：</strong>打开 <a href="http://127.0.0.1:8081/api/v1/ready" target="_blank" rel="noopener noreferrer">/api/v1/ready ↗</a>，查看 database、sessionState、vectorStore。真实大模型 Key 生效时 llm 应为 ok。</li>
+              <li><strong>前端：</strong>打开 <a href="http://localhost:5173" target="_blank" rel="noopener noreferrer">localhost:5173 ↗</a>，用学员账号登录，进入“场景”开始训练。</li>
+            </ul>
+            <p class="hint">Attu 是查看 Milvus 的桌面工具；连接地址 <code>http://localhost:19530</code>，Token <code>root:Milvus</code>。它不用在 PyCharm 中启动。</p>
+          </div>
+        </section>
+
+        <section id="help">
+          <p class="section-label">HELP / 常见问题</p>
+          <h2>如果没打开</h2>
+          <details><summary>前端提示无法连接服务</summary><p>先看 PyCharm 后端运行窗口是否还在运行；再打开 <a href="http://127.0.0.1:8081/docs" target="_blank" rel="noopener noreferrer">127.0.0.1:8081/docs</a>。如果这个地址也打不开，先解决后端启动错误。</p></details>
+          <details><summary>后端提示数据库连接失败</summary><p>打开 Docker Desktop → Containers，确认 <code>career-coach</code> 中 MySQL、Redis、Milvus 正在运行，并等待健康检查通过。Docker Redis 在本机使用 <code>6380</code>，Milvus 使用 <code>19530</code>。</p></details>
+          <details><summary>能对话，但一直显示本地教练模式</summary><p>检查 <code>D:\graduation_design\.env</code> 的 <code>LLM_API_KEY</code>、<code>LLM_BASE_URL</code>、<code>LLM_MODEL</code>；保存后重启 PyCharm 的后端。</p></details>
+          <details><summary>没有 Docker 按钮怎么办？</summary><p>确认 Docker Desktop 正在运行。如果 PyCharm 中仍无 Docker 插件或无法连接，可在 PyCharm 中右键项目根文件夹 <code>D:\graduation_design</code>，选 <strong>Open in Terminal</strong>，仅执行一次下面的备用命令。之后容器会出现在 Docker Desktop，日常可点按钮启动。</p><div class="codebox"><div class="code-head"><span>备用 · 首次创建容器</span><button class="copy" type="button" data-copy>复制</button></div><pre>docker compose up -d</pre></div></details>
+          <details><summary>看不到前端 dev 运行按钮？</summary><p>先确认 Node.js 已安装，PyCharm 已启用 JavaScript/npm 支持。仍没有按钮时，在 PyCharm 的 <code>frontend</code> 文件夹上右键选择 <strong>Open in Terminal</strong>，执行一次备用命令：</p><div class="codebox"><div class="code-head"><span>备用 · 前端运行</span><button class="copy" type="button" data-copy>复制</button></div><pre>npm run dev</pre></div></details>
+          <details><summary>怎么关闭项目？</summary><p>在 PyCharm 的 <strong>Run</strong> 窗口分别停止后端和前端；如需停止数据服务，在 Docker Desktop → Containers 找到 <code>career-coach</code>，点停止按钮。不要点删除，数据会留在原来的 Docker 数据卷里。</p></details>
+        </section>
+        <div class="footer">面试情景模拟训练与话术优化系统<br>本页是离线文件，双击即可打开；页面不读取你的 Key，也不会自动启动本机服务。</div>
+      </div>
+    </div>
+  </main>
+  <script>
+    document.querySelectorAll('[data-copy]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const value = button.closest('.codebox').querySelector('pre').textContent.trim();
+        try {
+          if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
+          await navigator.clipboard.writeText(value);
+        } catch {
+          const input = document.createElement('textarea');
+          input.value = value;
+          input.style.position = 'fixed';
+          input.style.left = '-9999px';
+          document.body.appendChild(input);
+          input.select();
+          const copied = document.execCommand('copy');
+          input.remove();
+          if (!copied) { button.textContent = '请手动选中复制'; return; }
+        }
+        button.textContent = '已复制';
+        window.setTimeout(() => { button.textContent = '复制'; }, 1800);
+      });
+    });
+  </script>
+</body>
+</html>
