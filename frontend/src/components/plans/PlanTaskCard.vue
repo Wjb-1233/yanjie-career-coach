@@ -10,6 +10,7 @@ const props = defineProps<{
   submitting: boolean
   locked: boolean
   showAction?: boolean
+  suggestions?: Array<{ roundNo: number; problem: string; original: string; rewrite: string }>
   stepNumber: number
 }>()
 const emit = defineEmits<{ complete: [taskKey: string, evidence?: string] }>()
@@ -48,7 +49,15 @@ function submitRewrite(): void {
 
       <template v-else-if="!task.completed">
         <div v-if="task.actionType === 'REWRITE'" class="rewrite">
-          <RouterLink v-if="task.sourceSessionId" class="text-link" :to="`/report/${task.sourceSessionId}`">先看原评分建议 →</RouterLink>
+          <div v-if="suggestions && suggestions.length" class="refs">
+            <p class="refs-head">对照建议，挑 1–2 轮重写</p>
+            <div v-for="(item, index) in suggestions.slice(0, 3)" :key="index" class="ref">
+              <span class="ref-round">第 {{ item.roundNo }} 轮 · {{ item.problem }}</span>
+              <p class="ref-line"><b>你的原话</b>{{ item.original || '未记录原文' }}</p>
+              <p class="ref-line ref-fix"><b>建议</b>{{ item.rewrite }}</p>
+            </div>
+          </div>
+          <RouterLink v-if="task.sourceSessionId" class="text-link" :to="`/report/${task.sourceSessionId}`">查看完整评分报告 →</RouterLink>
           <textarea
             v-model="rewrite"
             class="field"
@@ -105,6 +114,15 @@ function submitRewrite(): void {
 
 .action { margin-top: 14px; min-height: 34px; padding: 0 16px; font-size: 12px; }
 .rewrite { display: grid; gap: 10px; margin-top: 12px; }
+.refs { display: grid; gap: 12px; padding: 16px 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2); }
+.refs-head { margin: 0; color: var(--text-3); font-size: 11px; letter-spacing: .12em; }
+.ref { display: grid; gap: 6px; padding-top: 12px; border-top: 1px solid var(--divider); }
+.ref:first-of-type { padding-top: 0; border-top: 0; }
+.ref-round { color: var(--text-2); font-size: 12px; letter-spacing: .04em; }
+.ref-line { margin: 0; color: var(--text-3); font-size: 12px; line-height: 1.8; }
+.ref-line b { display: inline-block; margin-right: 8px; color: var(--text-3); font-weight: 400; letter-spacing: .08em; }
+.ref-fix { color: var(--text); }
+.ref-fix b { color: var(--text-3); }
 .rewrite .field { resize: vertical; }
 .feedback { margin: 12px 0 0; color: var(--text-2); font-size: 12px; line-height: 1.8; }
 .feedback.pending { color: var(--warning); }

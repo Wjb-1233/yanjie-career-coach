@@ -137,8 +137,8 @@ def test_training_plan_can_be_opened_and_checked_in() -> None:
         plan = plans.json()["data"][0]
         assert plan["progress"] == 0
         assert len(plan["tasks"]) == 4
-        assert [item["actionType"] for item in plan["tasks"]] == ["COURSE", "TRAINING", "REWRITE", "RETEST"]
-        practice_task = plan["tasks"][1]
+        assert [item["actionType"] for item in plan["tasks"]] == ["REWRITE", "COURSE", "TRAINING", "RETEST"]
+        practice_task = plan["tasks"][2]
         assert practice_task["sceneId"].startswith("scene-foundation-")
         assert practice_task["sourceSessionId"] == session_id
         premature = client.post(
