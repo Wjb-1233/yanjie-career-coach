@@ -62,7 +62,7 @@ function formatDate(value: string): string {
 
         <section class="section" aria-label="练习计划">
       <header class="section-head">
-        <h2 class="label">接下来怎么练</h2>
+        <h2 class="label"><span class="step">01</span>接下来怎么练</h2>
         <span class="note">{{ activePlans.length ? `${activePlans.length} 份进行中` : '暂无进行中的计划' }}</span>
       </header>
 
@@ -80,7 +80,7 @@ function formatDate(value: string): string {
             <i><b :style="{ width: `${primaryPlan.progress}%` }" /></i>
             <span class="num">{{ primaryPlan.progress }}%</span>
           </div>
-          <span class="plan-cta">
+          <span class="cta-button">
             继续这份计划
             <svg width="14" height="10" viewBox="0 0 14 10" fill="none" aria-hidden="true">
               <path d="M1 5h11M8.5 1.5 12 5l-3.5 3.5" stroke="currentColor" stroke-width="1.1" />
@@ -96,6 +96,7 @@ function formatDate(value: string): string {
                 <span class="compact-title">{{ plan.title }}</span>
                 <span class="compact-meta">{{ plan.focusDimension }} · {{ completedCount(plan) }} / {{ plan.tasks.length }} 项</span>
                 <span class="num compact-percent">{{ plan.progress }}%</span>
+                <span class="chev" aria-hidden="true">→</span>
               </RouterLink>
             </li>
           </ul>
@@ -108,7 +109,8 @@ function formatDate(value: string): string {
               <RouterLink :to="`/plans/${plan.id}`">
                 <span class="compact-title">{{ plan.title }}</span>
                 <span class="compact-meta">{{ plan.focusDimension }} · {{ formatDate(plan.createdAt) }}</span>
-                <span class="compact-percent">查看 →</span>
+                <span class="num compact-percent">{{ plan.progress }}%</span>
+                <span class="chev" aria-hidden="true">→</span>
               </RouterLink>
             </li>
           </ul>
@@ -120,7 +122,7 @@ function formatDate(value: string): string {
 
     <section v-if="abilityLoading || practice" class="section" aria-label="薄弱项单题改答">
       <header class="section-head">
-        <h2 class="label">单题改答</h2>
+        <h2 class="label"><span class="step">02</span>单题改答</h2>
         <span class="note">针对最近一次报告的最弱项</span>
       </header>
 
@@ -174,26 +176,30 @@ function formatDate(value: string): string {
 .plan-progress i { flex: 1; height: 2px; background: var(--track); }
 .plan-progress i b { display: block; height: 100%; background: var(--accent); }
 .plan-progress .num { color: var(--text-2); font-family: var(--font-num); font-size: 12px; letter-spacing: .02em; }
-.plan-cta {
+.cta-button {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  margin-top: 24px;
-  color: var(--text);
+  margin-top: 22px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--text);
+  color: var(--on-solid);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: .04em;
+  transition: background var(--ease), color var(--ease);
 }
-.plan-cta svg { transition: transform var(--ease); }
-.plan-cta:hover { color: var(--accent-strong); }
-.plan-cta:hover svg { transform: translateX(3px); }
+.cta-button svg { transition: transform var(--ease); }
+.plan-featured:hover .cta-button { background: var(--accent); color: #fff; }
+.plan-featured:hover .cta-button svg { transform: translateX(3px); }
 
 .plan-more { margin-top: 32px; }
 .sub-label { margin: 0 0 6px; color: var(--text-3); font-size: 11px; letter-spacing: .14em; }
 .compact-list { margin: 0; padding: 0; list-style: none; }
 .compact-list a {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 46px;
+  grid-template-columns: minmax(0, 1fr) auto 46px 14px;
   align-items: baseline;
   gap: 18px;
   padding: 14px 2px;
@@ -205,6 +211,9 @@ function formatDate(value: string): string {
 .compact-meta { color: var(--text-3); font-size: 11px; letter-spacing: .04em; white-space: nowrap; }
 .compact-percent { color: var(--text-3); font-family: var(--font-num); font-size: 12px; text-align: right; white-space: nowrap; }
 .compact-list a:hover .compact-title { color: var(--text); }
+.chev { color: var(--text-3); font-size: 12px; text-align: right; transition: color var(--ease), transform var(--ease); }
+.compact-list a:hover .chev { color: var(--text); transform: translateX(2px); }
+.step { margin-right: 10px; color: var(--text-3); font-family: var(--font-num); letter-spacing: .08em; }
 
 @media (max-width: 640px) {
   .plan-featured { padding: 22px; }
