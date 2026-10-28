@@ -268,24 +268,15 @@ async function signOut() {
 }
 
 :root[data-theme='dark'] .topbar {
-  background: rgba(11, 14, 19, .74);
-  border-bottom-color: rgba(255, 255, 255, .07);
-  backdrop-filter: blur(18px) saturate(125%);
-  -webkit-backdrop-filter: blur(18px) saturate(125%);
+  background: rgba(11, 14, 19, .92);
+  border-bottom-color: var(--border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 :root[data-theme='dark'] .sidebar {
-  background: rgba(13, 17, 23, .62);
-  border-right-color: rgba(255, 255, 255, .06);
-  backdrop-filter: blur(18px) saturate(120%);
-  -webkit-backdrop-filter: blur(18px) saturate(120%);
+  background: var(--bg-2);
+  border-right-color: var(--border);
 }
-:root[data-theme='dark'] .nav { gap: 2px; padding: 0 12px; }
-:root[data-theme='dark'] .nav-link { padding: 9px 14px; border-radius: 7px; }
-:root[data-theme='dark'] .nav-link:hover { background: rgba(255, 255, 255, .05); color: var(--text); }
-:root[data-theme='dark'] .nav-link.active {
-  background: rgba(88, 196, 230, .12);
-  color: #d3f1fb;
-  box-shadow: inset 0 0 0 1px rgba(88, 196, 230, .22);
-}
-:root[data-theme='dark'] .nav-link.active::before { display: none; }
+:root[data-theme='dark'] .nav-link:hover { color: var(--text-2); background: transparent; }
+:root[data-theme='dark'] .nav-link.active { color: var(--text); background: transparent; box-shadow: none; }
 </style>

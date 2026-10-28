@@ -253,7 +253,7 @@ function stateOf(task: TrainingPlanTask | null): TaskState {
 .round-a { margin: 8px 0 0 50px; color: var(--text-2); font-size: 13px; line-height: 1.9; white-space: pre-wrap; }
 .round.flagged .round-a { color: var(--text); }
 
-.note { position: relative; margin: 12px 0 0 50px; padding: 12px 16px; border-radius: var(--radius-sm); background: var(--bg-2); }
+.note { position: relative; margin: 12px 0 0 50px; padding: 12px 16px; border-radius: var(--radius-sm); background: var(--card-2); }
 .note::before { content: ''; position: absolute; top: 12px; bottom: 12px; left: 0; width: 2px; background: var(--accent); }
 .note-label { display: block; margin-bottom: 6px; color: var(--accent-strong); font-size: 10px; letter-spacing: .2em; }
 .note p { margin: 0; color: var(--text-2); font-size: 12.5px; line-height: 1.9; }
