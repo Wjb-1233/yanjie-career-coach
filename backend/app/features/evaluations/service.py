@@ -5,8 +5,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppError, not_found
-from app.db.models import Evaluation, EvaluationEvidence, Message, ResumeContext, Scene, TrainingPlan, TrainingSession
+from app.db.models import Course, Evaluation, EvaluationEvidence, Message, ResumeContext, Scene, TrainingPlan, TrainingSession
 from app.features.evaluations.schemas import DimensionScores, EvidenceDraft, EvidenceView, EvaluationPayload, EvaluationView
+from app.features.plans.generation import fallback_plan, generate_plan
 from app.infrastructure.llm import llm_gateway
 
 logger = logging.getLogger(__name__)
@@ -141,15 +142,52 @@ async def create_training_plan(
     if recommended_scene is None or not recommended_scene.active:
         raise RuntimeError(f"Missing active foundation scene for {weakest_key}")
     original_scene = await session.get(Scene, training.scene_id)
+    course = await session.scalar(
+        select(Course)
+        .where(Course.dimension == focus, Course.active.is_(True))
+        .order_by(Course.created_at)
+        .limit(1)
+    )
+    course_title = course.title if course else f"{focus}沟通技巧"
+    course_content = course.content if course else "结论先行；使用事实；明确下一步"
+    if allow_generation:
+        draft = await generate_plan(
+            focus=focus,
+            scores=score_values,
+            suggestions=evaluation.suggestions,
+            user_lines=[message.content for message in user_messages],
+            scene_title=original_scene.title if original_scene else "原场景",
+            course_title=course_title,
+            course_content=course_content,
+        )
+    else:
+        draft = fallback_plan(focus, course_title, course_content)
+    lesson = draft.lesson.model_dump(by_alias=True)
     plan = TrainingPlan(
         user_id=user_id,
         focus_dimension=focus,
-        title=f"{focus}专项提升：练习后回到原场景复测",
+        title=draft.title,
         tasks=[
             {
-                "key": "practice",
+                "key": "course",
                 "day": 1,
-                "task": f"进入“{recommended_scene.title}”场景，与角色完成至少 6 轮对练，重点练习{focus}",
+                "task": f"学习微课《{lesson['title']}》，按三个步骤完成表达练习",
+                "actionType": "COURSE",
+                "courseId": course.id if course else None,
+                "lesson": lesson,
+                "completedSteps": [],
+                "practiceAnswer": None,
+                "practiceFeedback": None,
+                "practicePassed": False,
+                "practiceDegraded": False,
+                "completed": False,
+                "completedAt": None,
+                "evidence": None,
+            },
+            {
+                "key": "practice",
+                "day": 2,
+                "task": draft.practice_task,
                 "actionType": "TRAINING",
                 "sceneId": recommended_scene.id,
                 "sourceSessionId": training.id,
@@ -158,9 +196,19 @@ async def create_training_plan(
                 "evidence": None,
             },
             {
+                "key": "rewrite",
+                "day": 3,
+                "task": draft.rewrite_task,
+                "actionType": "REWRITE",
+                "sourceSessionId": training.id,
+                "completed": False,
+                "completedAt": None,
+                "evidence": None,
+            },
+            {
                 "key": "retest",
-                "day": 2,
-                "task": f"回到“{original_scene.title if original_scene else '原场景'}”完成新一轮训练，比较{focus}评分变化",
+                "day": 4,
+                "task": draft.retest_task,
                 "actionType": "RETEST",
                 "sceneId": training.scene_id,
                 "sourceSessionId": training.id,
