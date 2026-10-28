@@ -28,6 +28,10 @@ async function load(): Promise<void> {
   }
 }
 
+function stepName(actionType: string): string {
+  return actionType === 'REWRITE' ? '逐轮复盘 · 批注' : actionType === 'COURSE' ? '学习微课' : '专项练习'
+}
+
 function completedCount(plan: TrainingPlan): number {
   return plan.tasks.filter((task) => task.completed).length
 }
@@ -45,7 +49,7 @@ function formatDate(value: string): string {
       <div>
         <p class="eyebrow">能力提升</p>
         <h1 class="page-title">把一次评分，<br />变成一条练习线。</h1>
-        <p class="page-lead">每份计划由最近一次评分里最弱的一维生成：先逐轮复盘批注，再学习一门针对性微课。</p>
+        <p class="page-lead">每份计划由最近一次评分里最弱的一维生成，两步走完：先复盘批注，再学微课。</p>
       </div>
       <RouterLink class="button secondary" to="/scenes">开始新训练</RouterLink>
     </header>
@@ -66,18 +70,23 @@ function formatDate(value: string): string {
 
       <template v-else>
         <RouterLink v-if="primaryPlan" class="plan-featured" :to="`/plans/${primaryPlan.id}`">
-          <p class="plan-meta">{{ primaryPlan.focusDimension }} · 已完成 {{ completedCount(primaryPlan) }} / {{ primaryPlan.tasks.length }} 项 · {{ formatDate(primaryPlan.createdAt) }}</p>
+          <header class="plan-top">
+            <span class="focus-tag">{{ primaryPlan.focusDimension }}</span>
+            <span class="plan-date">{{ formatDate(primaryPlan.createdAt) }}</span>
+            <span class="plan-pct num">{{ primaryPlan.progress }}%</span>
+          </header>
           <h3>{{ primaryPlan.title }}</h3>
-          <div class="plan-progress">
-            <i><b :style="{ width: `${primaryPlan.progress}%` }" /></i>
-            <span class="num">{{ primaryPlan.progress }}%</span>
-          </div>
-          <span class="cta-button">
-            继续这份计划
-            <svg width="14" height="10" viewBox="0 0 14 10" fill="none" aria-hidden="true">
-              <path d="M1 5h11M8.5 1.5 12 5l-3.5 3.5" stroke="currentColor" stroke-width="1.1" />
-            </svg>
-          </span>
+          <ol class="plan-steps">
+            <li v-for="(task, index) in primaryPlan.tasks" :key="task.key" :class="{ done: task.completed }">
+              <span class="num">{{ String(index + 1).padStart(2, '0') }}</span>
+              <span class="step-name">{{ stepName(task.actionType) }}</span>
+              <span class="step-state">{{ task.completed ? '已完成' : '待完成' }}</span>
+            </li>
+          </ol>
+          <footer class="plan-foot">
+            <span class="progress"><i><b :style="{ width: `${primaryPlan.progress}%` }" /></i></span>
+            <span class="cta">继续这份计划 →</span>
+          </footer>
         </RouterLink>
 
         <div v-if="otherActivePlans.length" class="plan-more">
@@ -116,7 +125,8 @@ function formatDate(value: string): string {
 </template>
 
 <style scoped>
-.plans-page { max-width: 1080px; }
+.plans-page { max-width: 820px; }
+.plans-page .page-title { font-size: clamp(24px, 2.4vw, 30px); }
 
 .section { margin-top: 44px; }
 .section:first-of-type { margin-top: 8px; }
@@ -170,6 +180,56 @@ function formatDate(value: string): string {
 .cta-button svg { transition: transform var(--ease); }
 .plan-featured:hover .cta-button { background: var(--accent); color: #fff; }
 .plan-featured:hover .cta-button svg { transform: translateX(3px); }
+
+.plan-more { margin-top: 32px; }
+.sub-label { margin: 0 0 6px; color: var(--text-3); font-size: 11px; letter-spacing: .14em; }
+.compact-list { margin: 0; padding: 0; list-style: none; }
+.compact-list a {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 46px 14px;
+  align-items: baseline;
+  gap: 18px;
+  padding: 14px 2px;
+  border-bottom: 1px solid var(--divider);
+  transition: background var(--ease);
+}
+.compact-list a:hover { background: var(--overlay-1); }
+.compact-title { color: var(--text-2); font-size: 13px; line-height: 1.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.compact-meta { color: var(--text-3); font-size: 11px; letter-spacing: .04em; white-space: nowrap; }
+.compact-percent { color: var(--text-3); font-family: var(--font-num); font-size: 12px; text-align: right; white-space: nowrap; }
+.compact-list a:hover .compact-title { color: var(--text); }
+.chev { color: var(--text-3); font-size: 12px; text-align: right; transition: color var(--ease), transform var(--ease); }
+.compact-list a:hover .chev { color: var(--text); transform: translateX(2px); }
+.step { margin-right: 10px; color: var(--text-3); font-family: var(--font-num); letter-spacing: .08em; }
+
+@media (max-width: 640px) {
+  .plan-featured { padding: 22px; }
+  .compact-list a { grid-template-columns: minmax(0, 1fr) auto; row-gap: 4px; }
+  .compact-meta { grid-column: 1 / -1; order: 3; }
+}
+/* 当前计划：本页唯一的重点块 */
+.plan-featured { display: grid; gap: 0; margin-top: 20px; padding: 24px 26px 20px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); transition: border-color var(--ease); }
+.plan-featured:hover { border-color: var(--border-bright); }
+
+.plan-top { display: flex; align-items: baseline; gap: 12px; }
+.focus-tag { padding: 3px 8px; border: 1px solid var(--border-bright); border-radius: 3px; color: var(--text-2); font-size: 11px; letter-spacing: .06em; }
+.plan-date { color: var(--text-3); font-size: 11px; letter-spacing: .06em; }
+.plan-pct { margin-left: auto; color: var(--text-2); font-family: var(--font-num); font-size: 12px; }
+
+.plan-featured h3 { margin: 14px 0 0; color: var(--text); font-size: 18px; font-weight: 500; line-height: 1.5; letter-spacing: .01em; }
+
+.plan-steps { margin: 16px 0 0; padding: 14px 0 0; border-top: 1px solid var(--divider); list-style: none; display: grid; gap: 8px; }
+.plan-steps li { display: flex; align-items: baseline; gap: 12px; color: var(--text-2); font-size: 13px; }
+.plan-steps .num { color: var(--text-3); font-size: 11px; letter-spacing: .08em; }
+.plan-steps .step-name { flex: 1; }
+.plan-steps .step-state { color: var(--text-3); font-size: 11px; letter-spacing: .06em; }
+.plan-steps li.done .step-name { color: var(--text-3); }
+
+.plan-foot { display: flex; align-items: center; gap: 20px; margin-top: 18px; }
+.progress { flex: 1; height: 2px; background: var(--track); }
+.progress b { display: block; height: 100%; background: var(--accent); }
+.cta { color: var(--text); font-size: 13px; font-weight: 500; letter-spacing: .04em; transition: color var(--ease); }
+.plan-featured:hover .cta { color: var(--accent-strong); }
 
 .plan-more { margin-top: 32px; }
 .sub-label { margin: 0 0 6px; color: var(--text-3); font-size: 11px; letter-spacing: .14em; }
