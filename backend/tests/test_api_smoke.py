@@ -136,9 +136,9 @@ def test_training_plan_can_be_opened_and_checked_in() -> None:
         assert plans.status_code == 200
         plan = plans.json()["data"][0]
         assert plan["progress"] == 0
-        assert len(plan["tasks"]) == 2
-        assert [item["actionType"] for item in plan["tasks"]] == ["TRAINING", "RETEST"]
-        practice_task = plan["tasks"][0]
+        assert len(plan["tasks"]) == 4
+        assert [item["actionType"] for item in plan["tasks"]] == ["COURSE", "TRAINING", "REWRITE", "RETEST"]
+        practice_task = plan["tasks"][1]
         assert practice_task["sceneId"].startswith("scene-foundation-")
         assert practice_task["sourceSessionId"] == session_id
         premature = client.post(
@@ -147,7 +147,8 @@ def test_training_plan_can_be_opened_and_checked_in() -> None:
             json={"evidence": session_id},
         )
         assert premature.status_code == 422
-        assert premature.json()["title"] == "TRAINING_ROUNDS_INSUFFICIENT"
+        # 四步计划中复练排在微课之后，未完成课程时先被顺序校验拦下
+        assert premature.json()["title"] == "PREVIOUS_TASK_INCOMPLETE"
         locked = client.post(
             f"/api/v1/training-plans/{plan['id']}/tasks/retest/complete",
             headers=headers,
