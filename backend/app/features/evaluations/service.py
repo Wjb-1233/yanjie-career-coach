@@ -170,21 +170,12 @@ async def create_training_plan(
         title=plan_title,
         tasks=[
             {
-                "key": "rewrite",
-                "day": 1,
-                "task": draft.rewrite_task,
-                "actionType": "REWRITE",
-                "sourceSessionId": training.id,
-                "completed": False,
-                "completedAt": None,
-                "evidence": None,
-            },
-            {
                 "key": "course",
-                "day": 2,
+                "day": 1,
                 "task": f"学习微课《{lesson['title']}》，按三个步骤完成表达练习",
                 "actionType": "COURSE",
                 "courseId": course.id if course else None,
+                "sourceSessionId": training.id,
                 "lesson": lesson,
                 "completedSteps": [],
                 "practiceAnswer": None,

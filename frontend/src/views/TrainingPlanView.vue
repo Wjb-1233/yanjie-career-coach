@@ -3,7 +3,7 @@ import { computed, onMounted, shallowRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { useTrainingPlan } from '@/composables/useTrainingPlan'
-import { api, errorMessage } from '@/lib/api'
+import { api } from '@/lib/api'
 import { taskRoute } from '@/lib/planActions'
 import type { ApiEnvelope, Evaluation, Scores, TrainingPlanTask, TrainingSession } from '@/lib/types'
 
@@ -11,7 +11,6 @@ const route = useRoute()
 const trainingPlan = useTrainingPlan(String(route.params.id))
 
 const plan = computed(() => trainingPlan.plan.value)
-const submitting = computed(() => trainingPlan.submitting.value)
 const completedCount = computed(() => plan.value ? plan.value.tasks.filter((task) => task.completed).length : 0)
 const totalCount = computed(() => plan.value?.tasks.length ?? 0)
 const currentIndex = computed(() => plan.value ? plan.value.tasks.findIndex((task) => !task.completed) : -1)
@@ -20,6 +19,8 @@ const labels: Record<keyof Scores, string> = { logic: '逻辑性', appropriatene
 const baseline = shallowRef<Evaluation | null>(null)
 const reviewSession = shallowRef<TrainingSession | null>(null)
 const baselineSessionId = computed(() => plan.value?.tasks.find((task) => task.sourceSessionId)?.sourceSessionId ?? '')
+const fallbackSessionId = shallowRef('')
+const reviewSessionId = computed(() => baselineSessionId.value || fallbackSessionId.value)
 const focusKey = computed(() => (Object.entries(labels) as Array<[keyof Scores, string]>)
   .find(([, label]) => label === plan.value?.focusDimension)?.[0])
 const focusScore = computed(() => (focusKey.value && baseline.value ? baseline.value.scores[focusKey.value] : 0))
@@ -56,16 +57,23 @@ const rounds = computed<Round[]>(() => {
 })
 
 const annotatedCount = computed(() => rounds.value.filter((round) => round.problem || round.advice).length)
-const reviewTask = computed(() => plan.value?.tasks.find((task) => task.actionType === 'REWRITE') ?? null)
 const courseTask = computed(() => plan.value?.tasks.find((task) => task.actionType === 'COURSE') ?? null)
 const courseRoute = computed(() => (plan.value && courseTask.value ? taskRoute(plan.value.id, courseTask.value) : null))
 
-const ackError = shallowRef('')
 
 onMounted(trainingPlan.load)
 
-watch(baselineSessionId, async (sessionId) => {
-  if (!sessionId) return
+watch(reviewSessionId, async (sessionId) => {
+  if (!sessionId) {
+    // 旧计划没有关联会话时，退回到最近一次已评分的训练
+    try {
+      const history = await api.get<ApiEnvelope<Array<{ id: string; overallScore: number | null }>>>('/training-sessions')
+      fallbackSessionId.value = history.data.data.find((item) => item.overallScore !== null)?.id ?? ''
+    } catch {
+      // 忽略，复盘区域留空
+    }
+    return
+  }
   try {
     baseline.value = (await api.get<ApiEnvelope<Evaluation>>(`/evaluations/${sessionId}`)).data.data
     reviewSession.value = (await api.get<ApiEnvelope<TrainingSession>>(`/training-sessions/${sessionId}`)).data.data
@@ -74,19 +82,15 @@ watch(baselineSessionId, async (sessionId) => {
   }
 }, { immediate: true })
 
-function stateOf(task: TrainingPlanTask | null): string {
-  if (!task) return ''
-  return task.completed ? '已完成' : '待完成'
+interface TaskState { label: string; tone: 'done' | 'doing' | 'todo' }
+
+function stateOf(task: TrainingPlanTask | null): TaskState {
+  if (!task) return { label: '', tone: 'todo' }
+  if (task.completed) return { label: '已完成', tone: 'done' }
+  if (task.learningProgress > 0) return { label: `进行中 ${task.learningProgress}%`, tone: 'doing' }
+  return { label: '待完成', tone: 'todo' }
 }
 
-async function acknowledgeReview(): Promise<void> {
-  ackError.value = ''
-  try {
-    await trainingPlan.complete('rewrite', '已阅读逐轮批注，记下需要修改的表达。')
-  } catch (reason) {
-    ackError.value = errorMessage(reason)
-  }
-}
 </script>
 
 <template>
@@ -109,14 +113,14 @@ async function acknowledgeReview(): Promise<void> {
 
       <ol class="steps">
         <!-- 01 复盘批注 -->
-        <li id="step-review" class="step" :class="{ done: reviewTask?.completed, current: currentIndex === 0 }">
+        <li id="step-review" class="step" :class="{ current: currentIndex === 0 }">
           <header class="step-head">
             <span class="step-no num">01</span>
             <div class="step-title">
               <h2>复盘优化</h2>
               <p>逐轮批注 + 建议改法，共 {{ rounds.length }} 轮，其中 {{ annotatedCount }} 轮需重点优化</p>
             </div>
-            <span class="state">{{ stateOf(reviewTask) }}</span>
+            <span class="state">参考</span>
           </header>
 
           <div v-if="baseline" class="overview">
@@ -126,7 +130,7 @@ async function acknowledgeReview(): Promise<void> {
               <div><dt>该维度得分</dt><dd class="num">{{ focusScore }} / 5</dd></div>
             </dl>
             <p class="judgement">{{ baseline.summary }}</p>
-            <RouterLink class="report-link" :to="`/report/${baselineSessionId}`">查看完整评分报告 →</RouterLink>
+            <RouterLink class="report-link" :to="`/report/${reviewSessionId}`">查看完整评分报告 →</RouterLink>
           </div>
 
           <div class="rounds">
@@ -145,13 +149,6 @@ async function acknowledgeReview(): Promise<void> {
             </article>
           </div>
 
-          <div v-if="!reviewTask?.completed" class="ack">
-            <button class="button" type="button" :disabled="submitting" @click="acknowledgeReview">
-              {{ submitting ? '提交中…' : '看完了，去学微课 →' }}
-            </button>
-            <p v-if="ackError" class="ack-error">{{ ackError }}</p>
-          </div>
-          <p v-else class="done-note">✓ 已完成复盘</p>
         </li>
 
         <!-- 02 学习微课 -->
@@ -162,7 +159,7 @@ async function acknowledgeReview(): Promise<void> {
               <h2>学习微课</h2>
               <p>{{ courseTask.lesson?.title ?? '针对性短课' }}</p>
             </div>
-            <span class="state">{{ stateOf(courseTask) }}</span>
+            <span class="state" :class="stateOf(courseTask).tone"><i aria-hidden="true" />{{ stateOf(courseTask).label }}</span>
           </header>
           <div class="step-body">
             <div v-if="courseTask.lesson" class="course">
@@ -212,7 +209,12 @@ async function acknowledgeReview(): Promise<void> {
 .step-title h2 { margin: 0; color: var(--text); font-size: 17px; font-weight: 500; line-height: 1.5; }
 .step-title p { margin: 6px 0 0; color: var(--text-3); font-size: 12px; line-height: 1.7; }
 .step.done .step-no, .step.done .step-title h2 { color: var(--text-3); }
-.state { flex: none; color: var(--text-3); font-size: 11px; letter-spacing: .08em; }
+.state { display: inline-flex; align-items: center; gap: 6px; flex: none; color: var(--text-3); font-size: 11px; letter-spacing: .08em; }
+.state i { width: 6px; height: 6px; border-radius: 50%; border: 1px solid var(--text-3); }
+.state.done { color: var(--text-2); }
+.state.done i { border-color: var(--accent); background: var(--accent); }
+.state.doing { color: var(--text-2); }
+.state.doing i { border-color: var(--accent); background: linear-gradient(90deg, var(--accent) 50%, transparent 50%); }
 .step-body { padding-left: 32px; margin-top: 16px; }
 
 .overview { padding-left: 32px; }
@@ -239,8 +241,6 @@ async function acknowledgeReview(): Promise<void> {
 .note-empty { margin: 8px 0 0 51px; color: var(--text-3); font-size: 12px; }
 .note-warn { margin: 8px 0 0 51px; color: var(--warning); font-size: 11px; }
 
-.ack { margin: 26px 0 0 32px; }
-.ack-error { margin: 8px 0 0; color: var(--danger); font-size: 12px; }
 .done-note { margin: 18px 0 0 32px; color: var(--text-2); font-size: 13px; line-height: 1.8; }
 
 .course-meta { display: flex; justify-content: space-between; gap: 16px; color: var(--text-3); font-size: 12px; }

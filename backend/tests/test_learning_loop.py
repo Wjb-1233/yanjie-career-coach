@@ -96,24 +96,9 @@ def test_plan_is_review_then_lesson_and_closes(monkeypatch) -> None:
         plan_id = plan["id"]
         assert plan["focusDimension"] == "逻辑性"
         assert [(task["key"], task["actionType"]) for task in plan["tasks"]] == [
-            ("rewrite", "REWRITE"), ("course", "COURSE"),
+            ("course", "COURSE"),
         ]
-        assert plan["tasks"][1]["lesson"]["steps"][0]["title"] == "先给结论"
-        assert plan["tasks"][0]["sourceSessionId"] == baseline_id
-
-        locked = client.post(
-            f"/api/v1/training-plans/{plan_id}/tasks/course/complete", headers=headers,
-            json={"evidence": None},
-        )
-        assert locked.status_code == 422
-        assert locked.json()["title"] == "PREVIOUS_TASK_INCOMPLETE"
-
-        reviewed = client.post(
-            f"/api/v1/training-plans/{plan_id}/tasks/rewrite/complete", headers=headers,
-            json={"evidence": "已阅读逐轮批注，记下要改的地方。"},
-        )
-        assert reviewed.status_code == 200
-        assert reviewed.json()["data"]["progress"] == 50
+        assert plan["tasks"][0]["lesson"]["steps"][0]["title"] == "先给结论"
 
         for index in range(3):
             step = client.post(
@@ -129,4 +114,4 @@ def test_plan_is_review_then_lesson_and_closes(monkeypatch) -> None:
         data = answered.json()["data"]
         assert data["progress"] == 100
         assert data["status"] == "COMPLETED"
-        assert data["tasks"][1]["practicePassed"] is True
+        assert data["tasks"][0]["practicePassed"] is True

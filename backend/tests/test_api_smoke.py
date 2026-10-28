@@ -136,17 +136,9 @@ def test_training_plan_can_be_opened_and_checked_in() -> None:
         assert plans.status_code == 200
         plan = plans.json()["data"][0]
         assert plan["progress"] == 0
-        assert len(plan["tasks"]) == 2
-        assert [item["actionType"] for item in plan["tasks"]] == ["REWRITE", "COURSE"]
-        assert plan["tasks"][0]["sourceSessionId"] == session_id
-        assert plan["tasks"][1]["lesson"]["steps"]
-        premature = client.post(
-            f"/api/v1/training-plans/{plan['id']}/tasks/course/complete",
-            headers=headers,
-            json={"evidence": None},
-        )
-        assert premature.status_code == 422
-        assert premature.json()["title"] == "PREVIOUS_TASK_INCOMPLETE"
+        assert len(plan["tasks"]) == 1
+        assert [item["actionType"] for item in plan["tasks"]] == ["COURSE"]
+        assert plan["tasks"][0]["lesson"]["steps"]
 
 
 def test_login_rate_limit_returns_retry_after() -> None:
