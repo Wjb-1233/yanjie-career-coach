@@ -1,0 +1,4 @@
+生产环境启动 API 前，必须先运行 `alembic upgrade head`。
+
+开发环境新增模型后，使用 `alembic revision --autogenerate -m "说明"` 生成迁移，
+人工检查 upgrade/downgrade 后再提交。不要在生产数据库中使用 create_all。
