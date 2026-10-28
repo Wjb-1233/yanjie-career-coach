@@ -28,13 +28,16 @@ async function load(): Promise<void> {
   }
 }
 
-function stepName(actionType: string): string {
-  return actionType === 'REWRITE' ? '复盘优化' : actionType === 'COURSE' ? '学习微课' : '专项练习'
-}
-
 function planCta(plan: TrainingPlan): string {
   if (plan.progress >= 100) return '查看复盘记录 →'
   return plan.progress > 0 ? '继续复盘优化 →' : '开始复盘优化 →'
+}
+
+function stepState(plan: TrainingPlan): string {
+  const task = plan.tasks[0]
+  if (!task) return '待完成'
+  if (task.completed) return '已完成'
+  return task.learningProgress > 0 ? `进行中 ${task.learningProgress}%` : '待完成'
 }
 
 function completedCount(plan: TrainingPlan): number {
@@ -82,10 +85,15 @@ function formatDate(value: string): string {
           </header>
           <h3>{{ primaryPlan.title }}</h3>
           <ol class="plan-steps">
-            <li v-for="(task, index) in primaryPlan.tasks" :key="task.key" :class="{ done: task.completed }">
-              <span class="num">{{ String(index + 1).padStart(2, '0') }}</span>
-              <span class="step-name">{{ stepName(task.actionType) }}</span>
-              <span class="step-state">{{ task.completed ? '已完成' : '待完成' }}</span>
+            <li class="muted">
+              <span class="num">01</span>
+              <span class="step-name">复盘优化</span>
+              <span class="step-state">参考</span>
+            </li>
+            <li :class="{ done: primaryPlan.tasks[0]?.completed }">
+              <span class="num">02</span>
+              <span class="step-name">学习微课</span>
+              <span class="step-state">{{ stepState(primaryPlan) }}</span>
             </li>
           </ol>
           <footer class="plan-foot">
@@ -229,6 +237,7 @@ function formatDate(value: string): string {
 .plan-steps .step-name { flex: 1; }
 .plan-steps .step-state { color: var(--text-3); font-size: 11px; letter-spacing: .06em; }
 .plan-steps li.done .step-name { color: var(--text-3); }
+.plan-steps li.muted .step-name, .plan-steps li.muted .num, .plan-steps li.muted .step-state { color: var(--text-3); }
 
 .plan-foot { display: flex; align-items: center; gap: 20px; margin-top: 18px; }
 .progress { flex: 1; height: 2px; background: var(--track); }
