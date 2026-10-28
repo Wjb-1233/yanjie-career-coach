@@ -25,3 +25,7 @@ android-app/local.properties
 .dsh-vision-toolkit/
 *.db
 资料_Python版/
+
+# 仓库只保留后端与文档；前端/安卓端仅本地开发
+frontend/
+android-app/
