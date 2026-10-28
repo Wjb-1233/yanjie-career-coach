@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, shallowRef } from 'vue'
 
+import AbilityAttempts from '@/components/ability/AbilityAttempts.vue'
+import AbilityDrill from '@/components/ability/AbilityDrill.vue'
+import AbilityReview from '@/components/ability/AbilityReview.vue'
+import AbilityScores from '@/components/ability/AbilityScores.vue'
+import { useAbilityPractice } from '@/composables/useAbilityPractice'
 import { api, errorMessage } from '@/lib/api'
 import type { ApiEnvelope, TrainingPlan } from '@/lib/types'
+
+const { practice, dashboard, loading: abilityLoading, sending, error: abilityError, load: loadAbility, submit } = useAbilityPractice()
 
 const plans = shallowRef<TrainingPlan[]>([])
 const loading = shallowRef(true)
@@ -49,7 +56,22 @@ function formatDate(value: string): string {
     </header>
 
     <div v-if="error" class="error-banner">{{ error }}</div>
-    <div v-else-if="loading" class="loading">
+    <div v-if="abilityError" class="error-banner" role="alert">
+      {{ abilityError }} <button v-if="!practice" type="button" class="inline-action" @click="loadAbility">重试</button>
+    </div>
+
+    <section v-if="abilityLoading || practice" class="review-block" aria-label="整场复盘与薄弱项练习">
+      <div v-if="abilityLoading" class="skeleton loading-row" />
+      <template v-else-if="practice">
+        <AbilityReview :practice="practice" :scores="dashboard?.dimensions ?? null" />
+        <AbilityScores v-if="dashboard" :scores="dashboard.dimensions" :focus="practice.dimension" />
+        <AbilityDrill :practice="practice" :sending="sending" @submit="submit" />
+        <AbilityAttempts :attempts="practice.attempts" />
+        <p class="method-note">上方分析依据最近一场完整对话与已保存报告；改答是单题巩固，分数与整场报告分使用不同评价范围，不直接相减。</p>
+      </template>
+    </section>
+
+    <div v-if="loading" class="loading">
       <div class="skeleton loading-row" />
       <div class="skeleton loading-row" />
     </div>
@@ -106,6 +128,9 @@ function formatDate(value: string): string {
 
 <style scoped>
 .plans-page { max-width: 1080px; }
+.review-block { margin-top: 26px; }
+.method-note { margin: 18px 0 0; color: var(--text-3); font-size: 12px; line-height: 1.7; }
+.inline-action { border: 0; background: transparent; color: inherit; text-decoration: underline; cursor: pointer; }
 .loading { display: grid; gap: 12px; }
 .loading-row { min-height: 96px; }
 
