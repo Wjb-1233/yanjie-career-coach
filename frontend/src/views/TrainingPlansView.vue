@@ -29,8 +29,8 @@ async function load(): Promise<void> {
 }
 
 function planCta(plan: TrainingPlan): string {
-  if (plan.progress >= 100) return '查看复盘记录 →'
-  return plan.progress > 0 ? '继续复盘优化 →' : '开始复盘优化 →'
+  if (plan.progress >= 100) return '查看复盘记录'
+  return plan.progress > 0 ? '继续复盘优化' : '开始复盘优化'
 }
 
 function stepState(plan: TrainingPlan): string {
@@ -98,7 +98,7 @@ function formatDate(value: string): string {
           </ol>
           <footer class="plan-foot">
             <span class="progress"><i><b :style="{ width: `${primaryPlan.progress}%` }" /></i></span>
-            <span class="cta">{{ planCta(primaryPlan) }}</span>
+            <span class="cta">{{ planCta(primaryPlan) }}<i aria-hidden="true">→</i></span>
           </footer>
         </RouterLink>
 
@@ -242,8 +242,8 @@ function formatDate(value: string): string {
 .plan-foot { display: flex; align-items: center; gap: 20px; margin-top: 18px; }
 .progress { flex: 1; height: 2px; background: var(--track); }
 .progress b { display: block; height: 100%; background: var(--accent); }
-.cta { color: var(--text); font-size: 13px; font-weight: 500; letter-spacing: .04em; transition: color var(--ease); }
-.plan-featured:hover .cta { color: var(--accent-strong); }
+.cta { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 14px; border: 1px solid var(--border-bright); border-radius: var(--radius-sm); color: var(--text); font-size: 12.5px; font-weight: 500; letter-spacing: .02em; transition: border-color .14s var(--ease), background .14s var(--ease); }
+.plan-featured:hover .cta { border-color: var(--text-3); background: var(--overlay-1); }
 
 .plan-more { margin-top: 32px; }
 .sub-label { margin: 0 0 6px; color: var(--text-3); font-size: 11px; letter-spacing: .14em; }
