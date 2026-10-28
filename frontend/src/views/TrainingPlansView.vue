@@ -41,7 +41,7 @@ function formatDate(value: string): string {
   <div class="page plans-page">
     <header class="page-heading">
       <div>
-        <p class="eyebrow">训练计划</p>
+        <p class="eyebrow">能力提升</p>
         <h1 class="page-title">把一次评分，<br />变成一条练习线。</h1>
         <p class="page-lead">每份计划由最近一次评分里最弱的一维生成：先专项对练，再回原场景复测，用两次真实回答比较变化。</p>
       </div>

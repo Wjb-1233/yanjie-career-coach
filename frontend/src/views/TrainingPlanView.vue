@@ -22,7 +22,7 @@ async function complete(taskKey: string, evidence?: string): Promise<void> {
 
 <template>
   <div class="page plan-page">
-    <RouterLink class="back" to="/">← 返回成长看板</RouterLink>
+    <RouterLink class="back" to="/plans">← 返回能力提升</RouterLink>
     <div v-if="trainingPlan.error.value" class="error-banner">{{ trainingPlan.error.value }}</div>
     <div v-if="trainingPlan.loading.value" class="panel skeleton plan-loading" />
     <template v-else-if="trainingPlan.plan.value">

@@ -21,7 +21,7 @@ function dimension(scene: Scene): string {
 <template>
   <section class="foundation-section" aria-labelledby="foundation-heading">
     <div class="section-heading">
-      <div><p class="eyebrow">通用练习</p><h2 id="foundation-heading">选择一个维度，开始对练</h2></div>
+      <div><h2 id="foundation-heading" class="label">五个维度</h2></div>
       <span>无需先完成面试</span>
     </div>
     <div class="foundation-grid">
@@ -36,10 +36,10 @@ function dimension(scene: Scene): string {
 </template>
 
 <style scoped>
-.foundation-section { margin: 32px 0 42px; }
-.section-heading { display:flex; justify-content:space-between; align-items:end; gap:16px; margin-bottom:16px; }
-.section-heading h2 { margin:0; font-size:24px; line-height:1.3; }
-.section-heading > span { color:var(--text-2); font-size:12px; }
+.foundation-section { margin: 6px 0 42px; }
+.section-heading { display:flex; justify-content:space-between; align-items:baseline; gap:16px; margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--divider); }
+.section-heading h2 { margin:0; color:var(--text-3); font-size:11px; font-weight:400; letter-spacing:.2em; }
+.section-heading > span { color:var(--text-3); font-size:11px; letter-spacing:.06em; }
 .foundation-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; }
 .foundation-card { min-height:230px; padding:24px; display:flex; flex-direction:column; border:1px solid var(--border); border-radius:var(--radius); background:var(--card); box-shadow:var(--shadow); transition:border-color var(--ease); }
 .foundation-card:hover { border-color:var(--border-bright); }

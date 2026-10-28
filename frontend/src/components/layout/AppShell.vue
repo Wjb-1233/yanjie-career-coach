@@ -11,11 +11,11 @@ const auth = useAuth()
 const studentNavItems = [
   { to: '/', label: '成长看板' },
   { to: '/scenes', label: '场景训练' },
-  { to: '/plans', label: '训练计划' },
+  { to: '/practice', label: '通用练习' },
+  { to: '/plans', label: '能力提升' },
   { to: '/scripts', label: '话术优化' },
   { to: '/favorites', label: '个人收藏' },
   { to: '/history', label: '训练记录' },
-  { to: '/courses', label: '能力提升' },
   { to: '/profile', label: '个人资料' },
 ]
 const adminNavItems = [
@@ -182,9 +182,13 @@ async function signOut() {
 .sidebar {
   grid-column: 1;
   grid-row: 2;
+  position: sticky;
+  top: 58px;
+  align-self: start;
+  height: calc(100vh - 58px);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
   padding: 24px 0 22px;
   border-right: 1px solid var(--divider);
   background: var(--bg-2);
