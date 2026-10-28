@@ -150,16 +150,6 @@ async def update_course(course_id: str, body: CourseAdminInput, _: AdminUser, se
     return ok({"id": course.id, "active": course.active})
 
 
-@router.delete("/courses/{course_id}")
-async def deactivate_course(course_id: str, _: AdminUser, session: DbSession) -> dict:
-    course = await session.get(Course, course_id)
-    if course is None:
-        raise not_found("微课")
-    course.active = False
-    await session.commit()
-    return ok({"id": course.id, "active": False})
-
-
 @router.get("/sessions")
 async def sessions(
     _: AdminUser, session: DbSession,
