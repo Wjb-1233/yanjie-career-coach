@@ -92,20 +92,20 @@ function formatDate(value: string): string {
       </p>
 
       <template v-else>
-        <article v-if="primaryPlan" class="plan-featured">
+        <RouterLink v-if="primaryPlan" class="plan-featured" :to="`/plans/${primaryPlan.id}`">
           <p class="plan-meta">{{ primaryPlan.focusDimension }} · 已完成 {{ completedCount(primaryPlan) }} / {{ primaryPlan.tasks.length }} 项 · {{ formatDate(primaryPlan.createdAt) }}</p>
           <h3>{{ primaryPlan.title }}</h3>
           <div class="plan-progress">
             <i><b :style="{ width: `${primaryPlan.progress}%` }" /></i>
             <span class="num">{{ primaryPlan.progress }}%</span>
           </div>
-          <RouterLink class="plan-cta" :to="`/plans/${primaryPlan.id}`">
+          <span class="plan-cta">
             继续这份计划
             <svg width="14" height="10" viewBox="0 0 14 10" fill="none" aria-hidden="true">
               <path d="M1 5h11M8.5 1.5 12 5l-3.5 3.5" stroke="currentColor" stroke-width="1.1" />
             </svg>
-          </RouterLink>
-        </article>
+          </span>
+        </RouterLink>
 
         <div v-if="otherActivePlans.length" class="plan-more">
           <p class="sub-label">其他进行中的计划</p>
@@ -163,7 +163,10 @@ function formatDate(value: string): string {
 .inline-action { border: 0; background: transparent; color: inherit; text-decoration: underline; cursor: pointer; }
 .method-note { margin: 18px 0 0; color: var(--text-3); font-size: 12px; line-height: 1.7; }
 
+.plan-featured:hover { border-color: var(--border-bright); }
 .plan-featured {
+  display: block;
+  transition: border-color var(--ease);
   margin-top: 20px;
   padding: 26px 28px;
   border: 1px solid var(--border);

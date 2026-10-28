@@ -16,7 +16,7 @@ const router = createRouter({
     { path: '/report/:id', name: 'report', component: () => import('@/views/ReportView.vue') },
     { path: '/practice', name: 'practice', component: () => import('@/views/PracticeView.vue') },
     { path: '/courses', redirect: '/practice' },
-    { path: '/legacy-lesson', name: 'legacy-lesson', component: () => import('@/views/LegacyLessonView.vue') },
+    { path: '/plan-lesson', name: 'plan-lesson', alias: '/legacy-lesson', component: () => import('@/views/LegacyLessonView.vue') },
     { path: '/plans', name: 'training-plans', component: () => import('@/views/TrainingPlansView.vue') },
     { path: '/plans/:id', name: 'training-plan', component: () => import('@/views/TrainingPlanView.vue') },
     { path: '/admin', name: 'admin', component: () => import('@/views/AdminView.vue'), meta: { admin: true } },
