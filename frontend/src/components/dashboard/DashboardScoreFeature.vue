@@ -147,4 +147,21 @@ function formatDate(value: string): string {
   .fact:nth-child(2) { border-right: 0; }
   .fact:nth-child(3) { grid-column: 1 / -1; border-top: 1px solid var(--divider); border-right: 0; }
 }
+
+:root[data-theme='dark'] .hero {
+  background: linear-gradient(180deg, rgba(30, 38, 48, .72), rgba(15, 19, 25, .82));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 24px 60px rgba(0, 0, 0, .38);
+  backdrop-filter: blur(18px) saturate(125%);
+}
+:root[data-theme='dark'] .cta {
+  border-color: rgba(88, 196, 230, .42);
+  background: linear-gradient(180deg, rgba(88, 196, 230, .26), rgba(88, 196, 230, .12));
+  color: #e6f8ff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 10px 26px rgba(0, 0, 0, .32);
+}
+:root[data-theme='dark'] .cta:hover {
+  background: linear-gradient(180deg, rgba(88, 196, 230, .4), rgba(88, 196, 230, .22));
+  border-color: rgba(88, 196, 230, .7);
+  color: #f2fcff;
+}
 </style>

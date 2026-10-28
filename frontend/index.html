@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#f5f3ee" />
+    <meta name="theme-color" content="#0b0e13" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -16,12 +16,12 @@
   </head>
   <body>
     <script>
-      // 在样式加载前恢复上次选择的主题，避免刷新时闪白
+      // 在样式加载前恢复上次选择的主题，避免刷新时闪白（默认深色工作台）
       try {
-        if (localStorage.getItem('yanjie-theme') === 'dark') {
+        if (localStorage.getItem('yanjie-theme-v2') !== 'light') {
           document.documentElement.dataset.theme = 'dark'
         }
-      } catch (error) { /* 隐私模式下不可写，使用默认浅色 */ }
+      } catch (error) { /* 隐私模式下不可写，使用默认深色 */ }
     </script>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
