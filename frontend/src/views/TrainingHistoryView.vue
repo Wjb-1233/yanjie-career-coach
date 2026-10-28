@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, shallowRef } from 'vue'
+import { useRouter } from 'vue-router'
 
 import DeleteTrainingDialog from '@/components/training/DeleteTrainingDialog.vue'
-import { api, errorMessage } from '@/lib/api'
+import { api, errorMessage, MODEL_REQUEST_TIMEOUT_MS } from '@/lib/api'
 import type { ApiEnvelope } from '@/lib/types'
+
+const router = useRouter()
 
 interface HistoryItem {
   id: string
@@ -28,6 +31,7 @@ const archivedMode = shallowRef(false)
 const deletingItem = shallowRef<HistoryItem | null>(null)
 const deleting = shallowRef(false)
 const deleteError = shallowRef('')
+const scoringId = shallowRef('')
 const visibleItems = computed(() => items.value.filter((item) => {
   const matchesQuery = `${item.sceneTitle} ${item.status}`.toLowerCase().includes(query.value.trim().toLowerCase())
   const matchesStatus = status.value === '全部记录' || (status.value === '进行中' ? item.status === 'ACTIVE' : item.status === 'FINISHED')
@@ -77,6 +81,24 @@ async function confirmDelete(): Promise<void> {
   }
 }
 
+async function generateScore(item: HistoryItem): Promise<void> {
+  if (scoringId.value) return
+  scoringId.value = item.id
+  error.value = ''
+  try {
+    await api.post(
+      `/training-sessions/${item.id}/finish`,
+      null,
+      { params: { create_plan: true }, timeout: MODEL_REQUEST_TIMEOUT_MS },
+    )
+    await router.push(`/report/${item.id}`)
+  } catch (reason) {
+    error.value = errorMessage(reason)
+  } finally {
+    scoringId.value = ''
+  }
+}
+
 async function exportReports(): Promise<void> {
   try {
     const response = await api.get<Blob>('/training-sessions/export', { responseType: 'blob' })
@@ -111,13 +133,20 @@ async function exportReports(): Promise<void> {
         <div class="history-copy">
           <div class="history-meta"><span class="tag">{{ item.status === 'FINISHED' ? '已完成' : '进行中' }}</span><span>{{ new Date(item.startedAt).toLocaleString('zh-CN') }}</span></div>
           <h2>{{ item.sceneTitle }}</h2>
-          <p>完成 {{ item.currentRound }} / {{ item.maxRounds }} 轮{{ item.evaluationDegraded ? ' · 暂定评分' : '' }}</p>
+          <p>完成 {{ item.currentRound }} / {{ item.maxRounds }} 轮{{ item.evaluationDegraded ? ' · 暂定评分' : '' }}{{ item.status === 'FINISHED' && item.overallScore === null ? ' · 未生成评分' : '' }}</p>
         </div>
         <strong v-if="item.overallScore !== null" class="score">{{ item.overallScore }}<small> / 100</small></strong>
         <div class="history-actions">
-          <RouterLink class="button" :to="item.overallScore !== null ? `/report/${item.id}` : `/training/${item.id}`">
-            {{ item.overallScore !== null ? '查看评分报告' : '回到训练' }} →
-          </RouterLink>
+          <RouterLink v-if="item.overallScore !== null" class="button" :to="`/report/${item.id}`">查看评分报告 →</RouterLink>
+          <button
+            v-else-if="item.status === 'FINISHED'"
+            class="button"
+            type="button"
+            :disabled="Boolean(scoringId)"
+            :title="scoringId === item.id ? '正在生成五维评分' : '为这场已结束的训练补生成评分报告'"
+            @click="generateScore(item)"
+          >{{ scoringId === item.id ? '正在评分…' : '生成评分 →' }}</button>
+          <RouterLink v-else class="button" :to="`/training/${item.id}`">继续训练 →</RouterLink>
           <RouterLink v-if="item.status === 'FINISHED'" class="replay-link" :to="`/training/${item.id}`">回放对话</RouterLink>
           <button v-if="item.status === 'FINISHED'" class="archive-button" type="button" @click="toggleArchive(item)">{{ item.archivedAt ? '恢复记录' : '归档' }}</button>
           <button class="delete-button" type="button" :aria-label="`彻底删除${item.sceneTitle}训练记录`" @click="askDelete(item)">彻底删除</button>

@@ -11,6 +11,7 @@ const auth = useAuth()
 const studentNavItems = [
   { to: '/', label: '成长看板' },
   { to: '/scenes', label: '场景训练' },
+  { to: '/plans', label: '训练计划' },
   { to: '/scripts', label: '话术优化' },
   { to: '/favorites', label: '个人收藏' },
   { to: '/history', label: '训练记录' },
