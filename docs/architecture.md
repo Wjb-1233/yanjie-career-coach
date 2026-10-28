@@ -43,10 +43,10 @@
 - `GET /api/v1/courses`，`POST /api/v1/courses/{id}/progress`
 - `GET /api/v1/admin/overview`
 - `GET|PATCH /api/v1/admin/users`、`GET|POST|PATCH|DELETE /api/v1/admin/scenes`
-- `GET|POST|PATCH|DELETE /api/v1/admin/courses`、`GET /api/v1/admin/sessions`
+- `GET|POST|PATCH /api/v1/admin/courses`（停用/启用走 PATCH `active`）、`GET /api/v1/admin/sessions`
 - `GET /api/v1/admin/learners/{userId}/report` 与个人/全量 CSV 导出
 - `POST /api/v1/training-sessions/{id}/archive|restore`、`GET /api/v1/training-sessions?archived=true`
-- `DELETE /api/v1/scripts/{id}`；话术版本保存亮点、收藏并支持前端并排对比
+- `DELETE /api/v1/scripts/{id}`；话术版本保存亮点、收藏；逐字差异高亮对比尚未实现
 - `GET /api/v1/health`（存活检查），`GET /api/v1/ready`（依赖就绪检查）
 
 ## 运行拓扑
