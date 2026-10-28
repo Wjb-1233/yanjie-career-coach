@@ -163,10 +163,11 @@ async def create_training_plan(
     else:
         draft = fallback_plan(focus, course_title, course_content)
     lesson = draft.lesson.model_dump(by_alias=True)
+    plan_title = draft.title.replace("四步", "").replace("三步", "").strip() or f"{focus}提升计划"
     plan = TrainingPlan(
         user_id=user_id,
         focus_dimension=focus,
-        title=draft.title,
+        title=plan_title,
         tasks=[
             {
                 "key": "rewrite",

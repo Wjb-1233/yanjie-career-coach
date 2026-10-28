@@ -113,8 +113,8 @@ async function acknowledgeReview(): Promise<void> {
           <header class="step-head">
             <span class="step-no num">01</span>
             <div class="step-title">
-              <h2>逐轮复盘 · 批注</h2>
-              <p>共 {{ rounds.length }} 轮对话，其中 {{ annotatedCount }} 轮有批注</p>
+              <h2>复盘优化</h2>
+              <p>逐轮批注 + 建议改法，共 {{ rounds.length }} 轮，其中 {{ annotatedCount }} 轮需重点优化</p>
             </div>
             <span class="state">{{ stateOf(reviewTask) }}</span>
           </header>

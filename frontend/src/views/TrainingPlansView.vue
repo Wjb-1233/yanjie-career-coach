@@ -29,7 +29,12 @@ async function load(): Promise<void> {
 }
 
 function stepName(actionType: string): string {
-  return actionType === 'REWRITE' ? '逐轮复盘 · 批注' : actionType === 'COURSE' ? '学习微课' : '专项练习'
+  return actionType === 'REWRITE' ? '复盘优化' : actionType === 'COURSE' ? '学习微课' : '专项练习'
+}
+
+function planCta(plan: TrainingPlan): string {
+  if (plan.progress >= 100) return '查看复盘记录 →'
+  return plan.progress > 0 ? '继续复盘优化 →' : '开始复盘优化 →'
 }
 
 function completedCount(plan: TrainingPlan): number {
@@ -85,7 +90,7 @@ function formatDate(value: string): string {
           </ol>
           <footer class="plan-foot">
             <span class="progress"><i><b :style="{ width: `${primaryPlan.progress}%` }" /></i></span>
-            <span class="cta">继续这份计划 →</span>
+            <span class="cta">{{ planCta(primaryPlan) }}</span>
           </footer>
         </RouterLink>
 
