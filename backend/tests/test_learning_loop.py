@@ -1,7 +1,6 @@
 from importlib import import_module
 from uuid import uuid4
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.infrastructure.llm import llm_gateway
@@ -9,7 +8,7 @@ from app.main import app
 
 
 PLAN_DRAFT = {
-    "title": "逻辑性四步提升计划",
+    "title": "逻辑性专项提升：先复盘再学微课",
     "lesson": {
         "title": "逻辑性微课",
         "intro": "用三个步骤让回答先有结论，再有依据，最后落到行动。",
@@ -33,7 +32,7 @@ PLAN_DRAFT = {
         "exercise": "结合最近一次真实沟通，用上面三个方法重写一段至少 40 字的逻辑性表达。",
     },
     "practice_task": "回到逻辑性基础场景完成至少 6 轮对话，重点练习结论先行。",
-    "rewrite_task": "根据评分建议，改写两段结论不靠前的回答。",
+    "rewrite_task": "对照逐轮批注，挑选问题最大的回答重新组织表达。",
     "retest_task": "回到原场景完成新一轮训练，对比逻辑性评分变化。",
 }
 
@@ -55,30 +54,17 @@ def finish_training(client: TestClient, headers: dict[str, str], scene_id: str, 
     return session_id
 
 
-@pytest.mark.parametrize(
-    ("retest_logic", "expected_status", "expected_delta"),
-    [(4, "IMPROVED", 2), (2, "NEEDS_PRACTICE", 0), (None, "PROVISIONAL", 2)],
-)
-def test_plan_closes_with_foundation_scene_and_original_scene_retest(
-    monkeypatch, retest_logic: int | None, expected_status: str, expected_delta: int,
-) -> None:
-    evaluation_count = 0
-
+def test_plan_is_review_then_lesson_and_closes(monkeypatch) -> None:
     async def fake_complete(system_prompt: str, _user_prompt: str, **_kwargs):
-        nonlocal evaluation_count
-        if "四步微型训练计划" in system_prompt:
+        if "两步训练计划" in system_prompt or "微型训练计划" in system_prompt:
             return PLAN_DRAFT
         if "微课教练" in system_prompt:
             return {"passed": True, "feedback": "回答具体，包含了课程方法与明确行动。"}
         if "改写教练" in system_prompt:
-            return {"passed": True, "feedback": "改写回应了原问题，并给出了明确结论。"}
+            return {"passed": True, "feedback": "改写回应了原问题。"}
         assert "评分员" in system_prompt
-        evaluation_count += 1
-        if evaluation_count == 4 and retest_logic is None:
-            raise TimeoutError("synthetic retest timeout")
-        logic = 2 if evaluation_count == 1 else (retest_logic if evaluation_count == 4 else 3)
         return {
-            "scores": {"logic": logic, "appropriateness": 4, "impact": 4, "relevance": 4, "concision": 4},
+            "scores": {"logic": 2, "appropriateness": 4, "impact": 4, "relevance": 4, "concision": 4},
             "summary": "结论需要更明确，逐步补充依据。",
             "suggestions": [
                 {"roundNo": 1, "problem": "结论不够靠前", "original": "我会处理", "rewrite": "我的结论是先处理客户问题。"},
@@ -105,74 +91,42 @@ def test_plan_closes_with_foundation_scene_and_original_scene_retest(
         )
         headers = {"Authorization": f"Bearer {registered.json()['data']['accessToken']}"}
         baseline_id = finish_training(client, headers, "scene-interview-03", True)
+
         plan = client.get("/api/v1/training-plans", headers=headers).json()["data"][0]
         plan_id = plan["id"]
         assert plan["focusDimension"] == "逻辑性"
         assert [(task["key"], task["actionType"]) for task in plan["tasks"]] == [
-            ("rewrite", "REWRITE"), ("course", "COURSE"), ("practice", "TRAINING"), ("retest", "RETEST"),
+            ("rewrite", "REWRITE"), ("course", "COURSE"),
         ]
         assert plan["tasks"][1]["lesson"]["steps"][0]["title"] == "先给结论"
-        assert plan["tasks"][2]["sceneId"] == "scene-foundation-logic"
-        assert plan["tasks"][3]["sceneId"] == "scene-interview-03"
-        assert plan["tasks"][2]["sourceSessionId"] == baseline_id
+        assert plan["tasks"][0]["sourceSessionId"] == baseline_id
 
         locked = client.post(
-            f"/api/v1/training-plans/{plan_id}/tasks/practice/complete", headers=headers,
-            json={"evidence": baseline_id},
+            f"/api/v1/training-plans/{plan_id}/tasks/course/complete", headers=headers,
+            json={"evidence": None},
         )
         assert locked.status_code == 422
         assert locked.json()["title"] == "PREVIOUS_TASK_INCOMPLETE"
 
-        short_rewrite = client.post(
+        reviewed = client.post(
             f"/api/v1/training-plans/{plan_id}/tasks/rewrite/complete", headers=headers,
-            json={"evidence": "太短"},
+            json={"evidence": "已阅读逐轮批注，记下要改的地方。"},
         )
-        assert short_rewrite.status_code == 422
-        rewrite = client.post(
-            f"/api/v1/training-plans/{plan_id}/tasks/rewrite/complete", headers=headers,
-            json={"evidence": "我的结论是先修复报错：本周三位客户反馈同一处问题，我下午提交方案，明天同步结果。"},
-        )
-        assert rewrite.status_code == 200
-        assert rewrite.json()["data"]["progress"] == 25
+        assert reviewed.status_code == 200
+        assert reviewed.json()["data"]["progress"] == 50
 
         for index in range(3):
             step = client.post(
                 f"/api/v1/training-plans/{plan_id}/tasks/course/steps/{index}/complete", headers=headers,
             )
             assert step.status_code == 200
+
         answered = client.post(
             f"/api/v1/training-plans/{plan_id}/tasks/course/practice", headers=headers,
             json={"answer": "我的结论是先处理客户反馈的问题，依据是本周三位客户都提到同一处报错，我今天下午提交修复方案并同步结果。"},
         )
         assert answered.status_code == 200
-        assert answered.json()["data"]["progress"] == 50
-        assert answered.json()["data"]["tasks"][1]["practicePassed"] is True
-
-        wrong_id = finish_training(client, headers, "scene-interview-03", False)
-        wrong = client.post(
-            f"/api/v1/training-plans/{plan_id}/tasks/practice/complete", headers=headers,
-            json={"evidence": wrong_id},
-        )
-        assert wrong.status_code == 422
-        assert wrong.json()["title"] == "SCENE_MISMATCH"
-
-        practice_id = finish_training(client, headers, "scene-foundation-logic", False)
-        practiced = client.post(
-            f"/api/v1/training-plans/{plan_id}/tasks/practice/complete", headers=headers,
-            json={"evidence": practice_id},
-        )
-        assert practiced.status_code == 200
-        assert practiced.json()["data"]["progress"] == 75
-
-        retest_id = finish_training(client, headers, "scene-interview-03", False)
-        completed = client.post(
-            f"/api/v1/training-plans/{plan_id}/tasks/retest/complete", headers=headers,
-            json={"evidence": retest_id},
-        )
-        assert completed.status_code == 200
-        comparison = completed.json()["data"]["comparison"]
-        assert completed.json()["data"]["progress"] == 100
-        assert comparison["baselineSessionId"] == baseline_id
-        assert comparison["retestSessionId"] == retest_id
-        assert comparison["scoreDeltas"]["logic"] == expected_delta
-        assert comparison["status"] == expected_status
+        data = answered.json()["data"]
+        assert data["progress"] == 100
+        assert data["status"] == "COMPLETED"
+        assert data["tasks"][1]["practicePassed"] is True
