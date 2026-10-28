@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, shallowRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import PlanTaskCard from '@/components/plans/PlanTaskCard.vue'
 import PlanComparison from '@/components/plans/PlanComparison.vue'
 import { useTrainingPlan } from '@/composables/useTrainingPlan'
+import { api } from '@/lib/api'
+import type { ApiEnvelope, Evaluation, Scores } from '@/lib/types'
 
 const route = useRoute()
 const trainingPlan = useTrainingPlan(String(route.params.id))
@@ -13,7 +15,23 @@ const plan = computed(() => trainingPlan.plan.value)
 const completedCount = computed(() => plan.value ? plan.value.tasks.filter((task) => task.completed).length : 0)
 const totalCount = computed(() => plan.value?.tasks.length ?? 0)
 
+const labels: Record<keyof Scores, string> = { logic: '逻辑性', appropriateness: '得体性', impact: '感染力', relevance: '针对性', concision: '简洁度' }
+const baseline = shallowRef<Evaluation | null>(null)
+const baselineSessionId = computed(() => plan.value?.tasks.find((task) => task.sourceSessionId)?.sourceSessionId ?? '')
+const focusKey = computed(() => (Object.entries(labels) as Array<[keyof Scores, string]>)
+  .find(([, label]) => label === plan.value?.focusDimension)?.[0])
+const focusScore = computed(() => (focusKey.value && baseline.value ? baseline.value.scores[focusKey.value] : 0))
+
 onMounted(trainingPlan.load)
+
+watch(baselineSessionId, async (sessionId) => {
+  if (!sessionId) return
+  try {
+    baseline.value = (await api.get<ApiEnvelope<Evaluation>>(`/evaluations/${sessionId}`)).data.data
+  } catch {
+    // 复盘只是补充信息，取不到不影响任务执行
+  }
+}, { immediate: true })
 
 async function complete(taskKey: string, evidence?: string): Promise<void> {
   try {
@@ -35,8 +53,6 @@ async function complete(taskKey: string, evidence?: string): Promise<void> {
       <header class="plan-head">
         <p class="eyebrow">训练计划 · 针对{{ plan.focusDimension }}</p>
         <h1>{{ plan.title }}</h1>
-        <p class="lead">先学微课，再回场景复练与改写，最后复测对比两次真实回答。</p>
-
         <div class="progress-row">
           <span class="num">{{ completedCount }} / {{ totalCount }}</span>
           <i class="bar"><b :style="{ width: `${plan.progress}%` }" /></i>
@@ -44,7 +60,36 @@ async function complete(taskKey: string, evidence?: string): Promise<void> {
         </div>
       </header>
 
+      <section v-if="baseline" class="review" aria-label="计划依据的评分复盘">
+        <header class="section-head">
+          <h2 class="label">复盘</h2>
+          <RouterLink class="text-link" :to="`/report/${baselineSessionId}`">查看完整评分报告 →</RouterLink>
+        </header>
+
+        <div class="review-stats">
+          <div>
+            <span class="k">综合分</span>
+            <strong class="num">{{ baseline.overallScore }}</strong>
+          </div>
+          <div>
+            <span class="k">最低项</span>
+            <strong>{{ plan.focusDimension }}</strong>
+          </div>
+          <div>
+            <span class="k">该维度得分</span>
+            <strong class="num">{{ focusScore }} / 5</strong>
+          </div>
+        </div>
+
+        <p class="review-summary">{{ baseline.summary }}</p>
+        <p v-if="baseline.styleTags.length" class="review-tags">表达风格：{{ baseline.styleTags.join(' · ') }}</p>
+      </section>
+
       <section class="task-list" aria-label="训练计划任务">
+        <header class="section-head">
+          <h2 class="label">提升</h2>
+          <span class="note">按顺序完成四项</span>
+        </header>
         <PlanTaskCard
           v-for="(task, index) in plan.tasks"
           :key="task.key"
@@ -89,13 +134,45 @@ async function complete(taskKey: string, evidence?: string): Promise<void> {
   line-height: 1.4;
   letter-spacing: -.01em;
 }
-.lead { max-width: 60ch; margin: 12px 0 0; color: var(--text-2); font-size: 13px; line-height: 1.9; }
-
-.progress-row { display: flex; align-items: center; gap: 16px; margin-top: 22px; }
+.progress-row { display: flex; align-items: center; gap: 16px; margin-top: 20px; }
 .progress-row .num { color: var(--text-2); font-family: var(--font-num); font-size: 13px; letter-spacing: .02em; }
 .progress-row .bar { flex: 1; height: 2px; background: var(--track); }
 .progress-row .bar b { display: block; height: 100%; background: var(--accent); }
 .progress-row .status { color: var(--text-3); font-size: 11px; letter-spacing: .08em; }
 
-.task-list { margin-top: 8px; }
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--divider);
+}
+.section-head h2 { margin: 0; color: var(--text-3); font-size: 11px; font-weight: 400; letter-spacing: .2em; }
+.section-head .note { color: var(--text-3); font-size: 11px; letter-spacing: .06em; }
+
+.review { margin-top: 34px; }
+.review-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; padding: 22px 0 4px; }
+.review-stats .k { display: block; color: var(--text-3); font-size: 11px; letter-spacing: .14em; }
+.review-stats strong { display: block; margin-top: 10px; color: var(--text); font-size: 24px; font-weight: 400; letter-spacing: -.01em; }
+.review-stats strong.num { font-family: var(--font-num); }
+.review-summary { max-width: 72ch; margin: 18px 0 0; color: var(--text-2); font-size: 13px; line-height: 1.95; }
+.review-tags { margin: 10px 0 0; color: var(--text-3); font-size: 11px; letter-spacing: .06em; }
+
+.text-link {
+  color: var(--text-2);
+  font-size: 12px;
+  letter-spacing: .04em;
+  border-bottom: 1px solid var(--border-bright);
+  padding-bottom: 1px;
+  transition: color var(--ease), border-color var(--ease);
+}
+.text-link:hover { color: var(--accent-strong); border-color: var(--accent); }
+
+.task-list { margin-top: 34px; }
+
+@media (max-width: 640px) {
+  .review-stats { grid-template-columns: 1fr 1fr; gap: 18px; }
+  .review-stats > div:last-child { grid-column: 1 / -1; }
+}
 </style>
