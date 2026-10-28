@@ -83,7 +83,7 @@ async function confirmStart(file: File | null): Promise<void> {
     <div v-if="error" class="error-banner">{{ error }}</div>
     <section class="scene-catalog" aria-label="选择面试场景">
       <div class="catalog-heading"><div><p class="eyebrow">练习库</p><h2>选择一场对练</h2></div><span>{{ visibleScenes.length }} 个匹配场景</span></div>
-      <div v-if="recommendedSceneId" class="focus-notice">已打开指定训练场景。<RouterLink :to="foundationFocus ? '/courses' : '/scenes'">{{ foundationFocus ? '返回能力提升' : '查看全部场景' }} →</RouterLink></div>
+      <div v-if="recommendedSceneId" class="focus-notice">已打开指定训练场景。<RouterLink :to="foundationFocus ? '/practice' : '/scenes'">{{ foundationFocus ? '返回通用练习' : '查看全部场景' }} →</RouterLink></div>
       <div v-else class="filters">
         <div class="metadata-filters">
           <select v-model="activeIndustry" class="field" aria-label="按行业筛选"><option v-for="industry in industries" :key="industry">{{ industry }}</option></select>

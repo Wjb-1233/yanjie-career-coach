@@ -11,7 +11,7 @@ onMounted(() => learning.load(String(route.query.planId ?? '')))
 
 <template>
   <div class="page">
-    <RouterLink to="/courses">← 返回能力提升</RouterLink>
+    <RouterLink to="/practice">← 返回通用练习</RouterLink>
     <div v-if="learning.error.value" class="error-banner">{{ learning.error.value }}</div>
     <PersonalizedLesson v-if="learning.plan.value && learning.courseTask.value?.lesson" :plan="learning.plan.value" :task="learning.courseTask.value" :submitting="learning.submitting.value" @complete-step="learning.completeStep" @submit-practice="learning.submitPractice" />
     <div v-else-if="!learning.loading.value" class="panel legacy-empty">这份历史计划没有可继续学习的课程。</div>
