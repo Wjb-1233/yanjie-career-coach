@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
 
+import { taskActionLabel, taskRoute } from '@/lib/planActions'
 import type { TrainingPlanTask } from '@/lib/types'
 
 const props = defineProps<{
@@ -13,22 +14,8 @@ const props = defineProps<{
 const emit = defineEmits<{ complete: [taskKey: string, evidence?: string] }>()
 
 const rewrite = shallowRef(props.task.evidence ?? '')
-const actionLabel = computed(() => ({
-  COURSE: '去学习微课',
-  TRAINING: '开始强化训练',
-  REWRITE: '提交改写',
-  RETEST: '开始复测',
-}[props.task.actionType]))
-const actionRoute = computed(() => {
-  const query = { planId: props.planId, taskKey: props.task.key }
-  if (props.task.actionType === 'COURSE') {
-    return { name: 'plan-lesson', query: { ...query, courseId: props.task.courseId ?? undefined } }
-  }
-  if (props.task.actionType === 'TRAINING' || props.task.actionType === 'RETEST') {
-    return { name: 'scenes', query: { ...query, sceneId: props.task.sceneId ?? undefined } }
-  }
-  return null
-})
+const actionLabel = computed(() => taskActionLabel(props.task))
+const actionRoute = computed(() => taskRoute(props.planId, props.task))
 const stateLabel = computed(() => props.task.completed ? '已完成' : props.locked ? '等待前一项' : '待完成')
 
 function submitRewrite(): void {
@@ -37,7 +24,7 @@ function submitRewrite(): void {
 </script>
 
 <template>
-  <article class="task-row" :class="{ completed: task.completed, locked }">
+  <article :id="`task-${task.key}`" class="task-row" :class="{ completed: task.completed, locked }">
     <div class="step num">{{ String(stepNumber).padStart(2, '0') }}</div>
 
     <div class="body">
