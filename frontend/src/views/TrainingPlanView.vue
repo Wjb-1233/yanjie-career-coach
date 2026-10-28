@@ -6,6 +6,7 @@ import PlanTaskCard from '@/components/plans/PlanTaskCard.vue'
 import PlanComparison from '@/components/plans/PlanComparison.vue'
 import { useTrainingPlan } from '@/composables/useTrainingPlan'
 import { api } from '@/lib/api'
+import { stepTitle, taskActionLabel, taskRoute } from '@/lib/planActions'
 import type { ApiEnvelope, Evaluation, Scores, TrainingSession } from '@/lib/types'
 
 const route = useRoute()
@@ -32,6 +33,9 @@ const rounds = computed(() => {
   }
   return result
 })
+
+const nextTask = computed(() => plan.value?.tasks.find((task) => !task.completed) ?? null)
+const nextRoute = computed(() => (plan.value && nextTask.value ? taskRoute(plan.value.id, nextTask.value) : null))
 
 onMounted(trainingPlan.load)
 
@@ -70,6 +74,15 @@ async function complete(taskKey: string, evidence?: string): Promise<void> {
           <i class="bar"><b :style="{ width: `${plan.progress}%` }" /></i>
           <span class="status">{{ plan.status === 'COMPLETED' ? '已完成' : plan.status === 'SUPERSEDED' ? '已被替代' : '进行中' }}</span>
         </div>
+
+        <div v-if="nextTask" class="next-action">
+          <span class="next-copy">
+            <span class="k">下一步</span>
+            <strong>{{ stepTitle(nextTask) }}</strong>
+          </span>
+          <RouterLink v-if="nextRoute" class="button" :to="nextRoute">{{ taskActionLabel(nextTask) }} →</RouterLink>
+          <a v-else class="button" :href="'#task-' + nextTask.key">{{ taskActionLabel(nextTask) }} →</a>
+        </div>
       </header>
 
       <section v-if="baseline" class="review" aria-label="计划依据的评分复盘">
@@ -96,8 +109,9 @@ async function complete(taskKey: string, evidence?: string): Promise<void> {
         <p class="review-summary">{{ baseline.summary }}</p>
         <p v-if="baseline.styleTags.length" class="review-tags">表达风格：{{ baseline.styleTags.join(' · ') }}</p>
 
-        <div v-if="rounds.length" class="turns">
-          <p class="turns-head">逐轮回看 · 共 {{ rounds.length }} 轮回答</p>
+        <details v-if="rounds.length" class="turns-block">
+          <summary class="turns-head">逐轮回看 · 共 {{ rounds.length }} 轮回答</summary>
+          <div class="turns">
           <details v-for="turn in rounds" :key="turn.roundNo" class="turn">
             <summary>
               <span class="turn-no num">第 {{ turn.roundNo }} 轮</span>
@@ -108,7 +122,8 @@ async function complete(taskKey: string, evidence?: string): Promise<void> {
               <p v-if="turn.flags.length" class="turn-flags">表达提醒：{{ turn.flags.join("、") }}</p>
             </div>
           </details>
-        </div>
+          </div>
+        </details>
       </section>
 
       <section class="task-list" aria-label="训练计划任务">
@@ -165,6 +180,16 @@ async function complete(taskKey: string, evidence?: string): Promise<void> {
 .progress-row .bar { flex: 1; height: 2px; background: var(--track); }
 .progress-row .bar b { display: block; height: 100%; background: var(--accent); }
 .progress-row .status { color: var(--text-3); font-size: 11px; letter-spacing: .08em; }
+
+.next-action { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 22px; padding: 14px 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+.next-copy { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.next-copy .k { color: var(--text-3); font-size: 11px; letter-spacing: .14em; }
+.next-copy strong { color: var(--text); font-size: 14px; font-weight: 500; line-height: 1.5; }
+.turns-block { margin-top: 24px; border-top: 1px solid var(--divider); }
+.turns-block > summary { padding: 14px 0; color: var(--text-2); font-size: 12px; letter-spacing: .06em; cursor: pointer; list-style: none; }
+.turns-block > summary::-webkit-details-marker { display: none; }
+.turns-block > summary::before { content: "+"; margin-right: 8px; color: var(--text-3); }
+.turns-block[open] > summary::before { content: "−"; }
 
 .section-head {
   display: flex;
