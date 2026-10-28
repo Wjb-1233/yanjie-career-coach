@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">言阶</string>
+    <string name="default_server_url">http://10.219.167.242:4173</string>
+</resources>
