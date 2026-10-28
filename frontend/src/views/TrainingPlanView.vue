@@ -141,6 +141,7 @@ async function complete(taskKey: string, evidence?: string): Promise<void> {
           :locked="plan.tasks.slice(0, index).some((previous) => !previous.completed)"
           :step-number="index + 1"
           :show-action="currentIndex !== index"
+          :suggestions="baseline?.suggestions ?? []"
           @complete="complete"
         />
       </section>

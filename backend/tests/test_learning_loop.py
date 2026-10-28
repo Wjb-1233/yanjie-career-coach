@@ -109,12 +109,12 @@ def test_plan_closes_with_foundation_scene_and_original_scene_retest(
         plan_id = plan["id"]
         assert plan["focusDimension"] == "逻辑性"
         assert [(task["key"], task["actionType"]) for task in plan["tasks"]] == [
-            ("course", "COURSE"), ("practice", "TRAINING"), ("rewrite", "REWRITE"), ("retest", "RETEST"),
+            ("rewrite", "REWRITE"), ("course", "COURSE"), ("practice", "TRAINING"), ("retest", "RETEST"),
         ]
-        assert plan["tasks"][0]["lesson"]["steps"][0]["title"] == "先给结论"
-        assert plan["tasks"][1]["sceneId"] == "scene-foundation-logic"
+        assert plan["tasks"][1]["lesson"]["steps"][0]["title"] == "先给结论"
+        assert plan["tasks"][2]["sceneId"] == "scene-foundation-logic"
         assert plan["tasks"][3]["sceneId"] == "scene-interview-03"
-        assert plan["tasks"][1]["sourceSessionId"] == baseline_id
+        assert plan["tasks"][2]["sourceSessionId"] == baseline_id
 
         locked = client.post(
             f"/api/v1/training-plans/{plan_id}/tasks/practice/complete", headers=headers,
@@ -122,6 +122,18 @@ def test_plan_closes_with_foundation_scene_and_original_scene_retest(
         )
         assert locked.status_code == 422
         assert locked.json()["title"] == "PREVIOUS_TASK_INCOMPLETE"
+
+        short_rewrite = client.post(
+            f"/api/v1/training-plans/{plan_id}/tasks/rewrite/complete", headers=headers,
+            json={"evidence": "太短"},
+        )
+        assert short_rewrite.status_code == 422
+        rewrite = client.post(
+            f"/api/v1/training-plans/{plan_id}/tasks/rewrite/complete", headers=headers,
+            json={"evidence": "我的结论是先修复报错：本周三位客户反馈同一处问题，我下午提交方案，明天同步结果。"},
+        )
+        assert rewrite.status_code == 200
+        assert rewrite.json()["data"]["progress"] == 25
 
         for index in range(3):
             step = client.post(
@@ -133,8 +145,8 @@ def test_plan_closes_with_foundation_scene_and_original_scene_retest(
             json={"answer": "我的结论是先处理客户反馈的问题，依据是本周三位客户都提到同一处报错，我今天下午提交修复方案并同步结果。"},
         )
         assert answered.status_code == 200
-        assert answered.json()["data"]["progress"] == 25
-        assert answered.json()["data"]["tasks"][0]["practicePassed"] is True
+        assert answered.json()["data"]["progress"] == 50
+        assert answered.json()["data"]["tasks"][1]["practicePassed"] is True
 
         wrong_id = finish_training(client, headers, "scene-interview-03", False)
         wrong = client.post(
@@ -150,19 +162,7 @@ def test_plan_closes_with_foundation_scene_and_original_scene_retest(
             json={"evidence": practice_id},
         )
         assert practiced.status_code == 200
-        assert practiced.json()["data"]["progress"] == 50
-
-        short_rewrite = client.post(
-            f"/api/v1/training-plans/{plan_id}/tasks/rewrite/complete", headers=headers,
-            json={"evidence": "太短"},
-        )
-        assert short_rewrite.status_code == 422
-        rewrite = client.post(
-            f"/api/v1/training-plans/{plan_id}/tasks/rewrite/complete", headers=headers,
-            json={"evidence": "我的结论是先修复报错：本周三位客户反馈同一处问题，我下午提交方案，明天同步结果。"},
-        )
-        assert rewrite.status_code == 200
-        assert rewrite.json()["data"]["progress"] == 75
+        assert practiced.json()["data"]["progress"] == 75
 
         retest_id = finish_training(client, headers, "scene-interview-03", False)
         completed = client.post(
