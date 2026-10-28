@@ -136,26 +136,17 @@ def test_training_plan_can_be_opened_and_checked_in() -> None:
         assert plans.status_code == 200
         plan = plans.json()["data"][0]
         assert plan["progress"] == 0
-        assert len(plan["tasks"]) == 4
-        assert [item["actionType"] for item in plan["tasks"]] == ["REWRITE", "COURSE", "TRAINING", "RETEST"]
-        practice_task = plan["tasks"][2]
-        assert practice_task["sceneId"].startswith("scene-foundation-")
-        assert practice_task["sourceSessionId"] == session_id
+        assert len(plan["tasks"]) == 2
+        assert [item["actionType"] for item in plan["tasks"]] == ["REWRITE", "COURSE"]
+        assert plan["tasks"][0]["sourceSessionId"] == session_id
+        assert plan["tasks"][1]["lesson"]["steps"]
         premature = client.post(
-            f"/api/v1/training-plans/{plan['id']}/tasks/{practice_task['key']}/complete",
+            f"/api/v1/training-plans/{plan['id']}/tasks/course/complete",
             headers=headers,
-            json={"evidence": session_id},
+            json={"evidence": None},
         )
         assert premature.status_code == 422
-        # 四步计划中复练排在微课之后，未完成课程时先被顺序校验拦下
         assert premature.json()["title"] == "PREVIOUS_TASK_INCOMPLETE"
-        locked = client.post(
-            f"/api/v1/training-plans/{plan['id']}/tasks/retest/complete",
-            headers=headers,
-            json={"evidence": session_id},
-        )
-        assert locked.status_code == 422
-        assert locked.json()["title"] == "PREVIOUS_TASK_INCOMPLETE"
 
 
 def test_login_rate_limit_returns_retry_after() -> None:

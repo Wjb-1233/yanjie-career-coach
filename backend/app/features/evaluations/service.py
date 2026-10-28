@@ -194,28 +194,6 @@ async def create_training_plan(
                 "completedAt": None,
                 "evidence": None,
             },
-            {
-                "key": "practice",
-                "day": 3,
-                "task": draft.practice_task,
-                "actionType": "TRAINING",
-                "sceneId": recommended_scene.id,
-                "sourceSessionId": training.id,
-                "completed": False,
-                "completedAt": None,
-                "evidence": None,
-            },
-            {
-                "key": "retest",
-                "day": 4,
-                "task": draft.retest_task,
-                "actionType": "RETEST",
-                "sceneId": training.scene_id,
-                "sourceSessionId": training.id,
-                "completed": False,
-                "completedAt": None,
-                "evidence": None,
-            },
         ],
     )
     # 同一时间只保留一份进行中的计划：新计划生成后，旧的进行中计划标记为已被替代
