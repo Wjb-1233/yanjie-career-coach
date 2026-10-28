@@ -226,7 +226,7 @@ export interface TrainingPlan {
   id: string
   title: string
   focusDimension: string
-  status: 'ACTIVE' | 'COMPLETED'
+  status: 'ACTIVE' | 'COMPLETED' | 'SUPERSEDED'
   progress: number
   tasks: readonly TrainingPlanTask[]
   comparison: ScoreComparison | null
