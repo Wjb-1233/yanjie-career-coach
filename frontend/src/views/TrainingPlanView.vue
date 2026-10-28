@@ -36,6 +36,7 @@ const rounds = computed(() => {
 
 const nextTask = computed(() => plan.value?.tasks.find((task) => !task.completed) ?? null)
 const nextRoute = computed(() => (plan.value && nextTask.value ? taskRoute(plan.value.id, nextTask.value) : null))
+const currentIndex = computed(() => plan.value ? plan.value.tasks.findIndex((task) => !task.completed) : -1)
 
 onMounted(trainingPlan.load)
 
@@ -75,15 +76,15 @@ async function complete(taskKey: string, evidence?: string): Promise<void> {
           <span class="status">{{ plan.status === 'COMPLETED' ? '已完成' : plan.status === 'SUPERSEDED' ? '已被替代' : '进行中' }}</span>
         </div>
 
-        <div v-if="nextTask" class="next-action">
-          <span class="next-copy">
-            <span class="k">下一步</span>
-            <strong>{{ stepTitle(nextTask) }}</strong>
-          </span>
-          <RouterLink v-if="nextRoute" class="button" :to="nextRoute">{{ taskActionLabel(nextTask) }} →</RouterLink>
-          <a v-else class="button" :href="'#task-' + nextTask.key">{{ taskActionLabel(nextTask) }} →</a>
-        </div>
       </header>
+      <div v-if="nextTask" class="next-action">
+        <span class="next-copy">
+          <span class="k">下一步</span>
+          <strong>{{ stepTitle(nextTask) }}</strong>
+        </span>
+        <RouterLink v-if="nextRoute" class="button" :to="nextRoute">{{ taskActionLabel(nextTask) }} →</RouterLink>
+        <a v-else class="button" :href="'#task-' + nextTask.key">去逐轮改写 ↓</a>
+      </div>
 
       <section v-if="baseline" class="review" aria-label="计划依据的评分复盘">
         <header class="section-head">
@@ -139,6 +140,7 @@ async function complete(taskKey: string, evidence?: string): Promise<void> {
           :submitting="trainingPlan.submitting.value"
           :locked="plan.tasks.slice(0, index).some((previous) => !previous.completed)"
           :step-number="index + 1"
+          :show-action="currentIndex !== index"
           @complete="complete"
         />
       </section>
@@ -181,7 +183,7 @@ async function complete(taskKey: string, evidence?: string): Promise<void> {
 .progress-row .bar b { display: block; height: 100%; background: var(--accent); }
 .progress-row .status { color: var(--text-3); font-size: 11px; letter-spacing: .08em; }
 
-.next-action { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 22px; padding: 14px 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+.next-action { position: sticky; top: 70px; z-index: 6; display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 22px; padding: 14px 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
 .next-copy { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
 .next-copy .k { color: var(--text-3); font-size: 11px; letter-spacing: .14em; }
 .next-copy strong { color: var(--text); font-size: 14px; font-weight: 500; line-height: 1.5; }

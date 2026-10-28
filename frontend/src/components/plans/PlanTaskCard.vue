@@ -9,6 +9,7 @@ const props = defineProps<{
   task: TrainingPlanTask
   submitting: boolean
   locked: boolean
+  showAction?: boolean
   stepNumber: number
 }>()
 const emit = defineEmits<{ complete: [taskKey: string, evidence?: string] }>()
@@ -62,7 +63,7 @@ function submitRewrite(): void {
             {{ task.rewriteDegraded ? '待评价：' : task.rewritePassed ? '改写通过：' : '还需改进：' }}{{ task.rewriteFeedback }}
           </p>
         </div>
-        <RouterLink v-else-if="actionRoute" class="button action" :to="actionRoute">{{ actionLabel }}</RouterLink>
+        <RouterLink v-else-if="actionRoute && showAction !== false" class="button action" :to="actionRoute">{{ actionLabel }}</RouterLink>
       </template>
 
       <template v-else>
