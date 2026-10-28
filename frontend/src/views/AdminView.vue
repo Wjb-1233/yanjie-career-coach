@@ -66,9 +66,20 @@ async function saveCourse(value: Omit<AdminCourseRecord, 'id' | 'progress' | 'co
   catch (reason) { error.value = errorMessage(reason) }
 }
 
-async function deactivateCourse(id: string) {
-  if (!window.confirm('停用后该微课不再推荐，学员历史进度会保留。继续吗？')) return
-  try { await api.delete(`/admin/courses/${id}`); await load() } catch (reason) { error.value = errorMessage(reason) }
+async function toggleCourse(item: AdminCourseRecord) {
+  if (item.active && !window.confirm('停用后该微课不再推荐，学员历史进度会保留。继续吗？')) return
+  busyId.value = item.id
+  try {
+    await api.patch(`/admin/courses/${item.id}`, {
+      title: item.title,
+      dimension: item.dimension,
+      minutes: item.minutes,
+      description: item.description,
+      content: item.content,
+      active: !item.active,
+    })
+    await load()
+  } catch (reason) { error.value = errorMessage(reason) } finally { busyId.value = '' }
 }
 
 async function download(path: string, filename: string) {
@@ -99,17 +110,17 @@ onMounted(load)
     <div v-if="overview" class="admin-metrics">
       <div class="panel"><strong>{{ overview.users }}</strong><span>学员账号（{{ overview.activeUsers }} 启用）</span></div>
       <div class="panel"><strong>{{ overview.scenes }}</strong><span>面试场景（{{ overview.activeScenes }} 开放）</span></div>
-      <div class="panel"><strong>{{ overview.courses }}</strong><span>微课（{{ overview.activeCourses }} 开放）</span></div>
+      <div class="panel"><strong>{{ overview.courses }}</strong><span>微课素材（{{ overview.activeCourses }} 开放）</span></div>
       <div class="panel"><strong>{{ overview.sessions }}</strong><span>训练会话</span></div>
       <div class="panel"><strong>{{ overview.averageScore }}</strong><span>平均综合评分</span></div>
     </div>
     <nav class="admin-tabs" aria-label="管理功能">
-      <button v-for="item in [{ id: 'users', label: '学员与权限' }, { id: 'scenes', label: '场景设计' }, { id: 'courses', label: '微课管理' }, { id: 'sessions', label: '训练与报告' }]" :key="item.id" :class="{ active: tab === item.id }" @click="tab = item.id as Tab">{{ item.label }}</button>
+      <button v-for="item in [{ id: 'users', label: '学员与权限' }, { id: 'scenes', label: '场景设计' }, { id: 'courses', label: '微课素材' }, { id: 'sessions', label: '训练与报告' }]" :key="item.id" :class="{ active: tab === item.id }" @click="tab = item.id as Tab">{{ item.label }}</button>
     </nav>
     <div v-if="loading" class="panel loading" aria-label="正在加载管理数据"><div class="skeleton loading-line" /><div class="skeleton loading-line short" /><div class="skeleton loading-card" /></div>
     <AdminUsersPanel v-else-if="tab === 'users'" :users="users" :busy-id="busyId" @update="updateUser" />
     <AdminScenesPanel v-else-if="tab === 'scenes'" :scenes="scenes" :busy="loading" @save="saveScene" @deactivate="deactivateScene" />
-    <AdminCoursesPanel v-else-if="tab === 'courses'" :courses="courses" :busy="loading" @save="saveCourse" @deactivate="deactivateCourse" />
+    <AdminCoursesPanel v-else-if="tab === 'courses'" :courses="courses" :busy="loading" @save="saveCourse" @toggle="toggleCourse" />
     <AdminSessionsPanel v-else :sessions="sessions" :loading="loading" @export="download('/admin/reports/export', '学员训练能力报告.csv')" @report="showLearnerReport" />
     <LearnerReportPanel v-if="report" :report="report" @close="report = null" @export="download(`/admin/learners/${report.learner.id}/report/export`, `${report.learner.name}-能力报告.csv`)" />
   </div>
