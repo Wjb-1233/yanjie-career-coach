@@ -152,13 +152,13 @@ function formatDate(value: string): string {
   background: var(--card);
 }
 :root[data-theme='dark'] .cta {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--on-solid);
+  border-color: #f2f1ef;
+  background: #f2f1ef;
+  color: #0b0b0c;
 }
 :root[data-theme='dark'] .cta:hover {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
-  color: var(--on-solid);
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #0b0b0c;
 }
 </style>

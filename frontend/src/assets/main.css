@@ -90,39 +90,39 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  /* 深色：冷中性面 + 三级亮度层次 + 单一青色强调（深度靠明度与边线，不靠发光） */
-  --bg: #0a0d14;
-  --bg-2: #0f131c;
-  --card: #131824;
-  --card-2: #182030;
-  --raised: #1f2836;
+  /* 深色：中性石墨面 + 铜色信号（不用蓝紫、不用发光、不用玻璃） */
+  --bg: #0b0b0c;
+  --bg-2: #101011;
+  --card: #131314;
+  --card-2: #1a1a1c;
+  --raised: #212123;
 
-  --border: rgba(148, 163, 184, .14);
-  --border-bright: rgba(148, 163, 184, .28);
-  --divider: rgba(148, 163, 184, .1);
+  --border: rgba(255, 255, 255, .09);
+  --border-bright: rgba(255, 255, 255, .18);
+  --divider: rgba(255, 255, 255, .07);
 
-  --text: #f1f5f9;
-  --text-2: #94a3b8;
-  --text-3: #64748b;
-  --on-solid: #04121a;
+  --text: #f2f1ef;
+  --text-2: #a3a19d;
+  --text-3: #6e6c68;
+  --on-solid: #0b0b0c;
 
-  --accent: #4fb3d4;
-  --accent-strong: #6ec8e2;
-  --accent-soft: rgba(79, 179, 212, .12);
+  --accent: #c98a56;
+  --accent-strong: #dda170;
+  --accent-soft: rgba(201, 138, 86, .12);
 
-  --track: rgba(255, 255, 255, .08);
-  --fill: #4f5a68;
-  --muted-progress: #4f5a68;
-  --chart-line: #8fb6c4;
-  --chart-dot: #e7ecf2;
-  --radar-stroke: #a9cbd7;
-  --radar-fill: rgba(79, 179, 212, .1);
+  --track: rgba(255, 255, 255, .09);
+  --fill: #565350;
+  --muted-progress: #565350;
+  --chart-line: #c2bdb6;
+  --chart-dot: #f2f1ef;
+  --radar-stroke: #cfc7bd;
+  --radar-fill: rgba(201, 138, 86, .12);
   --radar-grid: rgba(255, 255, 255, .07);
   --radar-grid-outer: rgba(255, 255, 255, .16);
 
-  --success: #79c79b;
-  --warning: #d9b877;
-  --danger: #e08a80;
+  --success: #8fb98d;
+  --warning: #cfa964;
+  --danger: #d98279;
 
   --overlay-1: rgba(255, 255, 255, .035);
   --overlay-2: rgba(255, 255, 255, .06);
@@ -165,12 +165,12 @@ button { color: inherit; }
 .page-title {
   margin: 0;
   color: var(--text);
-  font-size: clamp(28px, 3.4vw, 36px);
+  font-size: clamp(26px, 3vw, 32px);
   font-weight: 600;
-  letter-spacing: -.02em;
-  line-height: 1.25;
+  letter-spacing: -.025em;
+  line-height: 1.3;
 }
-.page-lead { max-width: 620px; margin: 14px 0 0; color: var(--text-2); font-size: 14px; line-height: 1.85; }
+.page-lead { max-width: 640px; margin: 14px 0 0; color: var(--text-2); font-size: 13.5px; line-height: 1.9; }
 
 .label { color: var(--text-3); font-size: 11px; letter-spacing: .2em; }
 
@@ -188,29 +188,29 @@ button { color: inherit; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  min-height: 40px;
-  padding: 0 20px;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
   border: 1px solid var(--text);
   border-radius: var(--radius-sm);
   background: var(--text);
   color: var(--on-solid);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: .04em;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: .02em;
   cursor: pointer;
-  transition: background var(--ease), border-color var(--ease), color var(--ease);
+  transition: background .14s var(--ease), border-color .14s var(--ease), color .14s var(--ease), opacity .14s var(--ease);
 }
-.button:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+.button:hover { background: var(--accent); border-color: var(--accent); color: var(--on-solid); }
 .button:active { transform: translateY(1px); }
-.button:disabled { cursor: not-allowed; opacity: .45; transform: none; }
+.button:disabled { cursor: not-allowed; opacity: .38; transform: none; }
 .button.secondary {
   border-color: var(--border-bright);
   background: transparent;
   color: var(--text);
 }
-.button.secondary:hover { border-color: var(--text-2); background: var(--overlay-2); color: var(--text); }
-.button.signal { background: var(--accent); border-color: var(--accent); color: #fff; }
+.button.secondary:hover { border-color: var(--text-3); background: var(--overlay-1); color: var(--text); }
+.button.signal { background: var(--accent); border-color: var(--accent); color: var(--on-solid); }
 .button.signal:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
 
 /* ---------- 表单 ---------- */
@@ -282,14 +282,14 @@ tbody tr:hover { background: var(--overlay-1); }
   border-color: var(--border-bright);
 }
 :root[data-theme='dark'] .button {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--on-solid);
+  border-color: #f2f1ef;
+  background: #f2f1ef;
+  color: #0b0b0c;
 }
 :root[data-theme='dark'] .button:hover {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
-  color: var(--on-solid);
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #0b0b0c;
 }
 :root[data-theme='dark'] .button.secondary {
   background: transparent;

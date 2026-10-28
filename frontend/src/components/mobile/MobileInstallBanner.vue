@@ -109,6 +109,10 @@ defineEmits<{
 .install-card-enter-active, .install-card-leave-active { transition: opacity .22s, transform .22s; }
 .install-card-enter-from, .install-card-leave-to { opacity: 0; transform: translateY(12px); }
 
+@media (min-width: 900px) {
+  .install-banner { display: none; }
+}
+
 @media (max-width: 760px) {
   .install-banner {
     right: 14px;
