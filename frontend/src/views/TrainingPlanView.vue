@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 
 import PlanTaskCard from '@/components/plans/PlanTaskCard.vue'
@@ -8,6 +8,10 @@ import { useTrainingPlan } from '@/composables/useTrainingPlan'
 
 const route = useRoute()
 const trainingPlan = useTrainingPlan(String(route.params.id))
+
+const plan = computed(() => trainingPlan.plan.value)
+const completedCount = computed(() => plan.value ? plan.value.tasks.filter((task) => task.completed).length : 0)
+const totalCount = computed(() => plan.value?.tasks.length ?? 0)
 
 onMounted(trainingPlan.load)
 
@@ -23,53 +27,75 @@ async function complete(taskKey: string, evidence?: string): Promise<void> {
 <template>
   <div class="page plan-page">
     <RouterLink class="back" to="/plans">← 返回能力提升</RouterLink>
+
     <div v-if="trainingPlan.error.value" class="error-banner">{{ trainingPlan.error.value }}</div>
-    <div v-if="trainingPlan.loading.value" class="panel skeleton plan-loading" />
-    <template v-else-if="trainingPlan.plan.value">
-      <header class="plan-hero panel">
-        <div>
-          <p class="eyebrow">训练计划</p>
-          <h1>{{ trainingPlan.plan.value.title }}</h1>
-          <p v-if="trainingPlan.plan.value.tasks.some((task) => task.actionType === 'COURSE')">这是之前生成的课程型计划，完成后可查看五维评分变化。</p>
-          <p v-else>根据五维评分锁定“{{ trainingPlan.plan.value.focusDimension }}”，先到基础能力场景专项对练，再回到原场景复测，用两次真实回答比较变化。</p>
-        </div>
-        <div class="task-count">
-          <strong>{{ trainingPlan.plan.value.tasks.filter((task) => task.completed).length }} / {{ trainingPlan.plan.value.tasks.length }}</strong>
-          <span>{{ trainingPlan.plan.value.status === 'COMPLETED' ? '已完成实战闭环' : '已完成训练任务' }}</span>
+    <div v-if="trainingPlan.loading.value" class="skeleton plan-loading" />
+
+    <template v-else-if="plan">
+      <header class="plan-head">
+        <p class="eyebrow">训练计划 · 针对{{ plan.focusDimension }}</p>
+        <h1>{{ plan.title }}</h1>
+        <p class="lead">先学微课，再回场景复练与改写，最后复测对比两次真实回答。</p>
+
+        <div class="progress-row">
+          <span class="num">{{ completedCount }} / {{ totalCount }}</span>
+          <i class="bar"><b :style="{ width: `${plan.progress}%` }" /></i>
+          <span class="status">{{ plan.status === 'COMPLETED' ? '已完成' : '进行中' }}</span>
         </div>
       </header>
+
       <section class="task-list" aria-label="训练计划任务">
         <PlanTaskCard
-          v-for="(task, index) in trainingPlan.plan.value.tasks"
+          v-for="(task, index) in plan.tasks"
           :key="task.key"
-          :plan-id="trainingPlan.plan.value.id"
+          :plan-id="plan.id"
           :task="task"
           :submitting="trainingPlan.submitting.value"
-          :locked="trainingPlan.plan.value.tasks.slice(0, index).some((previous) => !previous.completed)"
+          :locked="plan.tasks.slice(0, index).some((previous) => !previous.completed)"
           :step-number="index + 1"
           @complete="complete"
         />
       </section>
+
       <PlanComparison
-        v-if="trainingPlan.plan.value.comparison"
-        :comparison="trainingPlan.plan.value.comparison"
-        :focus-dimension="trainingPlan.plan.value.focusDimension"
+        v-if="plan.comparison"
+        :comparison="plan.comparison"
+        :focus-dimension="plan.focusDimension"
       />
     </template>
   </div>
 </template>
 
 <style scoped>
-.plan-page { max-width: 980px; }
-.back { display: inline-block; margin-bottom: 18px; color: var(--ink-soft); font-size: 13px; }
+.plan-page { max-width: 900px; }
+.back {
+  display: inline-block;
+  margin-bottom: 22px;
+  color: var(--text-3);
+  font-size: 12px;
+  letter-spacing: .04em;
+  transition: color var(--ease);
+}
+.back:hover { color: var(--text); }
 .error-banner { margin-bottom: 18px; }
-.plan-loading { min-height: 420px; }
-.plan-hero { margin-bottom: 24px; padding: 32px; display: flex; align-items: center; justify-content: space-between; gap: 28px; border-color:var(--border);background:var(--card); }
-.plan-hero h1 { margin: 0; font-size:clamp(30px, 5vw, 48px);font-weight:800;line-height:1.15;letter-spacing:-.035em; }
-.plan-hero p:last-child { max-width: 600px; margin: 14px 0 0; color: var(--ink-soft); line-height: 1.8; }
-.task-count { flex: none; display: grid; gap: 7px; padding: 18px; border-left: 1px solid var(--accent); border-radius:0 12px 12px 0;background:var(--bg-2); }
-.task-count strong { font:600 32px/1 var(--font-ui);color:var(--text); }
-.task-count span { color: var(--ink-soft); font-size: 12px; }
-.task-list { display: grid; gap: 14px; }
-@media (max-width: 650px) { .plan-hero { align-items: flex-start; flex-direction: column; } }
+.plan-loading { min-height: 380px; }
+
+.plan-head { padding-bottom: 22px; border-bottom: 1px solid var(--divider); }
+.plan-head h1 {
+  margin: 10px 0 0;
+  color: var(--text);
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -.01em;
+}
+.lead { max-width: 60ch; margin: 12px 0 0; color: var(--text-2); font-size: 13px; line-height: 1.9; }
+
+.progress-row { display: flex; align-items: center; gap: 16px; margin-top: 22px; }
+.progress-row .num { color: var(--text-2); font-family: var(--font-num); font-size: 13px; letter-spacing: .02em; }
+.progress-row .bar { flex: 1; height: 2px; background: var(--track); }
+.progress-row .bar b { display: block; height: 100%; background: var(--accent); }
+.progress-row .status { color: var(--text-3); font-size: 11px; letter-spacing: .08em; }
+
+.task-list { margin-top: 8px; }
 </style>
