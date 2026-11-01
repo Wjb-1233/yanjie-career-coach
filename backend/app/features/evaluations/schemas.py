@@ -6,11 +6,16 @@ from app.core.schemas import ApiModel
 
 
 class DimensionScores(ApiModel):
+    """四维评分：内容与逻辑 / 贴合问题 / 信息完整 / 表达干净。
+
+    appropriateness 仅为兼容历史数据保留，新评分不再单独打分。
+    """
+
     logic: int = Field(ge=1, le=5)
-    appropriateness: int = Field(ge=1, le=5)
-    correctness: int = Field(ge=1, le=5)
     relevance: int = Field(ge=1, le=5)
+    correctness: int = Field(ge=1, le=5)
     concision: int = Field(ge=1, le=5)
+    appropriateness: int = Field(default=3, ge=1, le=5)
 
 
 class EvaluationPayload(ApiModel):
@@ -19,6 +24,8 @@ class EvaluationPayload(ApiModel):
     suggestions: list[dict]
     style_tags: list[str]
     evidence: list[dict] = Field(default_factory=list)
+    reference: str = ""
+    risk: list[str] = Field(default_factory=list)
 
 
 class EvidenceDraft(ApiModel):
@@ -56,6 +63,8 @@ class EvaluationView(ApiModel):
     evidence: list[EvidenceView] = Field(default_factory=list)
     plan_id: str | None = None
     speech_stats: dict | None = None
+    reference: str | None = None
+    stability: dict | None = None
     previous_scores: DimensionScores | None = None
     previous_overall: float | None = None
 

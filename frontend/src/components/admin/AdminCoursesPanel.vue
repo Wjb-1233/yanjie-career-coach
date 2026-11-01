@@ -4,7 +4,7 @@ import { computed, reactive, shallowRef } from 'vue'
 import SelectField from '@/components/ui/SelectField.vue'
 import type { AdminCourseRecord } from '@/lib/types'
 
-const DIMENSIONS = ['逻辑性', '得体性', '正确性', '针对性', '简洁度']
+const DIMENSIONS = ['内容与逻辑', '信息完整', '表达干净', '贴合问题']
 
 const props = defineProps<{ courses: AdminCourseRecord[]; busy: boolean }>()
 const emit = defineEmits<{
@@ -12,7 +12,7 @@ const emit = defineEmits<{
   toggle: [course: AdminCourseRecord]
 }>()
 
-const dimensions = ['全部', '逻辑性', '得体性', '正确性', '针对性', '简洁度']
+const dimensions = ['全部', '内容与逻辑', '信息完整', '表达干净', '贴合问题']
 const filter = shallowRef('全部')
 const formOpen = shallowRef(false)
 const selectedId = shallowRef<string | null>(null)

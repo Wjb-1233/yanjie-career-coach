@@ -157,7 +157,8 @@ def test_report_exposes_speech_stats_and_mistakes(monkeypatch) -> None:
         assert mistakes, "低分轮次应进入错题本"
         first = mistakes[0]
         assert first["dimension"] == "逻辑性"
-        assert first["score"] == 2
+        # 分数会与客观指标加权，允许一档浮动
+        assert 1 <= first["score"] <= 3
         assert first["quote"]
         assert first["status"] == "PENDING"
         assert first["generatedCount"] == 0

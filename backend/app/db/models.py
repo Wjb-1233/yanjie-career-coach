@@ -94,6 +94,18 @@ class PasswordResetRequest(TimestampMixin, Base):
     handled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class SkillState(TimestampMixin, Base):
+    """学员 × 维度的能力值（Elo）。"""
+
+    __tablename__ = "skill_states"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    dimension: Mapped[str] = mapped_column(String(32), index=True)
+    rating: Mapped[float] = mapped_column(Float, default=1000.0)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    __table_args__ = (UniqueConstraint("user_id", "dimension", name="uq_skill_user_dimension"),)
+
+
 class MistakeState(TimestampMixin, Base):
     __tablename__ = "mistake_states"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
@@ -102,6 +114,8 @@ class MistakeState(TimestampMixin, Base):
     round_no: Mapped[int] = mapped_column(Integer)
     dimension: Mapped[str] = mapped_column(String(20))
     status: Mapped[str] = mapped_column(String(20), default="PENDING")
+    streak: Mapped[int] = mapped_column(Integer, default=0)
+    due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     __table_args__ = (
         UniqueConstraint("user_id", "session_id", "round_no", "dimension"),
     )
@@ -166,6 +180,8 @@ class Evaluation(Base):
     suggestions: Mapped[list[dict]] = mapped_column(JSON, default=list)
     style_tags: Mapped[list[str]] = mapped_column(JSON, default=list)
     speech_stats: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    reference_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    stability: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     degraded: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
 

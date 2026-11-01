@@ -5,11 +5,10 @@ import type { Evaluation, Scores } from '@/lib/types'
 
 const props = defineProps<{ evaluation: Evaluation }>()
 const labels: Record<keyof Scores, string> = {
-  logic: '逻辑性',
-  appropriateness: '得体性',
-  correctness: '正确性',
-  relevance: '针对性',
-  concision: '简洁度',
+  logic: '内容与逻辑',
+  correctness: '信息完整',
+  relevance: '贴合问题',
+  concision: '表达干净',
 }
 const keys = Object.keys(labels) as Array<keyof Scores>
 const selected = shallowRef<keyof Scores | null>(null)

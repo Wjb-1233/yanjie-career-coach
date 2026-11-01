@@ -13,7 +13,7 @@ const props = defineProps<{
 
 const dimensions: Array<{ key: keyof Scores; label: string }> = [
   { key: 'logic', label: '逻辑性' },
-  { key: 'appropriateness', label: '得体性' },
+  
   { key: 'correctness', label: '正确性' },
   { key: 'relevance', label: '针对性' },
   { key: 'concision', label: '简洁度' },

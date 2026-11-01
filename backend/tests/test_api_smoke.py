@@ -136,9 +136,11 @@ def test_training_plan_can_be_opened_and_checked_in() -> None:
         assert plans.status_code == 200
         plan = plans.json()["data"][0]
         assert plan["progress"] == 0
-        assert len(plan["tasks"]) == 1
-        assert [item["actionType"] for item in plan["tasks"]] == ["COURSE"]
-        assert plan["tasks"][0]["lesson"]["steps"]
+        actions = [item["actionType"] for item in plan["tasks"]]
+        assert actions[-1] == "COURSE"
+        assert set(actions) <= {"SCENE", "REVIEW", "COURSE"}
+        course_task = next(item for item in plan["tasks"] if item["actionType"] == "COURSE")
+        assert course_task["lesson"]["steps"]
 
 
 def test_login_rate_limit_returns_retry_after() -> None:

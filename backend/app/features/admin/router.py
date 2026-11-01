@@ -258,7 +258,7 @@ async def learner_report(user_id: str, _: AdminUser, session: DbSession) -> dict
     if learner is None:
         raise not_found("学员")
     evaluations = (await session.scalars(select(Evaluation).where(Evaluation.user_id == user_id).order_by(Evaluation.created_at.desc()).limit(100))).all()
-    keys = ("logic", "appropriateness", "correctness", "relevance", "concision")
+    keys = ("logic", "relevance", "correctness", "concision")
     dimensions = {key: round(sum(getattr(item, f"{key}_score") for item in evaluations) / len(evaluations), 2) for key in keys} if evaluations else {}
     return ok({
         "learner": {

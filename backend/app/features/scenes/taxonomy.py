@@ -16,7 +16,7 @@ LEGACY_CATEGORIES: dict[str, SceneCategory] = {
     "薪资沟通": "HRBP/HR 终面",
 }
 
-DIMENSION_LABELS = ["逻辑性", "得体性", "正确性", "针对性", "简洁度"]
+DIMENSION_LABELS = ["内容与逻辑", "信息完整", "表达干净", "贴合问题"]
 
 
 def normalize_bank(raw):

@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     llm_json_mode: bool = True
     lesson_video_dir: str = "static/lessons"
     lesson_video_engine: str = "remotion"
+    evaluation_samples: int = Field(default=3, ge=1, le=3)
     doubao_realtime_app_id: str = ""
     doubao_realtime_access_token: str = ""
     doubao_realtime_ws_url: str = "wss://openspeech.bytedance.com/api/v3/realtime/dialogue"

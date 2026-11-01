@@ -41,21 +41,19 @@ async def dashboard(user: CurrentUser, session: DbSession) -> dict:
     dimensions = (
         {
             "logic": latest.logic_score,
-            "appropriateness": latest.appropriateness_score,
             "correctness": latest.correctness_score,
             "relevance": latest.relevance_score,
             "concision": latest.concision_score,
         }
         if latest
-        else {"logic": 0, "appropriateness": 0, "correctness": 0, "relevance": 0, "concision": 0}
+        else {"logic": 0, "relevance": 0, "correctness": 0, "concision": 0}
     )
-    score_keys = ("logic", "appropriateness", "correctness", "relevance", "concision")
+    score_keys = ("logic", "relevance", "correctness", "concision")
     dimension_labels = {
-        "logic": "逻辑性",
-        "appropriateness": "得体性",
-        "correctness": "正确性",
-        "relevance": "针对性",
-        "concision": "简洁度",
+        "logic": "内容与逻辑",
+        "relevance": "贴合问题",
+        "correctness": "信息完整",
+        "concision": "表达干净",
     }
     dimension_averages = {
         key: round(sum(getattr(item, f"{key}_score") for item in evaluations) / len(evaluations), 2)
@@ -79,7 +77,6 @@ async def dashboard(user: CurrentUser, session: DbSession) -> dict:
             "score": item.overall_score,
             "dimensions": {
                 "logic": item.logic_score,
-                "appropriateness": item.appropriateness_score,
                 "correctness": item.correctness_score,
                 "relevance": item.relevance_score,
                 "concision": item.concision_score,

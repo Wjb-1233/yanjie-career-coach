@@ -49,7 +49,7 @@ const deliveryStats = computed(() => {
   return raw
 })
 
-const labels: Record<keyof Scores, string> = { logic: '逻辑性', appropriateness: '得体性', correctness: '正确性', relevance: '针对性', concision: '简洁度' }
+const labels: Record<keyof Scores, string> = { logic: '内容与逻辑', relevance: '贴合问题', correctness: '信息完整', concision: '表达干净' }
 
 const orderedScores = computed(() => evaluation.value
   ? (Object.entries(evaluation.value.scores) as Array<[keyof Scores, number]>).sort((a, b) => b[1] - a[1])
@@ -183,6 +183,11 @@ onMounted(async () => {
           <span class="tag">说话 {{ deliveryStats.charCount }} 字</span>
           <span v-if="deliveryStats.fillerTotal" class="tag">填充词 {{ deliveryStats.fillerTotal }} 次</span>
         </p>
+      </section>
+
+      <section v-if="evaluation.reference" class="speech panel">
+        <header class="speech-head"><h2>满分回答参考</h2><span>保留你的真实事实，不编造经历</span></header>
+        <p class="reference-text">{{ evaluation.reference }}</p>
       </section>
 
       <section v-if="evaluation.suggestions.length" class="suggestions">
@@ -349,4 +354,6 @@ onMounted(async () => {
 @media (prefers-reduced-motion: reduce) {
   .bar b { animation: none; width: var(--w); }
 }
+.stability-note { margin: 8px 0 0; color: var(--text-3); font-size: 12px; }
+.reference-text { margin: 8px 0 0; color: var(--text-2); line-height: 1.9; font-size: 13.5px; }
 </style>

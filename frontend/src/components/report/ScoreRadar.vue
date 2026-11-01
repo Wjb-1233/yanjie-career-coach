@@ -6,11 +6,10 @@ import type { Scores } from '@/lib/types'
 const props = withDefaults(defineProps<{ scores: Scores; quiet?: boolean }>(), { quiet: false })
 
 const AXES: Array<{ key: keyof Scores; label: string }> = [
-  { key: 'logic', label: '逻辑性' },
-  { key: 'appropriateness', label: '得体性' },
-  { key: 'correctness', label: '正确性' },
-  { key: 'relevance', label: '针对性' },
-  { key: 'concision', label: '简洁度' },
+  { key: 'logic', label: '内容与逻辑' },
+  { key: 'correctness', label: '信息完整' },
+  { key: 'concision', label: '表达干净' },
+  { key: 'relevance', label: '贴合问题' },
 ]
 
 const CX = 140

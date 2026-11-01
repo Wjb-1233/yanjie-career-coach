@@ -12,7 +12,7 @@ class PlanTaskView(ApiModel):
     key: str
     day: int
     task: str
-    action_type: Literal["COURSE", "TRAINING", "REWRITE", "RETEST"]
+    action_type: Literal["COURSE", "TRAINING", "REWRITE", "RETEST", "SCENE", "REVIEW"]
     completed: bool = False
     completed_at: datetime | None = None
     evidence: str | None = None

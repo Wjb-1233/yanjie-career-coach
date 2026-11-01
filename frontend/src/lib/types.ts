@@ -70,9 +70,8 @@ export interface TrainingSession {
 
 export interface Scores {
   logic: number
-  appropriateness: number
-  correctness: number
   relevance: number
+  correctness: number
   concision: number
 }
 
@@ -165,6 +164,8 @@ export interface Evaluation {
   styleTags: string[]
   createdAt: string
   degraded: boolean
+  reference?: string | null
+  stability?: { samples: number; maxSpread: number; reliable: boolean } | null
   evidence: ScoreEvidence[]
   planId: string | null
   previousScores: Scores | null
@@ -253,7 +254,7 @@ export interface AdminSessionRecord {
   overallScore: number | null
 }
 
-export type PlanTaskAction = 'COURSE' | 'TRAINING' | 'REWRITE' | 'RETEST'
+export type PlanTaskAction = 'COURSE' | 'TRAINING' | 'REWRITE' | 'RETEST' | 'SCENE' | 'REVIEW'
 
 export interface PersonalizedLesson {
   title: string

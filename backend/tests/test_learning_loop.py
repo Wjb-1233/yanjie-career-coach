@@ -94,11 +94,12 @@ def test_plan_is_review_then_lesson_and_closes(monkeypatch) -> None:
 
         plan = client.get("/api/v1/training-plans", headers=headers).json()["data"][0]
         plan_id = plan["id"]
-        assert plan["focusDimension"] == "逻辑性"
-        assert [(task["key"], task["actionType"]) for task in plan["tasks"]] == [
-            ("course", "COURSE"),
-        ]
-        assert plan["tasks"][0]["lesson"]["steps"][0]["title"] == "先给结论"
+        assert plan["focusDimension"] == "内容与逻辑"
+        keys = [(task["key"], task["actionType"]) for task in plan["tasks"]]
+        assert keys[-1] == ("course", "COURSE")
+        assert all(action in {"SCENE", "REVIEW", "COURSE"} for _, action in keys)
+        course_task = next(item for item in plan["tasks"] if item["actionType"] == "COURSE")
+        assert course_task["lesson"]["steps"][0]["title"] == "先给结论"
 
         for index in range(3):
             step = client.post(
@@ -112,6 +113,7 @@ def test_plan_is_review_then_lesson_and_closes(monkeypatch) -> None:
         )
         assert answered.status_code == 200
         data = answered.json()["data"]
-        assert data["progress"] == 100
-        assert data["status"] == "COMPLETED"
-        assert data["tasks"][0]["practicePassed"] is True
+        course = next(item for item in data["tasks"] if item["actionType"] == "COURSE")
+        assert course["practicePassed"] is True
+        # 计划里还有场景复练任务，完成微课只推进一部分进度
+        assert 0 < data["progress"] < 100

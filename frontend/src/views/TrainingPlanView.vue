@@ -24,7 +24,7 @@ const staleDays = computed(() => {
 })
 const totalCount = computed(() => plan.value?.tasks.length ?? 0)
 
-const labels: Record<keyof Scores, string> = { logic: '逻辑性', appropriateness: '得体性', correctness: '正确性', relevance: '针对性', concision: '简洁度' }
+const labels: Record<keyof Scores, string> = { logic: '内容与逻辑', relevance: '贴合问题', correctness: '信息完整', concision: '表达干净' }
 const baseline = shallowRef<Evaluation | null>(null)
 const reviewSession = shallowRef<TrainingSession | null>(null)
 const baselineSessionId = computed(() => plan.value?.tasks.find((task) => task.sourceSessionId)?.sourceSessionId ?? '')
@@ -67,6 +67,10 @@ const rounds = computed<Round[]>(() => {
 })
 
 const annotatedCount = computed(() => rounds.value.filter((round) => round.problem || round.advice).length)
+const sceneTasks = computed(() =>
+  (plan.value?.tasks ?? []).filter((task) => task.actionType === 'SCENE' || task.actionType === 'REVIEW'),
+)
+
 const courseTask = computed(() => plan.value?.tasks.find((task) => task.actionType === 'COURSE') ?? null)
 const courseRoute = computed(() => (plan.value && courseTask.value ? taskRoute(plan.value.id, courseTask.value) : null))
 
@@ -128,6 +132,24 @@ function stateOf(task: TrainingPlanTask | null): TaskState {
         这份计划已经放了 {{ staleDays }} 天还没走完。比起继续看课，回去再练一次往往更有用。
         <RouterLink v-if="reviewSession?.sceneId" :to="`/scenes?sceneId=${reviewSession.sceneId}`">回到原场景再练 →</RouterLink>
       </p>
+
+      <section v-if="sceneTasks.length" class="review scene-plan" aria-label="场景复练">
+        <header class="section-head">
+          <div class="section-title">
+            <span class="section-no num">00</span>
+            <h2>先练这两场</h2>
+            <span class="section-hint">按你当前能力值匹配的场景</span>
+          </div>
+          <span class="section-state">待完成</span>
+        </header>
+        <ul class="scene-tasks">
+          <li v-for="task in sceneTasks" :key="task.key">
+            <span class="scene-day num">{{ task.day ? 'D' + task.day : '复习' }}</span>
+            <span class="scene-text">{{ task.task }}</span>
+            <RouterLink class="button secondary compact" :to="taskRoute(plan.id, task) ?? { name: 'scenes' }">去练习</RouterLink>
+          </li>
+        </ul>
+      </section>
 
       <section class="review" aria-label="复盘批注">
         <header class="section-head">
@@ -315,4 +337,8 @@ function stateOf(task: TrainingPlanTask | null): TaskState {
   .metric { padding: 0; border-left: 0; }
   .round-a, .note, .note-empty, .note-warn { margin-left: 0; }
 }
+.scene-tasks { display: grid; gap: 10px; margin-top: 14px; }
+.scene-tasks li { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-2); }
+.scene-day { color: var(--accent-strong); font-size: 12px; }
+.scene-text { color: var(--text-2); font-size: 13px; line-height: 1.6; }
 </style>
