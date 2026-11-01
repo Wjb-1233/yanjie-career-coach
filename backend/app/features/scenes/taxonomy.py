@@ -15,3 +15,26 @@ LEGACY_CATEGORIES: dict[str, SceneCategory] = {
     "通用沟通": "HR 初面",
     "薪资沟通": "HRBP/HR 终面",
 }
+
+DIMENSION_LABELS = ["逻辑性", "得体性", "正确性", "针对性", "简洁度"]
+
+
+def normalize_bank(raw):
+    """把历史字符串题库与新的对象题库统一成 [{text, dimension, difficulty}]。"""
+    result = []
+    for item in raw or []:
+        if isinstance(item, str):
+            text = item.strip()
+            if text:
+                result.append({"text": text, "dimension": None, "difficulty": None})
+        elif isinstance(item, dict):
+            text = str(item.get("text") or "").strip()
+            if text:
+                result.append(
+                    {
+                        "text": text,
+                        "dimension": item.get("dimension") or None,
+                        "difficulty": item.get("difficulty") or None,
+                    }
+                )
+    return result

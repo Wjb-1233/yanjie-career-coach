@@ -49,6 +49,12 @@ class Settings(BaseSettings):
     llm_healthcheck_timeout_seconds: float = Field(default=15.0, ge=1.0, le=15.0)
     llm_healthcheck_ttl_seconds: int = Field(default=300, ge=30, le=3600)
     llm_json_mode: bool = True
+    lesson_video_dir: str = "static/lessons"
+    lesson_video_engine: str = "remotion"
+    doubao_realtime_app_id: str = ""
+    doubao_realtime_access_token: str = ""
+    doubao_realtime_ws_url: str = "wss://openspeech.bytedance.com/api/v3/realtime/dialogue"
+    doubao_realtime_voice: str = "zh_female_cancan_mars_bigtts"
 
     milvus_enabled: bool = False
     milvus_uri: str = "http://localhost:19530"
@@ -96,6 +102,14 @@ class Settings(BaseSettings):
         if problems:
             raise ValueError("生产配置不安全：" + "；".join(problems))
         return self
+
+
+    @property
+    def lesson_video_dir_path(self):
+        from pathlib import Path
+
+        path = Path(self.lesson_video_dir)
+        return path if path.is_absolute() else Path(__file__).resolve().parents[2] / path
 
 
 @lru_cache

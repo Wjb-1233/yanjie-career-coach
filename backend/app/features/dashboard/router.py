@@ -42,18 +42,18 @@ async def dashboard(user: CurrentUser, session: DbSession) -> dict:
         {
             "logic": latest.logic_score,
             "appropriateness": latest.appropriateness_score,
-            "impact": latest.impact_score,
+            "correctness": latest.correctness_score,
             "relevance": latest.relevance_score,
             "concision": latest.concision_score,
         }
         if latest
-        else {"logic": 0, "appropriateness": 0, "impact": 0, "relevance": 0, "concision": 0}
+        else {"logic": 0, "appropriateness": 0, "correctness": 0, "relevance": 0, "concision": 0}
     )
-    score_keys = ("logic", "appropriateness", "impact", "relevance", "concision")
+    score_keys = ("logic", "appropriateness", "correctness", "relevance", "concision")
     dimension_labels = {
         "logic": "逻辑性",
         "appropriateness": "得体性",
-        "impact": "感染力",
+        "correctness": "正确性",
         "relevance": "针对性",
         "concision": "简洁度",
     }
@@ -80,7 +80,7 @@ async def dashboard(user: CurrentUser, session: DbSession) -> dict:
             "dimensions": {
                 "logic": item.logic_score,
                 "appropriateness": item.appropriateness_score,
-                "impact": item.impact_score,
+                "correctness": item.correctness_score,
                 "relevance": item.relevance_score,
                 "concision": item.concision_score,
             },

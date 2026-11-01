@@ -31,6 +31,7 @@ class User(TimestampMixin, Base):
     role: Mapped[str] = mapped_column(String(20), default="STUDENT", index=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    avatar: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class RefreshToken(Base):
@@ -56,6 +57,8 @@ class Scene(TimestampMixin, Base):
     goal: Mapped[str] = mapped_column(Text)
     tags: Mapped[list[str]] = mapped_column(JSON, default=list)
     opening_line: Mapped[str] = mapped_column(Text)
+    core_idea: Mapped[str | None] = mapped_column(Text, nullable=True)
+    question_bank: Mapped[list[str] | None] = mapped_column(JSON, nullable=True, default=list)
     active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     __table_args__ = (Index("idx_scenes_category_active", "category", "active"),)
 
@@ -73,10 +76,35 @@ class Script(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     scene_id: Mapped[str] = mapped_column(ForeignKey("scenes.id", ondelete="CASCADE"), index=True)
     style: Mapped[str] = mapped_column(String(20))
+    original: Mapped[str | None] = mapped_column(Text, nullable=True)
+    dimension: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    source_session_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    source_round: Mapped[int | None] = mapped_column(Integer, nullable=True)
     content: Mapped[str] = mapped_column(Text)
     highlights: Mapped[list[str]] = mapped_column(JSON, default=list)
     favorite: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+
+
+class PasswordResetRequest(TimestampMixin, Base):
+    __tablename__ = "password_reset_requests"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    status: Mapped[str] = mapped_column(String(20), default="PENDING", index=True)
+    handled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class MistakeState(TimestampMixin, Base):
+    __tablename__ = "mistake_states"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    session_id: Mapped[str] = mapped_column(String(36), index=True)
+    round_no: Mapped[int] = mapped_column(Integer)
+    dimension: Mapped[str] = mapped_column(String(20))
+    status: Mapped[str] = mapped_column(String(20), default="PENDING")
+    __table_args__ = (
+        UniqueConstraint("user_id", "session_id", "round_no", "dimension"),
+    )
 
 
 class TrainingSession(Base):
@@ -91,6 +119,12 @@ class TrainingSession(Base):
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    covered_count: Mapped[int] = mapped_column(Integer, default=0)
+    channel: Mapped[str] = mapped_column(String(10), default="TEXT", index=True)
+    duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    delivery: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    jd_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    question_plan: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
 
 
 class ResumeContext(Base):
@@ -124,13 +158,14 @@ class Evaluation(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     logic_score: Mapped[int] = mapped_column(Integer)
     appropriateness_score: Mapped[int] = mapped_column(Integer)
-    impact_score: Mapped[int] = mapped_column(Integer)
+    correctness_score: Mapped[int] = mapped_column(Integer)
     relevance_score: Mapped[int] = mapped_column(Integer)
     concision_score: Mapped[int] = mapped_column(Integer)
     overall_score: Mapped[float] = mapped_column(Float)
     summary: Mapped[str] = mapped_column(Text)
     suggestions: Mapped[list[dict]] = mapped_column(JSON, default=list)
     style_tags: Mapped[list[str]] = mapped_column(JSON, default=list)
+    speech_stats: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     degraded: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
 

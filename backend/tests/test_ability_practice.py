@@ -13,7 +13,7 @@ def test_weakest_dimension_practice_uses_real_answer_and_persists_feedback(monke
     async def fake_complete(system_prompt: str, _user_prompt: str, **_kwargs):
         if "评分员" in system_prompt:
             return {
-                "scores": {"logic": 2, "appropriateness": 4, "impact": 3, "relevance": 4, "concision": 4},
+                "scores": {"logic": 2, "appropriateness": 4, "correctness": 3, "relevance": 4, "concision": 4},
                 "summary": "需要解释做法和结果。",
                 "suggestions": [{"roundNo": 1, "problem": "理由不足", "original": "我负责接口开发", "rewrite": "我负责接口开发，并说明方案选择。"}],
                 "styleTags": ["缺少依据"],

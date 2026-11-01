@@ -3,6 +3,9 @@ from io import StringIO
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
+from pydantic import BaseModel, Field
+
+from app.core.schemas import ApiModel
 from fastapi import Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
@@ -22,15 +25,54 @@ from app.features.training.service import (
     list_training_sessions,
     stream_reply,
     complete_reply,
+    rewrite_flagged_message,
+    set_job_description,
+    clear_job_description,
     set_session_archived,
 )
-from app.features.evaluations.service import evaluate_session
+from app.features.evaluations.service import evaluate_session, list_mistakes, set_mistake_state
 from app.infrastructure.rate_limit import limit_model_user
 from app.features.training.resume import MAX_RESUME_BYTES, parse_resume
 from app.db.models import ResumeContext
 
 router = APIRouter(prefix="/training-sessions", tags=["情景训练"])
+
+
+class JobDescriptionRequest(BaseModel):
+    jd_text: str = Field(min_length=20, max_length=4000)
 DbSession = Annotated[AsyncSession, Depends(get_session)]
+
+
+@router.get("/mistakes")
+async def mistakes(
+    user: CurrentUser, session: DbSession, page: int = 1, size: int = 8, include_resolved: bool = False
+) -> dict:
+    page = max(1, min(page, 500))
+    size = max(1, min(size, 50))
+    return ok(
+        await list_mistakes(
+            session,
+            user.id,
+            limit=size,
+            offset=(page - 1) * size,
+            include_resolved=include_resolved,
+        )
+    )
+
+
+class MistakeStateRequest(ApiModel):
+    session_id: str = Field(min_length=8, max_length=36)
+    round_no: int = Field(ge=0, le=12)
+    dimension: str = Field(min_length=1, max_length=20)
+    status: str = Field(pattern="^(PENDING|RESOLVED)$")
+
+
+@router.patch("/mistakes/state")
+async def update_mistake_state(body: MistakeStateRequest, user: CurrentUser, session: DbSession) -> dict:
+    result = await set_mistake_state(
+        session, user.id, body.session_id, body.round_no, body.dimension, body.status
+    )
+    return ok(result)
 
 
 @router.post("", status_code=201)
@@ -85,7 +127,7 @@ async def export_reports(user: CurrentUser, session: DbSession) -> StreamingResp
     writer = csv.writer(output)
     writer.writerow([
         "场景", "状态", "开始时间", "完成时间", "训练轮次", "综合分",
-        "逻辑性", "得体性", "感染力", "针对性", "简洁度", "评分摘要", "建议",
+        "逻辑性", "得体性", "正确性", "针对性", "简洁度", "评分摘要", "建议",
     ])
     for training, scene, evaluation in rows:
         writer.writerow([
@@ -97,7 +139,7 @@ async def export_reports(user: CurrentUser, session: DbSession) -> StreamingResp
             evaluation.overall_score if evaluation else "",
             evaluation.logic_score if evaluation else "",
             evaluation.appropriateness_score if evaluation else "",
-            evaluation.impact_score if evaluation else "",
+            evaluation.correctness_score if evaluation else "",
             evaluation.relevance_score if evaluation else "",
             evaluation.concision_score if evaluation else "",
             evaluation.summary if evaluation else "尚未生成报告",
@@ -187,3 +229,24 @@ async def restore(session_id: str, user: CurrentUser, session: DbSession) -> dic
     training = await set_session_archived(session, user.id, session_id, False)
     return ok({"id": training.id, "archivedAt": None})
 
+
+@router.post("/{session_id}/messages/{round_no}/rewrite")
+async def rewrite_message(session_id: str, round_no: int, user: CurrentUser, session: DbSession) -> dict:
+    await limit_model_user(user.id)
+    result = await rewrite_flagged_message(session, user.id, session_id, round_no)
+    return ok(result.model_dump(by_alias=True))
+
+
+@router.post("/{session_id}/jd")
+async def apply_job_description(
+    session_id: str, body: JobDescriptionRequest, user: CurrentUser, session: DbSession
+) -> dict:
+    await limit_model_user(user.id)
+    result = await set_job_description(session, user.id, session_id, body.jd_text.strip())
+    return ok(result.model_dump(by_alias=True))
+
+
+@router.delete("/{session_id}/jd")
+async def remove_job_description(session_id: str, user: CurrentUser, session: DbSession) -> dict:
+    result = await clear_job_description(session, user.id, session_id)
+    return ok(result.model_dump(by_alias=True))

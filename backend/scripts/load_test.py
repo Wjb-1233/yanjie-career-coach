@@ -300,7 +300,7 @@ async def benchmark(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="职场沟通训练接口并发与首 token 性能验收")
+    parser = argparse.ArgumentParser(description="面试沟通训练接口并发与首 token 性能验收")
     parser.add_argument("--base-url", default="http://127.0.0.1:8080/api/v1")
     parser.add_argument("--users", type=int, default=20, help="并发虚拟用户数，默认 20")
     parser.add_argument("--email", help="登录邮箱；密码从 LOAD_TEST_PASSWORD 读取或安全提示输入")

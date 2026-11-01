@@ -11,7 +11,17 @@ from app.core.responses import ok
 from app.core.security import CurrentUser
 from app.db.base import get_session
 from app.features.auth import service
-from app.features.auth.schemas import DemoLoginRequest, LoginRequest, ProfileUpdateRequest, RegisterRequest, UserView
+from app.features.auth.service import account_stats, change_password, set_avatar
+from app.features.auth.schemas import (
+    AvatarRequest,
+    DemoLoginRequest,
+    LoginRequest,
+    PasswordChangeRequest,
+    PasswordRequestInput,
+    ProfileUpdateRequest,
+    RegisterRequest,
+    UserView,
+)
 from app.infrastructure.rate_limit import limit_login, limit_register
 
 router = APIRouter(prefix="/auth", tags=["认证"])
@@ -108,6 +118,29 @@ async def logout(
 @router.get("/me")
 async def me(user: CurrentUser) -> dict:
     return ok(UserView.from_orm_user(user).model_dump(by_alias=True))
+
+
+@router.post("/password-request")
+async def password_request(body: PasswordRequestInput, session: DbSession) -> dict:
+    await service.create_password_request(session, body.email)
+    return ok({"submitted": True})
+
+
+@router.patch("/me/password")
+async def change_password_route(body: PasswordChangeRequest, user: CurrentUser, session: DbSession) -> dict:
+    await change_password(session, user, body.current_password, body.new_password)
+    return ok({"changed": True})
+
+
+@router.put("/me/avatar")
+async def update_avatar(body: AvatarRequest, user: CurrentUser, session: DbSession) -> dict:
+    avatar = await set_avatar(session, user, body.data_url)
+    return ok({"avatar": avatar})
+
+
+@router.get("/me/stats")
+async def my_stats(user: CurrentUser, session: DbSession) -> dict:
+    return ok(await account_stats(session, user.id))
 
 
 @router.patch("/me")

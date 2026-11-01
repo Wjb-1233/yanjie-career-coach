@@ -6,6 +6,7 @@ from uuid import uuid4
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.errors import (
@@ -29,6 +30,7 @@ from app.features.plans.router import router as plans_router
 from app.features.scenes.router import router as scenes_router
 from app.features.scripts.router import router as scripts_router
 from app.features.training.router import router as training_router
+from app.features.voice.router import router as voice_router
 from app.infrastructure.state_store import state_store
 from app.infrastructure.rate_limit import rate_limiter
 from app.infrastructure.llm import llm_gateway
@@ -55,6 +57,9 @@ async def lifespan(_: FastAPI):
     await state_store.close()
     await engine.dispose()
 
+
+MEDIA_ROOT = settings.lesson_video_dir_path
+MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(
     title=settings.app_name,
@@ -115,6 +120,18 @@ for api_router in (
     plans_router,
     dashboard_router,
     admin_router,
+    voice_router,
 ):
     app.include_router(api_router, prefix=settings.api_prefix)
 
+
+
+
+@app.get("/api/v1/voice/status", tags=["语音对话"])
+async def _voice_status_root() -> dict:
+    from app.features.voice.router import realtime_configured
+
+    return {"ok": True, "data": {"enabled": realtime_configured()}}
+
+
+app.mount("/media/lessons", StaticFiles(directory=str(MEDIA_ROOT)), name="lessons")

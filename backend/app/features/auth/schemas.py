@@ -31,6 +31,8 @@ class UserView(ApiModel):
     display_name: str
     role: str
     bio: str | None
+    avatar: str | None = None
+    created_at: str | None = None
 
     @classmethod
     def from_orm_user(cls, user: object) -> "UserView":
@@ -40,6 +42,8 @@ class UserView(ApiModel):
             display_name=user.display_name,
             role=user.role,
             bio=user.bio,
+            avatar=getattr(user, "avatar", None),
+            created_at=user.created_at.isoformat() if getattr(user, "created_at", None) else None,
         )
 
 
@@ -48,3 +52,15 @@ class AuthResponse(ApiModel):
     expires_in: int
     user: UserView
 
+
+class PasswordChangeRequest(ApiModel):
+    current_password: str = Field(min_length=6, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class PasswordRequestInput(ApiModel):
+    email: EmailStr
+
+
+class AvatarRequest(ApiModel):
+    data_url: str = Field(min_length=32, max_length=400000)

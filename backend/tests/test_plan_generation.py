@@ -31,7 +31,7 @@ async def test_llm_generates_valid_personalized_lesson(monkeypatch) -> None:
     monkeypatch.setattr(llm_gateway, "complete_json", fake_complete)
     draft = await generate_plan(
         focus="针对性",
-        scores={"logic": 4, "appropriateness": 4, "impact": 3, "relevance": 2, "concision": 4},
+        scores={"logic": 4, "appropriateness": 4, "correctness": 3, "relevance": 2, "concision": 4},
         suggestions=[{"problem": "没有直接回答", "rewrite": "先给结论"}],
         user_lines=["我觉得这个项目有点复杂，可能还需要继续看看。"],
         scene_title="压力面试",

@@ -315,12 +315,12 @@ SCENES = [
         "opening_line": "这项任务明天就要交，你认为时间不够。你会怎么和我沟通？",
     },
     {
-        "id": "scene-foundation-impact", "category": "基础能力提升", "title": "让观点更有说服力",
+        "id": "scene-foundation-impact", "category": "基础能力提升", "title": "把信息说准确",
         "industry": "通用职场", "position": "应届求职者", "role_name": "业务面试官", "difficulty": "入门",
-        "background": "你推荐了一种项目方案，但面试官担心执行成本与结果不确定性。",
-        "goal": "用真实例子和可核查的依据回应顾虑，说明对对方的价值。",
-        "tags": ["感染力", "事实说服", "结果表达"],
-        "opening_line": "你为什么认为这个方案值得采用？请给我一个具体而可信的理由。",
+        "background": "面试官追问你简历里的一个数字，你要在不夸大的前提下说明它的来源和口径。",
+        "goal": "说清信息的事实依据与统计口径，与简历保持一致，不虚构、不含糊。",
+        "tags": ["正确性", "事实依据", "口径一致"],
+        "opening_line": "你简历里写的结果是怎么统计出来的？请说明口径和依据。",
     },
     {
         "id": "scene-foundation-relevance", "category": "基础能力提升", "title": "先回答对方真正的问题",
@@ -361,11 +361,11 @@ COURSES = [
     },
     {
         "id": "course-impact-01",
-        "title": "让观点更有说服力",
-        "dimension": "感染力",
+        "title": "把信息说准确",
+        "dimension": "正确性",
         "minutes": 20,
-        "description": "用具体事实、对方收益和节奏设计增强说服力。",
-        "content": "建立共同目标；用证据降低不确定性；用行动收尾。",
+        "description": "核对事实与口径，让每个数字和结论都经得起追问。",
+        "content": "先确认信息口径；说明数据来源；与简历保持一致；不确定的部分坦白说明。",
     },
     {
         "id": "course-relevance-01",

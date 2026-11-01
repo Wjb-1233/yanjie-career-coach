@@ -11,13 +11,13 @@ def test_report_keeps_only_verifiable_score_evidence(monkeypatch) -> None:
         if "评分员" not in system_prompt:
             raise AssertionError("unexpected model call")
         return {
-            "scores": {"logic": 2, "appropriateness": 4, "impact": 3, "relevance": 3, "concision": 4},
+            "scores": {"logic": 2, "appropriateness": 4, "correctness": 3, "relevance": 3, "concision": 4},
             "summary": "结论尚可，依据不足。",
             "suggestions": [{"roundNo": 1, "problem": "依据不具体", "original": "我负责接口开发", "rewrite": "我负责接口开发，并通过压测验证性能。"}],
             "styleTags": ["待补证据"],
             "evidence": [
                 {"dimension": "logic", "roundNo": 1, "quote": "我负责接口开发", "reason": "有职责但缺乏推理依据。", "nextAction": "补充技术选择的理由。"},
-                {"dimension": "impact", "roundNo": 2, "quote": "我负责接口开发", "reason": "错轮引用。", "nextAction": "补充数据。"},
+                {"dimension": "correctness", "roundNo": 2, "quote": "我负责接口开发", "reason": "错轮引用。", "nextAction": "补充数据。"},
                 {"dimension": "relevance", "roundNo": 1, "quote": "从未说过的话", "reason": "伪造引用。", "nextAction": "正面回答。"},
                 {"dimension": "concision", "roundNo": 2, "quote": "我用压测结果验证了性能", "reason": "表达较为集中。", "nextAction": "用一句话先讲结论。"},
             ],

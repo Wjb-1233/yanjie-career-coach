@@ -14,11 +14,13 @@ class ConversationState(TypedDict):
     role_name: str
     scene_background: str
     scene_goal: str
+    core_idea: str
     resume_text: str
     stage: str
     flags: list[str]
     should_finish: bool
     finish_after_reply: bool
+    planned_question: str
     prompt: str
 
 
@@ -111,11 +113,30 @@ def prompt_node(state: ConversationState) -> dict:
             f"<resume>\n{state['resume_text']}\n</resume>\n"
         )
     category_guidance = "聚焦本场五维表达目标。" if is_foundation else INTERVIEW_STAGE_GUIDANCE.get(stage_category, "围绕本场面试目标提问。")
+    core_note = ""
+    if state.get("core_idea"):
+        core_note = (
+            "本场考察的核心是："
+            f"{state['core_idea']}。"
+            "所有追问都要服务于这个核心，换角度但不要跑题。\n"
+        )
+    plan_note = ""
+    if state.get("planned_question"):
+        plan_note = (
+            "本轮必须问下面这个必问题，可以结合上一轮回答调整措辞，但不要换成别的话题：\n"
+            f"<planned>{state['planned_question']}</planned>\n"
+        )
+    else:
+        plan_note = (
+            "本轮没有固定的必问题。结合核心思想、岗位 JD 与简历，"
+            "针对候选人上一轮回答继续追问一个具体问题，不要重复已经问过的内容。\n"
+        )
     prompt = f"""你正在进行中文{'基础能力场景对练' if is_foundation else '求职面试模拟'}。
 场景：{state['scene_title']}
 你的角色：{state['role_name']}
 背景：{state['scene_background']}
 训练目标：{state['scene_goal']}
+{core_note}
 面试阶段：{stage_category}；难度：{state.get('scene_difficulty', '中级')}。
 阶段边界：{category_guidance}
 当前阶段：{state['stage']}；当前为第 {state['round_no']} / {state['max_rounds']} 轮。
@@ -123,6 +144,7 @@ def prompt_node(state: ConversationState) -> dict:
 难度要求：{difficulty_instruction}
 {flag_note}
 {resume_note}
+{plan_note}
 除最后一轮外，你要像真实沟通现场一样自然追问，不要提前给用户答案或标准答案。
 保持角色，不讲授理论，不替用户回答。回复控制在 80 字以内。"""
     return {"prompt": prompt}

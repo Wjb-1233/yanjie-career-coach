@@ -15,5 +15,5 @@ def test_fallback_returns_five_bounded_dimensions() -> None:
     result = fallback_evaluation(messages)
     scores = result.scores.model_dump()
 
-    assert set(scores) == {"logic", "appropriateness", "impact", "relevance", "concision"}
+    assert set(scores) == {"logic", "appropriateness", "correctness", "relevance", "concision"}
     assert all(1 <= score <= 5 for score in scores.values())

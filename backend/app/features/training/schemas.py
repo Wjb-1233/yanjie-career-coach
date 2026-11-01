@@ -24,6 +24,15 @@ class MessageView(ApiModel):
     created_at: datetime
 
 
+class MessageRewriteView(ApiModel):
+    round_no: int
+    original: str
+    rewrite: str
+    reason: str
+    flags: list[str] = Field(default_factory=list)
+    degraded: bool = False
+
+
 class TurnReplyView(ApiModel):
     round_no: int
     stage: str
@@ -42,16 +51,26 @@ class SessionView(ApiModel):
     stage: str
     current_round: int
     max_rounds: int
+    channel: str = "TEXT"
+    duration_seconds: int | None = None
+    delivery: dict | None = None
     started_at: datetime
     finished_at: datetime | None
     archived_at: datetime | None = None
     resume_filename: str | None = None
     resume_opening_degraded: bool = False
+    jd_text: str | None = None
+    question_plan: list[dict] = Field(default_factory=list)
+    question_total: int = 0
+    question_covered: int = 0
     messages: list[MessageView] = Field(default_factory=list)
 
 
 class TrainingHistoryItem(ApiModel):
     id: str
+    channel: str = "TEXT"
+    delivery: dict | None = None
+    duration_seconds: int | None = None
     scene_id: str
     scene_title: str
     status: str

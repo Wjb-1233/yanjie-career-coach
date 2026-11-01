@@ -14,3 +14,9 @@ typing-extensions>=4.12,<5.0
 python-multipart>=0.0.17,<1.0
 email-validator>=2.2,<3.0
 
+pillow>=11.1,<14.0
+
+faster-whisper>=1.1,<2.0
+ctranslate2>=4.4,<5.0
+
+pipecat-ai>=1.15,<2.0

@@ -103,7 +103,18 @@ async def limit_login(request: Request) -> None:
     await rate_limiter.check(f"login:{client_identifier(request)}", 10, 60)
 
 
+LOCAL_HOSTS = {"127.0.0.1", "::1", "localhost", "testclient"}
+
+
+def is_local_client(request: Request) -> bool:
+    identified = client_identifier(request)
+    return identified in LOCAL_HOSTS
+
+
 async def limit_register(request: Request) -> None:
+    # 本地开发与自测不限制注册频率，避免同一个人反复试注册被锁一小时
+    if settings.environment != "production" and is_local_client(request):
+        return
     await rate_limiter.check(f"register:{client_identifier(request)}", 5, 3600)
 
 

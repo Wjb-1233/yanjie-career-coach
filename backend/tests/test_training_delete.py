@@ -19,7 +19,7 @@ async def seed_related_data(user_id: str, target_id: str, other_id: str) -> tupl
         db.add(Message(session_id=target_id, round_no=1, speaker="USER", content="一段待删除的回答"))
         db.add(Evaluation(
             session_id=target_id, user_id=user_id,
-            logic_score=3, appropriateness_score=3, impact_score=3,
+            logic_score=3, appropriateness_score=3, correctness_score=3,
             relevance_score=3, concision_score=3, overall_score=60,
             summary="待删除的评分", suggestions=[], style_tags=[],
         ))

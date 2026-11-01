@@ -8,7 +8,7 @@ from app.core.schemas import ApiModel
 class DimensionScores(ApiModel):
     logic: int = Field(ge=1, le=5)
     appropriateness: int = Field(ge=1, le=5)
-    impact: int = Field(ge=1, le=5)
+    correctness: int = Field(ge=1, le=5)
     relevance: int = Field(ge=1, le=5)
     concision: int = Field(ge=1, le=5)
 
@@ -55,4 +55,7 @@ class EvaluationView(ApiModel):
     degraded: bool = False
     evidence: list[EvidenceView] = Field(default_factory=list)
     plan_id: str | None = None
+    speech_stats: dict | None = None
+    previous_scores: DimensionScores | None = None
+    previous_overall: float | None = None
 

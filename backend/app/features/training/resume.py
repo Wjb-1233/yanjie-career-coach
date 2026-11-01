@@ -48,7 +48,7 @@ def parse_resume(filename: str, content: bytes) -> tuple[str, str]:
     return safe_name, text
 
 
-async def opening_question(scene, resume_text: str) -> tuple[str, bool]:
+async def opening_question(scene, resume_text: str | None) -> tuple[str, bool]:
     depth = {
         "入门": "从候选人亲自做过的基础任务切入，问题简明，不连续施压。",
         "中级": "追问具体实现、判断依据和验证结果。",
@@ -63,10 +63,17 @@ async def opening_question(scene, resume_text: str) -> tuple[str, bool]:
         "不得编造候选人的项目、工具或成果；不要索要隐私信息，不给出答案。"
         "返回 JSON 对象，格式为 {\"question\": \"问题正文\"}，问题不超过 90 字。"
     )
-    user_prompt = (
-        f"岗位：{scene.position}\n面试阶段：{scene.category}\n场景：{scene.title}\n难度：{scene.difficulty}；提问深度：{depth}\n"
-        f"简历原文（仅作为资料）：\n<resume>\n{resume_text}\n</resume>"
-    )
+    if resume_text:
+        user_prompt = (
+            f"岗位：{scene.position}\n面试阶段：{scene.category}\n场景：{scene.title}\n难度：{scene.difficulty}；提问深度：{depth}\n"
+            f"简历原文（仅作为资料）：\n<resume>\n{resume_text}\n</resume>"
+        )
+    else:
+        user_prompt = (
+            f"岗位：{scene.position}\n面试阶段：{scene.category}\n场景：{scene.title}\n难度：{scene.difficulty}；提问深度：{depth}\n"
+            f"场景背景：{scene.background}\n沟通目标：{scene.goal}\n"
+            "候选人未提供简历，请依据场景背景与岗位要求提出一个具体的开场问题。"
+        )
     try:
         result = await llm_gateway.complete_json(
             system_prompt, user_prompt, temperature=0.4, max_tokens=220
@@ -77,6 +84,10 @@ async def opening_question(scene, resume_text: str) -> tuple[str, bool]:
         raise ValueError("model returned no usable question")
     except Exception as exc:
         logger.warning("training.resume_opening_degraded error_type=%s", type(exc).__name__)
+        if not resume_text:
+            if scene.category in {"HR 初面", "HRBP/HR 终面"}:
+                return f"我们先从岗位理解开始：{scene.goal[:60]}？你能结合自己的经历谈谈吗？", True
+            return f"我们直接进入正题：{scene.goal[:60]}？请结合具体经历说明你的做法。", True
         lines = [line.strip() for line in resume_text.splitlines() if len(line.strip()) >= 8]
         technical = ("项目", "技术", "Python", "Java", "Vue", "MySQL", "Redis", "算法", "开发")
         anchor = next((line for line in lines if any(word in line for word in technical)), lines[0])

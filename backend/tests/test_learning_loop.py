@@ -64,7 +64,7 @@ def test_plan_is_review_then_lesson_and_closes(monkeypatch) -> None:
             return {"passed": True, "feedback": "改写回应了原问题。"}
         assert "评分员" in system_prompt
         return {
-            "scores": {"logic": 2, "appropriateness": 4, "impact": 4, "relevance": 4, "concision": 4},
+            "scores": {"logic": 2, "appropriateness": 4, "correctness": 4, "relevance": 4, "concision": 4},
             "summary": "结论需要更明确，逐步补充依据。",
             "suggestions": [
                 {"roundNo": 1, "problem": "结论不够靠前", "original": "我会处理", "rewrite": "我的结论是先处理客户问题。"},

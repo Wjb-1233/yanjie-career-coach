@@ -6,7 +6,7 @@ from pydantic import Field
 from app.core.schemas import ApiModel
 
 
-Dimension = Literal["logic", "appropriateness", "impact", "relevance", "concision"]
+Dimension = Literal["logic", "appropriateness", "correctness", "relevance", "concision"]
 
 
 class AbilityAttemptInput(ApiModel):

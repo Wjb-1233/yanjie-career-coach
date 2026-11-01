@@ -203,4 +203,5 @@ $env:LOAD_TEST_PASSWORD='Student123!'
 - `frontend/src/`：Vue 3 页面、组件和接口调用
 - `docker-compose.yml`：MySQL、Redis、Milvus 及其必要依赖
 - `docs/architecture.md`：系统架构说明
+- [`docs/技术说明.md`](docs/技术说明.md)：用了哪些模型、分数怎么算、语音与视频怎么接（答辩用）
 - `资料_Python版/`：已转换为 Python 技术栈的开题和任务资料

@@ -26,6 +26,15 @@ android-app/local.properties
 *.db
 资料_Python版/
 
-# 仓库只保留后端与文档；前端/安卓端仅本地开发
-frontend/
+# 安卓端打包产物过大，仅保留源码
 android-app/
+
+# Remotion 渲染产物与依赖
+video/node_modules/
+video/out/
+backend/static/lessons/*.mp4
+backend/.models/
+
+# 本地工具（ffmpeg 二进制、remotion 缓存）
+tools/remotion/
+tools/ffmpeg/
