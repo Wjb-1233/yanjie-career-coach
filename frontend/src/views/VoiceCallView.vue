@@ -187,6 +187,7 @@ async function start(): Promise<void> {
     status.value = 'error'
     error.value = '连接语音服务失败'
   }
+  let wasLive = false
   socket.onclose = (event) => {
     status.value = status.value === 'error' ? 'error' : 'idle'
     micOn.value = false
@@ -200,7 +201,11 @@ async function start(): Promise<void> {
     if (reasons[event.code]) {
       status.value = 'error'
       error.value = reasons[event.code]
+    } else if (wasLive) {
+      status.value = 'error'
+      error.value = '语音连接已断开，请重新开始'
     }
+    wasLive = false
   }
 }
 
