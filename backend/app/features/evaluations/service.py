@@ -306,6 +306,12 @@ async def create_training_plan(
         focus = focus_override
         weakest_key = next((key for key, label in labels.items() if label == focus), weakest_key)
     else:
+        # 有历史能力值时以能力值最低的维度为准，与场景推荐保持一致
+        from app.features.plans.personalization import skill_snapshot
+
+        snapshot = await skill_snapshot(session, user_id)
+        if snapshot:
+            weakest_key = min(snapshot, key=snapshot.get)
         focus = labels[weakest_key]
     recommended_scene = await session.get(Scene, f"scene-foundation-{weakest_key}")
     if recommended_scene is None or not recommended_scene.active:
@@ -342,11 +348,18 @@ async def create_training_plan(
     except Exception:  # noqa: BLE001 - 个性化失败不应阻断计划生成
         due, recommended = [], []
 
-    for index, scene in enumerate(recommended, start=1):
+    fit_labels = {
+        "logic": "内容与逻辑",
+        "relevance": "贴合问题",
+        "correctness": "信息完整",
+        "concision": "表达干净",
+    }
+    for index, (scene, dimension) in enumerate(recommended, start=1):
         scene_tasks.append({
             "key": f"scene-{index}",
             "day": index,
-            "task": f"到「{scene.title}」再练一场（{scene.difficulty}，{scene.category}）",
+            "task": f"到「{scene.title}」练一场，重点练{fit_labels.get(dimension, dimension)}（{scene.difficulty}）",
+            "dimension": fit_labels.get(dimension, dimension),
             "actionType": "SCENE",
             "sceneId": scene.id,
             "completed": False,

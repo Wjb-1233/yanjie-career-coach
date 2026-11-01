@@ -115,10 +115,24 @@ def schedule_review(state: MistakeState, now: datetime | None = None) -> None:
     state.due_at = now + timedelta(days=INTERVALS[index])
 
 
-async def recommend_scenes(session: AsyncSession, user_id: str, limit: int = 2) -> list[Scene]:
-    """挑选难度与当前能力最接近的场景（排除最近练过的）。"""
+async def target_dimensions(session: AsyncSession, user_id: str, limit: int = 2) -> list[str]:
+    """能力值最低的一到两个维度。"""
     ratings = await skill_snapshot(session, user_id)
-    weakest = min(ratings.items(), key=lambda item: item[1])[1] if ratings else 1000.0
+    if not ratings:
+        return []
+    ordered = sorted(ratings.items(), key=lambda item: item[1])
+    return [dimension for dimension, _ in ordered[:limit]]
+
+
+async def recommend_scenes(
+    session: AsyncSession, user_id: str, limit: int = 2
+) -> list[tuple[Scene, str]]:
+    """按「最弱维度匹配度 × 难度接近度」挑场景，返回 (场景, 针对维度)。"""
+    from app.features.plans.scene_fit import affinity
+
+    ratings = await skill_snapshot(session, user_id)
+    targets = await target_dimensions(session, user_id, limit=2)
+    weakest = min(ratings.values()) if ratings else 1000.0
     recent = (
         await session.scalars(
             select(TrainingSession.scene_id)
@@ -127,13 +141,43 @@ async def recommend_scenes(session: AsyncSession, user_id: str, limit: int = 2) 
             .limit(3)
         )
     ).all()
-    scenes = (await session.scalars(select(Scene))).all()
-    scored = []
+    scenes = (await session.scalars(select(Scene).where(Scene.active.is_(True)))).all()
+    if scenes and all(scene.scene_fit is None for scene in scenes):
+        from app.features.plans.scene_fit import refresh_scene_fit
+
+        await refresh_scene_fit(session)
+        scenes = (await session.scalars(select(Scene).where(Scene.active.is_(True)))).all()
+    scored: list[tuple[float, Scene, str]] = []
     for scene in scenes:
         if scene.id in recent:
             continue
         average = await scene_average(session, scene.id)
         gap = abs(scene_rating(scene, average) - weakest)
-        scored.append((gap, scene))
-    scored.sort(key=lambda item: item[0])
-    return [scene for _, scene in scored[:limit]]
+        difficulty_fit = max(0.0, 1 - gap / 300)
+        match = affinity(scene, targets) if targets else 0.5
+        dimension = max(
+            targets or ["logic"],
+            key=lambda item: (scene.scene_fit or {}).get(item, 0.25),
+        )
+        scored.append((0.55 * match + 0.45 * difficulty_fit, scene, dimension))
+    scored.sort(key=lambda item: item[0], reverse=True)
+    # 两场尽量针对不同维度
+    picked: list[tuple[Scene, str]] = []
+    used: set[str] = set()
+    for _, scene, dimension in scored:
+        if dimension in used and len(picked) < len(targets):
+            continue
+        picked.append((scene, dimension))
+        used.add(dimension)
+        if len(picked) >= limit:
+            break
+    if len(picked) < limit:
+        for _, scene, dimension in scored:
+            if all(scene.id != item[0].id for item in picked):
+                picked.append((scene, dimension))
+            if len(picked) >= limit:
+                break
+    # 最弱维度排最前
+    order = {dimension: index for index, dimension in enumerate(targets)}
+    picked.sort(key=lambda item: order.get(item[1], 99))
+    return picked[:limit]

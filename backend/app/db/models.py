@@ -59,6 +59,7 @@ class Scene(TimestampMixin, Base):
     opening_line: Mapped[str] = mapped_column(Text)
     core_idea: Mapped[str | None] = mapped_column(Text, nullable=True)
     question_bank: Mapped[list[str] | None] = mapped_column(JSON, nullable=True, default=list)
+    scene_fit: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     __table_args__ = (Index("idx_scenes_category_active", "category", "active"),)
 

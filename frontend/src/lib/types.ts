@@ -274,6 +274,7 @@ export interface TrainingPlanTask {
   day: number
   task: string
   actionType: PlanTaskAction
+  dimension?: string | null
   completed: boolean
   completedAt: string | null
   evidence: string | null

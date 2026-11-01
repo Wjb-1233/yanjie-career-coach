@@ -145,7 +145,10 @@ function stateOf(task: TrainingPlanTask | null): TaskState {
         <ul class="scene-tasks">
           <li v-for="task in sceneTasks" :key="task.key">
             <span class="scene-day num">{{ task.day ? 'D' + task.day : '复习' }}</span>
-            <span class="scene-text">{{ task.task }}</span>
+            <span class="scene-text">
+              <b v-if="task.dimension" class="scene-focus">{{ task.dimension }}</b>
+              {{ task.task }}
+            </span>
             <RouterLink class="button secondary compact" :to="taskRoute(plan.id, task) ?? { name: 'scenes' }">去练习</RouterLink>
           </li>
         </ul>
@@ -341,4 +344,5 @@ function stateOf(task: TrainingPlanTask | null): TaskState {
 .scene-tasks li { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-2); }
 .scene-day { color: var(--accent-strong); font-size: 12px; }
 .scene-text { color: var(--text-2); font-size: 13px; line-height: 1.6; }
+.scene-focus { margin-right: 8px; padding: 2px 8px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent-strong); font-size: 11px; font-weight: 500; }
 </style>

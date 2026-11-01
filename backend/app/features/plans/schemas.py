@@ -18,6 +18,7 @@ class PlanTaskView(ApiModel):
     evidence: str | None = None
     course_id: str | None = None
     scene_id: str | None = None
+    dimension: str | None = None
     source_session_id: str | None = None
     lesson: Lesson | None = None
     completed_steps: list[int] = Field(default_factory=list)
