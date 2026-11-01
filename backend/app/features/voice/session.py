@@ -6,7 +6,29 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppError, not_found
+from difflib import SequenceMatcher
+
 from app.db.models import Message, Scene, TrainingSession
+from app.features.scenes.taxonomy import normalize_bank
+
+
+def _coverage(scene: Scene, questions: list[str]) -> int:
+    """按文本相似度判断必问题是否真的被问到，而不是直接按轮次算。"""
+    bank = normalize_bank(scene.question_bank)
+    if not bank or not questions:
+        return 0
+    covered = 0
+    for item in bank:
+        target = str(item.get("text", "")).strip()
+        if not target:
+            continue
+        best = max(
+            (SequenceMatcher(None, target, question).ratio() for question in questions),
+            default=0.0,
+        )
+        if best >= 0.55:
+            covered += 1
+    return covered
 
 
 async def create_voice_session(
@@ -41,7 +63,8 @@ async def create_voice_session(
         status="ACTIVE",
         stage="CLOSING",
         current_round=len(cleaned),
-        covered_count=len(cleaned),
+        covered_count=_coverage(scene, [question for question, _ in cleaned]),
+        question_plan=normalize_bank(scene.question_bank),
         channel="VOICE",
         duration_seconds=duration_seconds,
         delivery={**(delivery or {}), "engine": engine},

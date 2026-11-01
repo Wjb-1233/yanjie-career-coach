@@ -6,6 +6,7 @@ import AnimatedNumber from '@/components/report/AnimatedNumber.vue'
 const props = defineProps<{
   trainingCount: number
   latestScore: number
+  latestDegraded?: boolean
   focus: string
   styleTags: string[]
   lastTrainedAt?: string | null
@@ -32,6 +33,7 @@ function formatDate(value: string): string {
 
       <div v-if="trainingCount" class="figure">
         <span class="num"><AnimatedNumber :value="latestScore" /></span>
+        <span v-if="latestDegraded" class="degraded-tag">规则兜底</span>
         <span class="den">/ 100</span>
       </div>
       <div v-else class="figure is-empty">
@@ -164,4 +166,5 @@ function formatDate(value: string): string {
   border-color: #ffffff;
   color: #0b0b0c;
 }
+.degraded-tag { margin-left: 10px; padding: 3px 10px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent-strong); font-size: 11px; }
 </style>

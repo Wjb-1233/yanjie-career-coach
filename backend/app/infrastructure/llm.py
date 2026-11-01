@@ -10,6 +10,19 @@ import httpx
 from app.core.config import Settings, settings
 
 
+async def _with_retry(call, *, attempts: int = 3, base_delay: float = 0.6):
+    """网络抖动重试：只对连接类错误与超时重试。"""
+    last_error = None
+    for index in range(attempts):
+        try:
+            return await call()
+        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, httpx.RemoteProtocolError) as exc:
+            last_error = exc
+            if index < attempts - 1:
+                await asyncio.sleep(base_delay * (index + 1))
+    raise last_error
+
+
 class LlmGateway:
     def __init__(
         self,
@@ -108,14 +121,18 @@ class LlmGateway:
         }
         if self.config.llm_json_mode:
             payload["response_format"] = {"type": "json_object"}
-        async with httpx.AsyncClient(
-            base_url=self.config.llm_base_url.rstrip("/"),
-            headers={"Authorization": f"Bearer {self.config.llm_api_key}"},
-            timeout=self.config.llm_timeout_seconds,
-            transport=self._transport,
-        ) as client:
-            response = await client.post("/chat/completions", json=payload)
-            response.raise_for_status()
+        async def request() -> httpx.Response:
+            async with httpx.AsyncClient(
+                base_url=self.config.llm_base_url.rstrip("/"),
+                headers={"Authorization": f"Bearer {self.config.llm_api_key}"},
+                timeout=self.config.llm_timeout_seconds,
+                transport=self._transport,
+            ) as client:
+                response = await client.post("/chat/completions", json=payload)
+                response.raise_for_status()
+                return response
+
+        response = await _with_retry(request)
         content = response.json()["choices"][0]["message"]["content"]
         return self._parse_json(content)
 

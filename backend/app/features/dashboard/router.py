@@ -91,6 +91,7 @@ async def dashboard(user: CurrentUser, session: DbSession) -> dict:
         {
             "trainingCount": sessions_count or 0,
             "latestScore": latest.overall_score if latest else 0,
+            "latestDegraded": bool(getattr(latest, "degraded", False)) if latest else False,
             "dimensions": dimensions,
             "styleTags": style_tags,
             "weaknesses": weaknesses,

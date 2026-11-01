@@ -10,6 +10,7 @@ import type { ApiEnvelope, Scores } from '@/lib/types'
 interface DashboardData {
   trainingCount: number
   latestScore: number
+  latestDegraded?: boolean
   dimensions: Scores
   styleTags: string[]
   trends: Array<{ date: string; score: number; dimensions: Scores }>
@@ -57,6 +58,7 @@ onMounted(async () => {
       <DashboardScoreFeature
         :training-count="data.trainingCount"
         :latest-score="data.latestScore"
+        :latest-degraded="Boolean(data.latestDegraded)"
         :focus="weakest"
         :style-tags="data.styleTags"
         :last-trained-at="lastTrainedAt"
@@ -114,4 +116,5 @@ onMounted(async () => {
   .page-head .date { display: none; }
   .trend { margin-top: 38px; }
 }
+.degraded-note { margin: 8px 0 0; color: var(--accent-strong); font-size: 12px; }
 </style>
