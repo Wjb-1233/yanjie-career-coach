@@ -1,6 +1,7 @@
 import logging
 import re
 import statistics
+import time
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select, update
@@ -189,6 +190,7 @@ async def evaluate_session(
         f"{metrics_hint}\n对话：\n{transcript}"
     )
 
+    started_at = time.monotonic()
     samples = max(1, min(3, settings.evaluation_samples))
     payloads: list[EvaluationPayload] = []
     failures = 0
@@ -237,6 +239,7 @@ async def evaluate_session(
         suggestions=payload.suggestions,
         style_tags=payload.style_tags,
         speech_stats=speech_statistics(messages),
+        duration_ms=int((time.monotonic() - started_at) * 1000),
         reference_text=payload.reference or None,
         stability=stability,
         degraded=degraded,

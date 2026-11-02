@@ -200,6 +200,7 @@ class Evaluation(Base):
     reference_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     stability: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     degraded: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
 
 

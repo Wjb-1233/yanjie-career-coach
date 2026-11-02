@@ -605,3 +605,71 @@ async def retry_task(task_id: str, _: AdminUser, session: DbSession) -> dict:
     task.error = None
     await session.commit()
     return ok({"id": task.id, "status": task.status})
+
+
+@router.get("/metrics")
+async def runtime_metrics(_: AdminUser, session: DbSession) -> dict:
+    """运行指标：评分耗时、兜底比例、任务状态、训练量。"""
+    from datetime import datetime, timedelta, timezone
+
+    from sqlalchemy import func
+
+    from app.db.models import AnalysisTask, Evaluation, TrainingSession
+
+    total_evaluations = await session.scalar(select(func.count()).select_from(Evaluation)) or 0
+    degraded = await session.scalar(
+        select(func.count()).select_from(Evaluation).where(Evaluation.degraded.is_(True))
+    ) or 0
+    avg_duration = await session.scalar(
+        select(func.avg(Evaluation.duration_ms)).where(Evaluation.duration_ms.is_not(None))
+    )
+    avg_score = await session.scalar(select(func.avg(Evaluation.overall_score)))
+
+    task_rows = (
+        await session.execute(
+            select(AnalysisTask.status, func.count()).group_by(AnalysisTask.status)
+        )
+    ).all()
+    task_stats = {status: count for status, count in task_rows}
+
+    since = datetime.now(timezone.utc) - timedelta(days=13)
+    daily_rows = (
+        await session.execute(
+            select(func.date(TrainingSession.started_at), func.count())
+            .where(TrainingSession.started_at >= since)
+            .group_by(func.date(TrainingSession.started_at))
+            .order_by(func.date(TrainingSession.started_at))
+        )
+    ).all()
+    daily = [{"date": str(day), "count": count} for day, count in daily_rows]
+
+    buckets = {"1-2": 0, "3": 0, "4": 0, "5": 0}
+    for (value,) in (await session.execute(select(Evaluation.overall_score))).all():
+        score = (value or 0) / 20
+        if score < 3:
+            buckets["1-2"] += 1
+        elif score < 4:
+            buckets["3"] += 1
+        elif score < 4.5:
+            buckets["4"] += 1
+        else:
+            buckets["5"] += 1
+
+    return ok(
+        {
+            "evaluations": {
+                "total": total_evaluations,
+                "degraded": degraded,
+                "degradedRatio": round(degraded / total_evaluations, 3) if total_evaluations else 0,
+                "avgDurationMs": int(avg_duration) if avg_duration else None,
+                "avgScore": round(avg_score, 1) if avg_score else None,
+                "scoreBuckets": buckets,
+            },
+            "tasks": {
+                "total": sum(task_stats.values()),
+                "byStatus": task_stats,
+                "failedRatio": round(task_stats.get("FAILED", 0) / max(1, sum(task_stats.values())), 3),
+            },
+            "daily": daily,
+        }
+    )

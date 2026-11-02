@@ -2,6 +2,7 @@
 import { onMounted, shallowRef } from 'vue'
 
 import AdminCoursesPanel from '@/components/admin/AdminCoursesPanel.vue'
+import AdminMetricsPanel from '@/components/admin/AdminMetricsPanel.vue'
 import AdminTasksPanel from '@/components/admin/AdminTasksPanel.vue'
 import AdminScenesPanel from '@/components/admin/AdminScenesPanel.vue'
 import AdminSessionsPanel from '@/components/admin/AdminSessionsPanel.vue'
@@ -12,7 +13,7 @@ import type { AdminCourseRecord, AdminLearnerRow, AdminSceneRecord, AdminUserRec
 
 interface Overview { users: number; activeUsers: number; scenes: number; activeScenes: number; courses: number; activeCourses: number; sessions: number; averageScore: number }
 interface LearnerReport { learner: { id: string; name: string; email: string; active: boolean; bio?: string; avatar?: string | null; createdAt?: string | null }; trainingCount: number; evaluationCount: number; averageScore: number; dimensions: Record<string, number>; weakestDimension: string | null; styleTags: string[]; trends: Array<{ date: string; score: number; dimensions: Record<string, number> }> }
-type Tab = 'users' | 'scenes' | 'courses' | 'sessions' | 'coverage' | 'tasks'
+type Tab = 'users' | 'scenes' | 'courses' | 'sessions' | 'coverage' | 'tasks' | 'metrics'
 interface MistakeStat { name: string; count: number }
 interface MistakeStats { total: number; resolvedRate: number; byDimension: MistakeStat[]; byScene: MistakeStat[] }
 interface CoverageItem { sceneId: string; title: string; category: string; questions: number; sessions: number; coveredSessions: number }
@@ -39,6 +40,7 @@ const coverage = shallowRef<Coverage | null>(null)
 const recordings = shallowRef<RecordingUsage | null>(null)
 const purging = shallowRef(false)
 const tasks = shallowRef<TaskRow[]>([])
+const metrics = shallowRef<Record<string, never> | null>(null)
 const mistakeStats = shallowRef<MistakeStats | null>(null)
 const tab = shallowRef<Tab>('users')
 const report = shallowRef<LearnerReport | null>(null)
@@ -52,7 +54,7 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const [summary, userList, sceneList, courseList, learnerList, requestList, coverageResult, mistakeStatsResult, recordingsResult, tasksResult] = await Promise.all([
+    const [summary, userList, sceneList, courseList, learnerList, requestList, coverageResult, mistakeStatsResult, recordingsResult, tasksResult, metricsResult] = await Promise.all([
       api.get<ApiEnvelope<Overview>>('/admin/overview'),
       api.get<ApiEnvelope<AdminUserRecord[]>>('/admin/users?size=100'),
       api.get<ApiEnvelope<AdminSceneRecord[]>>('/admin/scenes'),
@@ -64,6 +66,7 @@ async function load() {
       api.get<ApiEnvelope<MistakeStats>>('/admin/mistake-stats'),
       api.get<ApiEnvelope<RecordingUsage>>('/admin/recordings').catch(() => null),
       api.get<ApiEnvelope<TaskRow[]>>('/admin/tasks?limit=20').catch(() => null),
+      api.get<ApiEnvelope<never>>('/admin/metrics').catch(() => null),
     ])
     overview.value = summary.data.data
     users.value = userList.data.data
@@ -75,6 +78,7 @@ async function load() {
     mistakeStats.value = mistakeStatsResult.data.data
     recordings.value = recordingsResult ? recordingsResult.data.data : null
     tasks.value = tasksResult ? tasksResult.data.data : []
+    metrics.value = metricsResult ? (metricsResult.data.data as never) : null
   } catch (reason) { error.value = errorMessage(reason) }
   finally { loading.value = false }
 }
@@ -199,12 +203,13 @@ onMounted(load)
       </div>
     </div>
     <nav class="admin-tabs" aria-label="管理功能">
-      <button v-for="item in [{ id: 'users', label: '学员与权限' }, { id: 'scenes', label: '场景设计' }, { id: 'courses', label: '微课素材' }, { id: 'sessions', label: '训练与报告' }, { id: 'coverage', label: '题库与错题' }, { id: 'tasks', label: '后台任务' }]" :key="item.id" :class="{ active: tab === item.id }" @click="tab = item.id as Tab">{{ item.label }}</button>
+      <button v-for="item in [{ id: 'users', label: '学员与权限' }, { id: 'scenes', label: '场景设计' }, { id: 'courses', label: '微课素材' }, { id: 'sessions', label: '训练与报告' }, { id: 'coverage', label: '题库与错题' }, { id: 'tasks', label: '后台任务' }, { id: 'metrics', label: '运行指标' }]" :key="item.id" :class="{ active: tab === item.id }" @click="tab = item.id as Tab">{{ item.label }}</button>
     </nav>
     <div v-if="loading" class="panel loading" aria-label="正在加载管理数据"><div class="skeleton loading-line" /><div class="skeleton loading-line short" /><div class="skeleton loading-card" /></div>
     <AdminUsersPanel v-else-if="tab === 'users'" :users="users" :busy-id="busyId" :requests="passwordRequests" @update="updateUser" @reset="resetPassword" @resolve-request="resolveRequest" @dismiss-request="dismissRequest" />
     <AdminScenesPanel v-else-if="tab === 'scenes'" :scenes="scenes" :busy="loading" @save="saveScene" @deactivate="deactivateScene" />
     <AdminCoursesPanel v-else-if="tab === 'courses'" :courses="courses" :busy="loading" @save="saveCourse" @toggle="toggleCourse" />
+    <AdminMetricsPanel v-else-if="tab === 'metrics'" :metrics="metrics as never" />
     <AdminTasksPanel v-else-if="tab === 'tasks'" :tasks="tasks" :loading="loading" @refresh="load" />
     <AdminSessionsPanel v-else-if="tab === 'sessions'" :learners="learners" :loading="loading" @export="download('/admin/reports/export', '学员训练能力报告.csv')" @report="showLearnerReport" />
     <section v-else-if="tab === 'coverage'" class="panel coverage panel-pad">
