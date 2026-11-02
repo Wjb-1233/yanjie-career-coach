@@ -89,7 +89,7 @@ async def process_video_interview(task: AnalysisTask) -> None:
 
     if delivery:
         delivery.pop("words", None)
-    payload_out = {**(delivery or {}), "vision": vision, "engine": "video"}
+    payload_out = {**(delivery or {}), "vision": vision, "engine": "video", "marks": questions}
 
     await _update(task.id, progress=70, stage="生成训练记录")
     async with session_factory() as session:
