@@ -533,3 +533,19 @@ async def learners(_: AdminUser, session: DbSession) -> dict:
         )
     rows.sort(key=lambda row: row["lastTrainedAt"] or "", reverse=True)
     return ok(rows)
+
+
+@router.get("/recordings")
+async def recording_usage(_: AdminUser) -> dict:
+    """录制文件占用与保留策略。"""
+    from app.features.recordings.cleanup import usage
+
+    return ok(await usage())
+
+
+@router.post("/recordings/purge")
+async def purge_recordings(_: AdminUser, session: DbSession, days: int | None = Query(default=None, ge=1, le=365)) -> dict:
+    """手动清理过期录制（默认按配置的保留天数）。"""
+    from app.features.recordings.cleanup import purge_expired
+
+    return ok(await purge_expired(session, days=days))

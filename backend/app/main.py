@@ -40,7 +40,22 @@ configure_logging(settings.log_level)
 logger = logging.getLogger("app.http")
 
 
-@asynccontextmanager
+async def _recording_janitor() -> None:
+    """每 6 小时清一次过期录制；测试环境不启动。"""
+    import asyncio as _asyncio
+
+    from app.db.base import session_factory
+    from app.features.recordings.cleanup import purge_expired
+
+    while True:
+        try:
+            async with session_factory() as db:
+                await purge_expired(db)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("recordings.janitor_failed error_type=%s", type(exc).__name__)
+        await _asyncio.sleep(6 * 3600)
+
+
 async def lifespan(_: FastAPI):
     if settings.environment == "production":
         await assert_database_is_current()
@@ -53,7 +68,14 @@ async def lifespan(_: FastAPI):
         await llm_gateway.health_status(force=True)
     async with session_factory() as session:
         await seed_database(session, include_demo_users=settings.environment != "production")
+    janitor_task = None
+    if settings.environment != "test":
+        import asyncio as _asyncio
+
+        janitor_task = _asyncio.create_task(_recording_janitor())
     yield
+    if janitor_task is not None:
+        janitor_task.cancel()
     await rate_limiter.close()
     await state_store.close()
     await engine.dispose()
@@ -141,3 +163,4 @@ app.mount("/media/lessons", StaticFiles(directory=str(MEDIA_ROOT)), name="lesson
 RECORDING_ROOT = settings.recording_dir_path
 RECORDING_ROOT.mkdir(parents=True, exist_ok=True)
 app.mount("/media/recordings", StaticFiles(directory=str(RECORDING_ROOT)), name="recordings")
+
