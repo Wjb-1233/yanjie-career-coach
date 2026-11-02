@@ -135,7 +135,8 @@ async def _run_once() -> bool:
         await handler(task)
     except Exception as exc:  # noqa: BLE001
         logger.warning("task.failed kind=%s error_type=%s", task.kind, type(exc).__name__)
-        await _update(task.id, status="FAILED", stage="失败", error=str(exc)[:300])
+        stage = (task.stage or "处理").strip()
+        await _update(task.id, status="FAILED", stage=f"{stage}失败", error=str(exc)[:300])
     return True
 
 

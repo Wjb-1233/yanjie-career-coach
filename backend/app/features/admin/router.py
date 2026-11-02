@@ -5,6 +5,7 @@ from typing import Annotated
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -549,3 +550,58 @@ async def purge_recordings(_: AdminUser, session: DbSession, days: int | None = 
     from app.features.recordings.cleanup import purge_expired
 
     return ok(await purge_expired(session, days=days))
+
+
+@router.get("/tasks")
+async def list_tasks(
+    _: AdminUser,
+    session: DbSession,
+    status: str | None = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=100),
+) -> dict:
+    """后台任务列表（视频分析等长任务）。"""
+    from app.db.models import AnalysisTask, User
+
+    query = (
+        select(AnalysisTask, User.email)
+        .join(User, User.id == AnalysisTask.user_id)
+        .order_by(AnalysisTask.created_at.desc())
+        .limit(limit)
+    )
+    if status:
+        query = query.where(AnalysisTask.status == status)
+    rows = (await session.execute(query)).all()
+    return ok(
+        [
+            {
+                "id": task.id,
+                "kind": task.kind,
+                "status": task.status,
+                "progress": task.progress,
+                "stage": task.stage,
+                "error": task.error,
+                "email": email,
+                "createdAt": task.created_at.isoformat(),
+                "updatedAt": task.updated_at.isoformat(),
+            }
+            for task, email in rows
+        ]
+    )
+
+
+@router.post("/tasks/{task_id}/retry")
+async def retry_task(task_id: str, _: AdminUser, session: DbSession) -> dict:
+    """把失败的任务重新排队。"""
+    from app.db.models import AnalysisTask
+
+    task = await session.get(AnalysisTask, task_id)
+    if task is None:
+        raise not_found("任务")
+    if task.status not in {"FAILED", "DONE"}:
+        raise AppError(422, "TASK_NOT_RETRYABLE", "只有失败或已完成的任务可以重跑")
+    task.status = "PENDING"
+    task.progress = 0
+    task.stage = "重新排队"
+    task.error = None
+    await session.commit()
+    return ok({"id": task.id, "status": task.status})
