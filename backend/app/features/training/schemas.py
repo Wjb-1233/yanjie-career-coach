@@ -54,6 +54,7 @@ class SessionView(ApiModel):
     channel: str = "TEXT"
     duration_seconds: int | None = None
     delivery: dict | None = None
+    recording_url: str | None = None
     started_at: datetime
     finished_at: datetime | None
     archived_at: datetime | None = None
@@ -70,6 +71,7 @@ class TrainingHistoryItem(ApiModel):
     id: str
     channel: str = "TEXT"
     delivery: dict | None = None
+    recording_url: str | None = None
     duration_seconds: int | None = None
     scene_id: str
     scene_title: str

@@ -138,6 +138,7 @@ class TrainingSession(Base):
     channel: Mapped[str] = mapped_column(String(10), default="TEXT", index=True)
     duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     delivery: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    recording_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
     jd_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     question_plan: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
 

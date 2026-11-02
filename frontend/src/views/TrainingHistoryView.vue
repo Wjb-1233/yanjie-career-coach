@@ -14,7 +14,8 @@ interface HistoryItem {
   sceneId: string
   sceneTitle: string
   status: 'ACTIVE' | 'FINISHED'
-  channel?: 'TEXT' | 'VOICE'
+  channel?: 'TEXT' | 'VOICE' | 'VIDEO'
+  recordingUrl?: string | null
   delivery?: { engine?: string } | null
   durationSeconds?: number | null
   currentRound: number
@@ -24,6 +25,13 @@ interface HistoryItem {
   overallScore: number | null
   evaluationDegraded: boolean
   archivedAt: string | null
+}
+
+const replay = shallowRef<{ url: string; channel: string; title: string } | null>(null)
+
+function openReplay(item: HistoryItem): void {
+  if (!item.recordingUrl) return
+  replay.value = { url: item.recordingUrl, channel: item.channel ?? 'VOICE', title: item.sceneTitle }
 }
 
 const items = shallowRef<HistoryItem[]>([])
@@ -144,7 +152,7 @@ async function exportReports(): Promise<void> {
       <article v-for="item in shownItems" :key="item.id" class="history-item panel">
         <div class="history-copy">
           <div class="history-meta">
-            <span class="tag" :class="{ voice: item.channel === 'VOICE' }">{{ item.channel === 'VOICE' ? (item.delivery?.engine === 'pipeline' ? '语音对练 · 本地' : '语音对练') : '文字对练' }}</span>
+            <span class="tag" :class="{ voice: item.channel === 'VOICE', video: item.channel === 'VIDEO' }">{{ item.channel === 'VIDEO' ? '视频面试' : item.channel === 'VOICE' ? (item.delivery?.engine === 'pipeline' ? '语音对练 · 本地' : '语音对练') : '文字对练' }}</span>
             <span class="tag">{{ item.status === 'FINISHED' ? '已完成' : '进行中' }}</span>
             <span>{{ new Date(item.startedAt).toLocaleString('zh-CN') }}</span>
           </div>
@@ -153,6 +161,7 @@ async function exportReports(): Promise<void> {
         </div>
         <strong v-if="item.overallScore !== null" class="score">{{ item.overallScore }}<small> / 100</small></strong>
         <div class="history-actions">
+          <button v-if="item.recordingUrl" class="button ghost" type="button" @click="openReplay(item)">回放</button>
           <RouterLink v-if="item.overallScore !== null" class="button" :to="`/report/${item.id}`">查看评分报告 →</RouterLink>
           <button
             v-else-if="item.status === 'FINISHED'"
@@ -182,6 +191,17 @@ async function exportReports(): Promise<void> {
       @cancel="deletingItem = null"
     />
   </div>
+  <div v-if="replay" class="replay-mask" @click.self="replay = null">
+    <div class="replay-box">
+      <header>
+        <strong>{{ replay.title }}</strong>
+        <button type="button" class="close" @click="replay = null">×</button>
+      </header>
+      <video v-if="replay.channel === 'VIDEO'" :src="replay.url" controls autoplay playsinline />
+      <audio v-else :src="replay.url" controls autoplay />
+      <p class="replay-hint">回放的是本次{{ replay.channel === 'VIDEO' ? '视频面试' : '语音对练' }}的原始录音，不对外分享。</p>
+    </div>
+  </div>
 </template>
 
 <style scoped>
@@ -207,4 +227,12 @@ async function exportReports(): Promise<void> {
 .replay-link,.archive-button { color:var(--text-2); }
 .delete-button { color:#cf9a92; }
 .tag.voice { border-color: var(--accent); color: var(--accent-strong); }
+.button.ghost { background: transparent; border: 1px solid var(--line); color: var(--text-2); }
+.tag.video { border-color: #8a6bbf; color: #6b4fa0; }
+.replay-mask { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px; background: rgba(20,16,13,.62); }
+.replay-box { width: min(860px, 100%); padding: 18px; border-radius: 16px; background: var(--card); box-shadow: 0 30px 70px rgba(0,0,0,.35); }
+.replay-box header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.replay-box video, .replay-box audio { width: 100%; border-radius: 10px; }
+.replay-box .close { width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--bg-2); color: var(--text-2); font-size: 18px; cursor: pointer; }
+.replay-hint { margin: 10px 0 0; color: var(--text-3); font-size: 12px; }
 </style>

@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     llm_healthcheck_ttl_seconds: int = Field(default=300, ge=30, le=3600)
     llm_json_mode: bool = True
     lesson_video_dir: str = "static/lessons"
+    recording_dir: str = "static/recordings"
     lesson_video_engine: str = "remotion"
     evaluation_samples: int = Field(default=3, ge=1, le=3)
     doubao_realtime_app_id: str = ""
@@ -104,6 +105,13 @@ class Settings(BaseSettings):
             raise ValueError("生产配置不安全：" + "；".join(problems))
         return self
 
+
+    @property
+    def recording_dir_path(self):
+        from pathlib import Path
+
+        path = Path(self.recording_dir)
+        return path if path.is_absolute() else Path(__file__).resolve().parents[2] / path
 
     @property
     def lesson_video_dir_path(self):

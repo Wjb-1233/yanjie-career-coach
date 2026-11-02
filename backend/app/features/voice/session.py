@@ -40,6 +40,7 @@ async def create_voice_session(
     delivery: dict | None = None,
     engine: str = "doubao",
     channel: str = "VOICE",
+    recording_path: str | None = None,
 ) -> str:
     scene = await session.get(Scene, scene_id)
     if scene is None:
@@ -69,6 +70,7 @@ async def create_voice_session(
         channel=channel,
         duration_seconds=duration_seconds,
         delivery={**(delivery or {}), "engine": engine},
+        recording_path=recording_path,
         started_at=now,
     )
     session.add(training)

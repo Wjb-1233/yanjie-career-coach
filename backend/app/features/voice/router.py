@@ -137,7 +137,10 @@ async def save_voice_session(
     except Exception:
         raise AppError(422, "VOICE_TURNS_INVALID", "对话内容格式不正确")
 
+    from app.features.recordings import storage
+
     delivery: dict | None = None
+    recording_path: str | None = None
     if audio is not None:
         suffix = Path(audio.filename or "voice.webm").suffix or ".webm"
         handle = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
@@ -145,6 +148,7 @@ async def save_voice_session(
             shutil.copyfileobj(audio.file, handle)
             handle.close()
             delivery = await asyncio.to_thread(analyze, handle.name)
+            recording_path = storage.save_file(Path(handle.name), suffix)
         finally:
             Path(handle.name).unlink(missing_ok=True)
 
@@ -156,8 +160,9 @@ async def save_voice_session(
         duration_seconds=durationSeconds,
         delivery=delivery or None,
         engine=engine if engine in {"doubao", "pipeline"} else "doubao",
+        recording_path=recording_path,
     )
-    return ok({"id": session_id, "delivery": delivery or None})
+    return ok({"id": session_id, "delivery": delivery or None, "recordingUrl": storage.url_of(recording_path)})
 
 
 @router.websocket("/ws/pipeline")

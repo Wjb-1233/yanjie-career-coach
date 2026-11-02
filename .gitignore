@@ -39,5 +39,6 @@ backend/.models/
 tools/remotion/
 tools/ffmpeg/
 
-# MediaPipe 人脸模型（首次运行自动下载）
-backend/.models/
+
+# 面试录制文件（本地存储，不进仓库）
+backend/static/recordings/

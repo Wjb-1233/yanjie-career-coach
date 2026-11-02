@@ -137,3 +137,7 @@ async def _voice_status_root() -> dict:
 
 
 app.mount("/media/lessons", StaticFiles(directory=str(MEDIA_ROOT)), name="lessons")
+
+RECORDING_ROOT = settings.recording_dir_path
+RECORDING_ROOT.mkdir(parents=True, exist_ok=True)
+app.mount("/media/recordings", StaticFiles(directory=str(RECORDING_ROOT)), name="recordings")

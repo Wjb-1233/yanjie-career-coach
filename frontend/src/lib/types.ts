@@ -46,7 +46,8 @@ export interface TrainingSession {
   stage: string
   currentRound: number
   maxRounds: number
-  channel?: 'TEXT' | 'VOICE'
+  channel?: 'TEXT' | 'VOICE' | 'VIDEO'
+  recordingUrl?: string | null
   durationSeconds?: number | null
   delivery?: {
     speechRate: number

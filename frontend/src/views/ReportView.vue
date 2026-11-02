@@ -200,6 +200,15 @@ onMounted(async () => {
         </p>
       </section>
 
+      <section v-if="session?.recordingUrl" class="speech panel">
+        <header class="speech-head">
+          <h2>现场回放</h2>
+          <span>{{ session.channel === 'VIDEO' ? '视频面试录像' : '语音对练录音' }}</span>
+        </header>
+        <video v-if="session.channel === 'VIDEO'" :src="session.recordingUrl" controls playsinline class="replay-media" />
+        <audio v-else :src="session.recordingUrl" controls class="replay-media" />
+      </section>
+
       <section v-if="visionStats" class="speech panel">
         <header class="speech-head"><h2>镜头表现</h2><span>画面里的客观指标，不评价长相</span></header>
         <dl class="speech-grid">
@@ -384,4 +393,5 @@ onMounted(async () => {
 }
 .stability-note { margin: 8px 0 0; color: var(--text-3); font-size: 12px; }
 .reference-text { margin: 8px 0 0; color: var(--text-2); line-height: 1.9; font-size: 13.5px; }
+.replay-media { width: 100%; margin-top: 6px; border-radius: 10px; }
 </style>

@@ -78,9 +78,13 @@ async def create_video_interview(
                 raise AppError(413, "VIDEO_TOO_LARGE", "录像超过 200MB，请缩短时长")
             handle.write(chunk)
 
+    from app.features.recordings import storage
+
+    recording_path: str | None = None
     try:
         delivery = await asyncio.to_thread(analyze, target)
         vision = await asyncio.to_thread(analyze_video, target)
+        recording_path = await asyncio.to_thread(storage.save_file, target, suffix)
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
@@ -104,5 +108,6 @@ async def create_video_interview(
         delivery=payload,
         engine="video",
         channel="VIDEO",
+        recording_path=recording_path,
     )
-    return ok({"id": session_id, "vision": vision, "delivery": payload})
+    return ok({"id": session_id, "vision": vision, "delivery": payload, "recordingUrl": storage.url_of(recording_path)})
