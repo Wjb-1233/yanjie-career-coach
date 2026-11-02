@@ -25,6 +25,7 @@ const cameraOn = ref(false)
 const rounds = shallowRef<Array<{ text: string; start: number; end: number }>>([])
 const taskProgress = ref(0)
 const taskStage = shallowRef('')
+const queueHint = shallowRef('')
 
 let stream: MediaStream | null = null
 let recorder: MediaRecorder | null = null
@@ -98,10 +99,13 @@ function round(value: number): number {
 async function waitForTask(taskId: string): Promise<string> {
   for (let attempt = 0; attempt < 120; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 1500))
-    const response = await api.get<ApiEnvelope<{ status: string; progress: number; stage: string | null; sessionId: string | null; error: string | null }>>(`/tasks/${taskId}`)
+    const response = await api.get<ApiEnvelope<{ status: string; progress: number; stage: string | null; sessionId: string | null; error: string | null; queue?: { ahead: number; etaSeconds: number } }>>(`/tasks/${taskId}`)
     const task = response.data.data
     taskProgress.value = task.progress
     taskStage.value = task.stage ?? '分析中'
+    queueHint.value = task.queue && task.queue.ahead > 0
+      ? `前面还有 ${task.queue.ahead} 个任务，预计 ${task.queue.etaSeconds} 秒`
+      : ''
     if (task.status === 'DONE' && task.sessionId) return task.sessionId
     if (task.status === 'FAILED') throw new Error(task.error || '分析失败，请重新录制')
   }
@@ -196,7 +200,7 @@ onBeforeUnmount(closeCamera)
           <template v-if="stage === 'idle'">点「开启摄像头」检查画面，再开始回答。</template>
           <template v-else-if="stage === 'ready'">共有 {{ total }} 道题，答完一道点「下一题」。</template>
           <template v-else-if="stage === 'recording'">说完这题点「下一题」，最后一题会直接提交。</template>
-          <template v-else-if="stage === 'uploading'">{{ taskStage || '正在上传录像' }} · {{ taskProgress }}%</template>
+          <template v-else-if="stage === 'uploading'">{{ taskStage || '正在上传录像' }} · {{ taskProgress }}%<template v-if="queueHint">（{{ queueHint }}）</template></template>
         </p>
 
         <div class="actions">

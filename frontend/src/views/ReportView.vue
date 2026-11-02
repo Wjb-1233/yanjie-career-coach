@@ -68,6 +68,10 @@ function replaySeek(seconds: number): void {
   void media.play().catch(() => undefined)
 }
 
+function exportPdf(): void {
+  window.print()
+}
+
 const deliveryStats = computed(() => {
   const raw = session.value?.delivery
   if (!raw || !raw.speechRate) return null
@@ -122,7 +126,10 @@ onMounted(async () => {
         <h1 class="page-title">这次表达，<br />哪里已经做对了？</h1>
         <p class="page-lead">评分不是结论，而是下一次训练的起点。</p>
       </div>
-      <RouterLink class="button secondary" to="/scenes">再练一个场景</RouterLink>
+      <div class="report-actions">
+        <button type="button" class="button secondary" @click="exportPdf">打印 / 导出 PDF</button>
+        <RouterLink class="button secondary" to="/scenes">再练一个场景</RouterLink>
+      </div>
     </header>
 
     <div v-if="error" class="error-banner">{{ error }}</div>
@@ -414,4 +421,12 @@ onMounted(async () => {
 .mark-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .mark-row button { padding: 5px 11px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg-2); color: var(--text-2); font-size: 12px; cursor: pointer; }
 .mark-row button:hover { border-color: var(--accent); color: var(--accent-strong); }
+
+.report-actions { display: flex; gap: 10px; }
+@media print {
+  .app-shell aside, .app-shell header, .report-actions, .mark-row, .replay-media,
+  .speech.panel:has(.mark-row), button { display: none !important; }
+  .page, .report { padding: 0 !important; max-width: none !important; }
+  .panel { break-inside: avoid; box-shadow: none !important; border-color: #ccc !important; }
+}
 </style>
