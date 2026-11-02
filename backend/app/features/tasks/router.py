@@ -7,7 +7,7 @@ from fastapi import APIRouter
 from app.core.errors import not_found
 from app.core.responses import ok
 from app.core.security import CurrentUser
-from app.features.tasks.service import get_task
+from app.features.tasks.service import get_task, queue_eta
 
 router = APIRouter(prefix="/tasks", tags=["任务"])
 
@@ -17,6 +17,7 @@ async def read_task(task_id: str, user: CurrentUser) -> dict:
     task = await get_task(user.id, task_id)
     if task is None:
         raise not_found("任务")
+    eta = await queue_eta(task.id) if task.status in {"PENDING", "RUNNING"} else {}
     return ok(
         {
             "id": task.id,
@@ -27,5 +28,6 @@ async def read_task(task_id: str, user: CurrentUser) -> dict:
             "error": task.error,
             "sessionId": (task.result or {}).get("sessionId"),
             "vision": (task.result or {}).get("vision"),
+            "queue": eta,
         }
     )

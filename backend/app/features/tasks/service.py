@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.db.base import session_factory
 from app.db.models import AnalysisTask
 
@@ -140,6 +141,56 @@ async def _run_once() -> bool:
     return True
 
 
+async def _execute(task_id: str) -> None:
+    async with session_factory() as session:
+        task = await session.get(AnalysisTask, task_id)
+    if task is None:
+        return
+    handler = HANDLERS.get(task.kind)
+    try:
+        if handler is None:
+            raise RuntimeError(f"未知任务类型 {task.kind}")
+        await handler(task)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("task.failed kind=%s error_type=%s", task.kind, type(exc).__name__)
+        stage = (task.stage or "处理").strip()
+        await _update(task.id, status="FAILED", stage=f"{stage}失败", error=str(exc)[:300])
+
+
+async def queue_eta(task_id: str) -> dict:
+    """排队位置与预计等待时间（按已完成任务的平均耗时估算）。"""
+    from datetime import datetime as _dt
+
+    from sqlalchemy import func
+
+    async with session_factory() as session:
+        task = await session.get(AnalysisTask, task_id)
+        if task is None:
+            return {}
+        ahead = await session.scalar(
+            select(func.count())
+            .select_from(AnalysisTask)
+            .where(AnalysisTask.status == "PENDING", AnalysisTask.created_at < task.created_at)
+        )
+        rows = (
+            await session.scalars(
+                select(AnalysisTask).where(AnalysisTask.status == "DONE").limit(20)
+            )
+        ).all()
+        durations = [
+            (row.updated_at - row.created_at).total_seconds()
+            for row in rows
+            if row.updated_at and row.created_at
+        ]
+        average = sum(durations) / len(durations) if durations else 30.0
+    concurrency = max(1, settings.task_worker_concurrency)
+    return {
+        "ahead": int(ahead or 0),
+        "etaSeconds": int(max(0, (ahead or 0) / concurrency * average)),
+        "concurrency": concurrency,
+    }
+
+
 async def _worker() -> None:
     # 进程重启时把「运行中但没跑完」的任务放回队列
     async with session_factory() as session:
@@ -152,17 +203,34 @@ async def _worker() -> None:
         if stale:
             await session.commit()
 
+    running: set[asyncio.Task] = set()
+    concurrency = max(1, settings.task_worker_concurrency)
     while not _stop.is_set():
-        try:
-            worked = await _run_once()
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("task.worker_error error_type=%s", type(exc).__name__)
-            worked = False
+        running = {item for item in running if not item.done()}
+        worked = False
+        while len(running) < concurrency:
+            async with session_factory() as session:
+                task = await session.scalar(
+                    select(AnalysisTask)
+                    .where(AnalysisTask.status == "PENDING")
+                    .order_by(AnalysisTask.created_at)
+                    .limit(1)
+                )
+                if task is None:
+                    break
+                task.status = "RUNNING"
+                task.updated_at = datetime.now(timezone.utc)
+                await session.commit()
+                task_id = task.id
+            running.add(asyncio.create_task(_execute(task_id)))
+            worked = True
         if not worked:
             try:
                 await asyncio.wait_for(_stop.wait(), timeout=POLL_INTERVAL)
             except asyncio.TimeoutError:
                 pass
+        else:
+            await asyncio.sleep(0.2)
 
 
 def start_worker() -> None:

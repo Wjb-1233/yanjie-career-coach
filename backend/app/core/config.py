@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     recording_janitor_enabled: bool = True
     recording_signing_secret: str = ""
     model_warmup_enabled: bool = True
+    task_worker_concurrency: int = Field(default=2, ge=1, le=4)
     lesson_video_engine: str = "remotion"
     evaluation_samples: int = Field(default=3, ge=1, le=3)
     doubao_realtime_app_id: str = ""
