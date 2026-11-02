@@ -15,7 +15,8 @@ def test_sign_and_verify_roundtrip() -> None:
     token, expires = sign("clip.webm", ttl=60)
     assert verify("clip.webm", token, expires)
     assert not verify("other.webm", token, expires)
-    assert not verify("clip.webm", token[:-1] + "0", expires)
+    tampered = ("0" if token[0] != "0" else "1") + token[1:]
+    assert not verify("clip.webm", tampered, expires)
 
 
 def test_expired_signature_rejected() -> None:
