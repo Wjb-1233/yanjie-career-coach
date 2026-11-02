@@ -35,8 +35,39 @@ def _import_mediapipe():
     return mp, mp_python, vision
 
 
+_landmarker = None
+# 复用同一个 landmarker 时，时间戳必须全局递增，否则 mediapipe 会报错
+_ts_offset = 0
+
+
 def _enabled() -> bool:
     return MODEL_PATH.exists()
+
+
+def _get_landmarker():
+    """缓存 FaceLandmarker 实例，避免每次分析都重新加载模型（约 17 秒）。"""
+    global _landmarker
+    if _landmarker is not None:
+        return _landmarker
+    _mp, mp_python, vision = _import_mediapipe()
+    options = vision.FaceLandmarkerOptions(
+        base_options=mp_python.BaseOptions(model_asset_path=str(MODEL_PATH)),
+        running_mode=vision.RunningMode.VIDEO,
+        num_faces=1,
+    )
+    _landmarker = vision.FaceLandmarker.create_from_options(options)
+    return _landmarker
+
+
+def warmup() -> bool:
+    """预热人脸模型；失败不影响主流程。"""
+    if not _enabled():
+        return False
+    try:
+        _get_landmarker()
+        return True
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def _iris_ratio(landmarks, iris_ids, outer: int, inner: int, axis: str) -> float | None:
@@ -90,9 +121,10 @@ def _frame_metrics(landmarks) -> dict:
 
 def analyze_video(path: Path) -> dict:
     """逐帧采样分析，返回镜头指标与一句整体判断。"""
+    global _ts_offset
     capture = cv2.VideoCapture(str(path))
     if not capture.isOpened():
-        return {}
+        return {"available": False, "reason": "视频无法打开或格式不支持", "tips": []}
     fps = capture.get(cv2.CAP_PROP_FPS) or 25.0
     total = int(capture.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
     width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
@@ -110,11 +142,6 @@ def analyze_video(path: Path) -> dict:
         }
 
     mp, mp_python, vision = _import_mediapipe()
-    options = vision.FaceLandmarkerOptions(
-        base_options=mp_python.BaseOptions(model_asset_path=str(MODEL_PATH)),
-        running_mode=vision.RunningMode.VIDEO,
-        num_faces=1,
-    )
 
     frames = 0
     faces = 0
@@ -126,7 +153,8 @@ def analyze_video(path: Path) -> dict:
     centers_y: list[float] = []
     brightness: list[float] = []
 
-    with vision.FaceLandmarker.create_from_options(options) as landmarker:
+    landmarker = _get_landmarker()
+    if True:
         index = 0
         while frames < MAX_FRAMES:
             ok, frame = capture.read()
@@ -136,7 +164,7 @@ def analyze_video(path: Path) -> dict:
                 rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 brightness.append(float(rgb.mean()))
                 mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-                timestamp_ms = int(index / fps * 1000) if fps else index * 40
+                timestamp_ms = _ts_offset + (int(index / fps * 1000) if fps else index * 40)
                 result = landmarker.detect_for_video(mp_image, timestamp_ms)
                 frames += 1
                 if result.face_landmarks:
@@ -151,6 +179,7 @@ def analyze_video(path: Path) -> dict:
                         centered += 1
             index += 1
     capture.release()
+    _ts_offset += int(duration * 1000) + 1000
 
     if frames == 0:
         return {"available": False, "reason": "视频无法解码"}

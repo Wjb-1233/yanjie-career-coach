@@ -57,6 +57,21 @@ async def _recording_janitor() -> None:
         await _asyncio.sleep(6 * 3600)
 
 
+async def warmup_models() -> None:
+    """后台预热语音与人脸模型，避免第一个用户等 20 多秒。"""
+    import asyncio as _asyncio
+
+    from app.features.evaluations.delivery import warmup as voice_warmup
+    from app.features.video.metrics import warmup as video_warmup
+
+    try:
+        await _asyncio.to_thread(voice_warmup)
+        await _asyncio.to_thread(video_warmup)
+        logger.info("models.warmed_up")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("models.warmup_failed error_type=%s", type(exc).__name__)
+
+
 async def lifespan(_: FastAPI):
     if settings.environment == "production":
         await assert_database_is_current()
@@ -70,6 +85,12 @@ async def lifespan(_: FastAPI):
     async with session_factory() as session:
         await seed_database(session, include_demo_users=settings.environment != "production")
     # 自动清理只在生产环境跑，开发/测试/演示环境用后台按钮手动触发
+    warmup_task = None
+    if settings.environment != "test" and settings.model_warmup_enabled:
+        import asyncio as _asyncio
+
+        warmup_task = _asyncio.create_task(warmup_models())
+
     worker_enabled = settings.environment != "test"
     if worker_enabled:
         from app.features.tasks.service import start_worker
@@ -82,6 +103,8 @@ async def lifespan(_: FastAPI):
 
         janitor_task = _asyncio.create_task(_recording_janitor())
     yield
+    if warmup_task is not None:
+        warmup_task.cancel()
     if janitor_task is not None:
         janitor_task.cancel()
     if worker_enabled:

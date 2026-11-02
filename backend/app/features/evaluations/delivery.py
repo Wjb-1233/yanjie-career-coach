@@ -20,6 +20,15 @@ MODEL_DIR = Path(__file__).resolve().parents[3] / ".models"
 os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
 
 
+def warmup() -> bool:
+    """预热语音模型；失败不影响主流程。"""
+    try:
+        _model()
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
 @lru_cache(maxsize=1)
 def _model():
     """默认 CPU int8（稳定、无需 CUDA 运行时）；设置 WHISPER_DEVICE=cuda 可切 GPU。"""
