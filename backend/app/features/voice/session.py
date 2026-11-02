@@ -39,6 +39,7 @@ async def create_voice_session(
     duration_seconds: int | None = None,
     delivery: dict | None = None,
     engine: str = "doubao",
+    channel: str = "VOICE",
 ) -> str:
     scene = await session.get(Scene, scene_id)
     if scene is None:
@@ -65,7 +66,7 @@ async def create_voice_session(
         current_round=len(cleaned),
         covered_count=_coverage(scene, [question for question, _ in cleaned]),
         question_plan=normalize_bank(scene.question_bank),
-        channel="VOICE",
+        channel=channel,
         duration_seconds=duration_seconds,
         delivery={**(delivery or {}), "engine": engine},
         started_at=now,

@@ -43,6 +43,19 @@ const deliveryAdvice = computed(() => {
   return tips
 })
 
+const visionStats = computed(() => {
+  const raw = (session.value?.delivery as { vision?: Record<string, unknown> } | undefined)?.vision
+  if (!raw || raw.available === false) return null
+  return raw as {
+    faceRatio: number
+    eyeContactRatio: number
+    headStability: number
+    brightness: number
+    centerOffset: number
+    tips?: string[]
+  }
+})
+
 const deliveryStats = computed(() => {
   const raw = session.value?.delivery
   if (!raw || !raw.speechRate) return null
@@ -124,8 +137,10 @@ onMounted(async () => {
           <li v-for="([key, value], index) in orderedScores" :key="key" :class="{ weakest: value === weakestScore }">
             <span class="name">{{ labels[key] }}</span>
             <span class="bar"><b :style="{ '--w': `${value * 20}%`, animationDelay: `${index * 85}ms` }" /></span>
-            <span class="val num">{{ value.toFixed(1) }}</span>
-            <span v-if="deltaOf(key) !== null" class="delta num" :class="{ up: (deltaOf(key) ?? 0) > 0, down: (deltaOf(key) ?? 0) < 0 }">{{ deltaLabel(deltaOf(key)) }}</span>
+            <span class="val num">
+              {{ value.toFixed(1) }}
+              <i v-if="deltaOf(key) !== null" class="delta num" :class="{ up: (deltaOf(key) ?? 0) > 0, down: (deltaOf(key) ?? 0) < 0 }">{{ deltaLabel(deltaOf(key)) }}</i>
+            </span>
           </li>
         </ul>
       </section>
@@ -185,7 +200,20 @@ onMounted(async () => {
         </p>
       </section>
 
-      <section v-if="evaluation.reference" class="speech panel">
+      <section v-if="visionStats" class="speech panel">
+        <header class="speech-head"><h2>镜头表现</h2><span>画面里的客观指标，不评价长相</span></header>
+        <dl class="speech-grid">
+          <div><dt>出镜率</dt><dd class="num">{{ Math.round(visionStats.faceRatio * 100) }}<small>%</small></dd></div>
+          <div><dt>看镜头</dt><dd class="num">{{ Math.round(visionStats.eyeContactRatio * 100) }}<small>%</small></dd></div>
+          <div><dt>头部稳定</dt><dd class="num">{{ Math.round(visionStats.headStability * 100) }}<small>%</small></dd></div>
+          <div><dt>画面亮度</dt><dd class="num">{{ Math.round(visionStats.brightness) }}<small>/255</small></dd></div>
+        </dl>
+        <p v-if="visionStats.tips?.length" class="delivery-advice">
+          <span v-for="tip in visionStats.tips" :key="tip">{{ tip }}</span>
+        </p>
+      </section>
+
+      <section v-if="evaluation.reference && !evaluation.reference.startsWith('（规则兜底')" class="speech panel">
         <header class="speech-head"><h2>满分回答参考</h2><span>保留你的真实事实，不编造经历</span></header>
         <p class="reference-text">{{ evaluation.reference }}</p>
       </section>
@@ -238,7 +266,7 @@ onMounted(async () => {
 .overall-delta { margin: 8px 0 0; color: var(--text-3); font-size: 12px; }
 .overall-delta.up { color: var(--success); }
 .overall-delta.down { color: var(--danger); }
-.delta { color: var(--text-3); font-size: 11px; }
+.delta { color: var(--text-3); font-size: 10px; font-style: normal; margin-left: 4px; }
 .label { margin: 0; color: var(--text-3); font-size: 11px; letter-spacing: .2em; }
 .figure { display: flex; align-items: flex-end; gap: 12px; margin-top: 18px; }
 .figure .num {
@@ -259,7 +287,7 @@ onMounted(async () => {
 .dims { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
 .dims li {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) 34px;
+  grid-template-columns: 64px minmax(0, 1fr) 58px;
   align-items: center;
   gap: 16px;
   padding: 9px 0;

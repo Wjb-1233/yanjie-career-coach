@@ -8,6 +8,7 @@ const router = createRouter({
     { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { public: true } },
     { path: '/', name: 'dashboard', component: () => import('@/views/DashboardView.vue') },
     { path: '/voice', name: 'voice', component: () => import('@/views/VoiceCallView.vue') },
+    { path: '/video', name: 'video', component: () => import('@/views/VideoInterviewView.vue') },
     { path: '/scenes', name: 'scenes', component: () => import('@/views/ScenesView.vue') },
     { path: '/scripts', name: 'scripts', component: () => import('@/views/ScriptStudioView.vue') },
     { path: '/scripts/saved', name: 'saved-scripts', component: () => import('@/views/SavedScriptsView.vue') },

@@ -40,8 +40,12 @@ async function toggleFavorite(scene: Scene) {
   scenes.value = scenes.value.map((item) => item.id === scene.id ? { ...item, favorite: response.data.data.favorite } : item)
 }
 
-function start(scene: Scene, mode: 'text' | 'voice') {
+function start(scene: Scene, mode: 'text' | 'voice' | 'video') {
   startError.value = ''
+  if (mode === 'video') {
+    void router.push({ name: 'video', query: { sceneId: scene.id } })
+    return
+  }
   if (mode === 'voice') {
     void router.push({
       name: 'voice',

@@ -90,4 +90,5 @@ def analyze(audio_path: str | Path) -> dict:
             reverse=True,
         )[:3],
         "text": text[:600],
+        "words": [{"start": round(item[1], 2), "end": round(item[2], 2), "text": item[0]} for item in words][:400],
     }

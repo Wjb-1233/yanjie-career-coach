@@ -30,6 +30,7 @@ from app.features.plans.router import router as plans_router
 from app.features.scenes.router import router as scenes_router
 from app.features.scripts.router import router as scripts_router
 from app.features.training.router import router as training_router
+from app.features.video.router import router as video_router
 from app.features.voice.router import router as voice_router
 from app.infrastructure.state_store import state_store
 from app.infrastructure.rate_limit import rate_limiter
@@ -121,6 +122,7 @@ for api_router in (
     dashboard_router,
     admin_router,
     voice_router,
+    video_router,
 ):
     app.include_router(api_router, prefix=settings.api_prefix)
 

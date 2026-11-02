@@ -83,6 +83,7 @@ class LlmGateway:
                     headers={"Authorization": f"Bearer {self.config.llm_api_key}"},
                     timeout=timeout,
                     transport=self._transport,
+                    trust_env=False,
                 ) as client:
                     response = await client.post("/chat/completions", json=payload)
                     response.raise_for_status()
@@ -127,6 +128,7 @@ class LlmGateway:
                 headers={"Authorization": f"Bearer {self.config.llm_api_key}"},
                 timeout=self.config.llm_timeout_seconds,
                 transport=self._transport,
+                trust_env=False,  # 本机环境变量会干扰连接，直接忽略系统代理与证书设置
             ) as client:
                 response = await client.post("/chat/completions", json=payload)
                 response.raise_for_status()
@@ -162,6 +164,7 @@ class LlmGateway:
             headers={"Authorization": f"Bearer {self.config.llm_api_key}"},
             timeout=timeout,
             transport=self._transport,
+            trust_env=False,
         ) as client:
             async with client.stream("POST", "/chat/completions", json=payload) as response:
                 response.raise_for_status()

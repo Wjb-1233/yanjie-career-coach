@@ -38,3 +38,6 @@ backend/.models/
 # 本地工具（ffmpeg 二进制、remotion 缓存）
 tools/remotion/
 tools/ffmpeg/
+
+# MediaPipe 人脸模型（首次运行自动下载）
+backend/.models/
