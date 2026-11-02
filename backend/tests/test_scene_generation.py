@@ -58,3 +58,29 @@ def test_validate_keeps_existing_titles_out() -> None:
     scenes, problems = validate(SAMPLE, {"转岗动机怎么讲"})
     assert scenes == []
     assert any("重复" in item for item in problems)
+
+
+def test_filter_by_scores_drops_low_quality() -> None:
+    from scripts.generate_scenes import filter_by_scores
+
+    scenes = [
+        {"title": "场景A", "background": "b", "goal": "g", "question_bank": []},
+        {"title": "场景B", "background": "b", "goal": "g", "question_bank": []},
+        {"title": "场景C", "background": "b", "goal": "g", "question_bank": []},
+    ]
+    scores = [
+        {"index": 1, "realism": 9, "distinctiveness": 8, "answerability": 9},
+        {"index": 2, "realism": 9, "distinctiveness": 5, "answerability": 8},
+    ]
+    kept, dropped = filter_by_scores(scenes, scores)
+    assert [scene["title"] for scene in kept] == ["场景A", "场景C"]
+    assert any("场景B" in item for item in dropped)
+
+
+def test_filter_keeps_unscored_scenes() -> None:
+    from scripts.generate_scenes import filter_by_scores
+
+    scenes = [{"title": "未打分", "background": "b", "goal": "g", "question_bank": []}]
+    kept, dropped = filter_by_scores(scenes, [])
+    assert len(kept) == 1
+    assert dropped == []

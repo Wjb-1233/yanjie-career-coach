@@ -105,6 +105,47 @@ def validate(raw: dict, existing_titles: set[str]) -> tuple[list[dict], list[str
     return scenes, problems
 
 
+VERIFY_PROMPT = """你是面试内容审核员。对给定的面试场景逐条打分（0-10 整数）：
+realism（是否像真实面试）、distinctiveness（是否与常见场景重复）、answerability（问题是否能被候选人具体回答）。
+只输出 JSON：{"scores":[{"index":1,"realism":8,"distinctiveness":7,"answerability":9,"note":"一句话"}]}"""
+
+MIN_SCORE = 7
+
+
+def filter_by_scores(scenes: list[dict], scores: list[dict], threshold: int = MIN_SCORE) -> tuple[list[dict], list[str]]:
+    """按自检分数过滤场景；任一维度低于阈值即淘汰。"""
+    by_index = {}
+    for item in scores:
+        index = int(item.get("index") or 0)
+        values = [item.get("realism"), item.get("distinctiveness"), item.get("answerability")]
+        numbers = [int(value) for value in values if isinstance(value, (int, float))]
+        if index and numbers:
+            by_index[index] = min(numbers)
+
+    kept: list[dict] = []
+    dropped: list[str] = []
+    for index, scene in enumerate(scenes, start=1):
+        score = by_index.get(index)
+        if score is None:
+            kept.append(scene)  # 没打分的保留，交给人工审核
+            continue
+        if score < threshold:
+            dropped.append(f"{scene['title']}（最低 {score} 分）")
+            continue
+        kept.append(scene)
+    return kept, dropped
+
+
+async def verify_scenes(scenes: list[dict]) -> list[dict]:
+    brief = [
+        {"index": index + 1, "title": item["title"], "background": item["background"],
+         "goal": item["goal"], "questions": [q["text"] for q in item["question_bank"]]}
+        for index, item in enumerate(scenes)
+    ]
+    raw = await llm_gateway.complete_json(VERIFY_PROMPT, json.dumps({"scenes": brief}, ensure_ascii=False), temperature=0.2)
+    return raw.get("scores") or []
+
+
 async def generate(category: str, industry: str, count: int, difficulty: str) -> dict:
     prompt = (
         f"类别：{category}\n行业：{industry}\n难度倾向：{difficulty}\n数量：{count}\n"
@@ -160,6 +201,7 @@ async def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="只打印，不写库")
     parser.add_argument("--active", action="store_true", help="生成后直接对学员开放")
     parser.add_argument("--review", action="store_true", help="查看待审核草稿")
+    parser.add_argument("--verify", action="store_true", help="生成后做一次质量自检，淘汰低分场景")
     args = parser.parse_args()
 
     if args.review:
@@ -183,6 +225,13 @@ async def main() -> None:
         print(f"  目标：{scene['goal']}")
         for question in scene["question_bank"]:
             print(f"  - [{question['dimension'] or '-'}] {question['text']}")
+
+    if args.verify and scenes:
+        scores = await verify_scenes(scenes)
+        scenes, dropped = filter_by_scores(scenes, scores)
+        print(f"\n质量自检：保留 {len(scenes)} 个，淘汰 {len(dropped)} 个")
+        for item in dropped:
+            print("  淘汰:", item)
 
     if args.dry_run:
         print("\n（dry-run，未写库）")
