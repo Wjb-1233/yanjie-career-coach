@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.errors import AppError, not_found
 from app.db.base import session_factory
+from app.features.recordings import storage
 from app.db.models import Evaluation, EvaluationEvidence, Message, ResumeContext, Scene, TrainingPlan, TrainingSession
 from app.features.scenes.service import get_scene
 from app.features.scenes.taxonomy import normalize_bank
@@ -81,7 +82,7 @@ async def create_training_session(
         channel=training.channel,
         duration_seconds=training.duration_seconds,
         delivery=training.delivery,
-        recording_url=f"/media/recordings/{training.recording_path}" if training.recording_path else None,
+        recording_url=storage.url_of(training.recording_path),
         started_at=training.started_at,
         finished_at=training.finished_at,
         resume_filename=resume_filename,
@@ -120,7 +121,7 @@ async def get_training_session(
         channel=training.channel,
         duration_seconds=training.duration_seconds,
         delivery=training.delivery,
-        recording_url=f"/media/recordings/{training.recording_path}" if training.recording_path else None,
+        recording_url=storage.url_of(training.recording_path),
         started_at=training.started_at,
         finished_at=training.finished_at,
         archived_at=training.archived_at,
@@ -168,7 +169,7 @@ async def list_training_sessions(
             channel=training.channel,
             duration_seconds=training.duration_seconds,
             delivery={"engine": (training.delivery or {}).get("engine", "doubao")} if training.delivery else None,
-            recording_url=f"/media/recordings/{training.recording_path}" if training.recording_path else None,
+            recording_url=storage.url_of(training.recording_path),
             status=training.status,
             current_round=training.current_round,
             max_rounds=training.max_rounds,

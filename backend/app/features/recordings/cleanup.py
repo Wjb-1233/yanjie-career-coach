@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -41,6 +41,16 @@ async def purge_expired(session: AsyncSession, *, days: int | None = None) -> di
         removed += 1
     if removed:
         await session.commit()
+
+    # 空库保护：一个训练会话都没有时，无法判断哪些文件是孤儿，直接跳过
+    if (await session.scalar(select(func.count()).select_from(TrainingSession))) == 0:
+        return {
+            "removed": removed,
+            "orphans": 0,
+            "freedBytes": freed,
+            "retentionDays": keep_days,
+            "skipped": "no_sessions",
+        }
 
     # 孤儿文件：目录里有、但没有任何会话引用
     referenced = set(

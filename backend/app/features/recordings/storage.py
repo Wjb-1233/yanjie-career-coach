@@ -46,8 +46,12 @@ def save_file(src: Path, suffix: str) -> str:
     return name
 
 
+def exists(name: str | None) -> bool:
+    return bool(name) and (settings.recording_dir_path / name).is_file()
+
+
 def url_of(name: str | None) -> str | None:
-    return f"/media/recordings/{name}" if name else None
+    return f"/media/recordings/{name}" if exists(name) else None
 
 
 def remove(name: str | None) -> None:

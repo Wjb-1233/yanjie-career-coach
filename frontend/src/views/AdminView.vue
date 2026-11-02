@@ -16,6 +16,7 @@ interface MistakeStat { name: string; count: number }
 interface MistakeStats { total: number; resolvedRate: number; byDimension: MistakeStat[]; byScene: MistakeStat[] }
 interface CoverageItem { sceneId: string; title: string; category: string; questions: number; sessions: number; coveredSessions: number }
 interface Coverage { totalScenes: number; scenesWithBank: number; scenesWithoutBank: number; totalQuestions: number; neverTrained: number; items: CoverageItem[] }
+interface RecordingUsage { count: number; totalBytes: number; totalMb: number; retentionDays: number }
 
 const overview = shallowRef<Overview | null>(null)
 const users = shallowRef<AdminUserRecord[]>([])
@@ -23,6 +24,8 @@ const scenes = shallowRef<AdminSceneRecord[]>([])
 const courses = shallowRef<AdminCourseRecord[]>([])
 const learners = shallowRef<AdminLearnerRow[]>([])
 const coverage = shallowRef<Coverage | null>(null)
+const recordings = shallowRef<RecordingUsage | null>(null)
+const purging = shallowRef(false)
 const mistakeStats = shallowRef<MistakeStats | null>(null)
 const tab = shallowRef<Tab>('users')
 const report = shallowRef<LearnerReport | null>(null)
@@ -36,7 +39,7 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const [summary, userList, sceneList, courseList, learnerList, requestList, coverageResult, mistakeStatsResult] = await Promise.all([
+    const [summary, userList, sceneList, courseList, learnerList, requestList, coverageResult, mistakeStatsResult, recordingsResult] = await Promise.all([
       api.get<ApiEnvelope<Overview>>('/admin/overview'),
       api.get<ApiEnvelope<AdminUserRecord[]>>('/admin/users?size=100'),
       api.get<ApiEnvelope<AdminSceneRecord[]>>('/admin/scenes'),
@@ -46,6 +49,7 @@ async function load() {
       api.get<ApiEnvelope<typeof passwordRequests.value>>('/admin/password-requests').catch(() => null),
       api.get<ApiEnvelope<Coverage>>('/admin/question-coverage'),
       api.get<ApiEnvelope<MistakeStats>>('/admin/mistake-stats'),
+      api.get<ApiEnvelope<RecordingUsage>>('/admin/recordings').catch(() => null),
     ])
     overview.value = summary.data.data
     users.value = userList.data.data
@@ -55,6 +59,7 @@ async function load() {
     passwordRequests.value = requestList ? requestList.data.data : []
     coverage.value = coverageResult.data.data
     mistakeStats.value = mistakeStatsResult.data.data
+    recordings.value = recordingsResult ? recordingsResult.data.data : null
   } catch (reason) { error.value = errorMessage(reason) }
   finally { loading.value = false }
 }
@@ -64,6 +69,18 @@ async function updateUser(user: AdminUserRecord, patch: { active?: boolean }) {
   try { await api.patch(`/admin/users/${user.id}`, patch); await load() }
   catch (reason) { error.value = errorMessage(reason) }
   finally { busyId.value = '' }
+}
+
+async function purgeRecordings() {
+  purging.value = true
+  try {
+    const result = await api.post<ApiEnvelope<{ removed: number; orphans: number; freedBytes: number }>>('/admin/recordings/purge')
+    const freed = Math.round((result.data.data.freedBytes / 1024 / 1024) * 10) / 10
+    error.value = ''
+    alert(`已清理 ${result.data.data.removed + result.data.data.orphans} 个文件，释放 ${freed} MB`)
+    await load()
+  } catch (reason) { error.value = errorMessage(reason) }
+  finally { purging.value = false }
 }
 
 async function copyPassword() {
@@ -160,6 +177,11 @@ onMounted(load)
       <div class="panel"><strong>{{ overview.courses }}</strong><span>微课素材（{{ overview.activeCourses }} 开放）</span></div>
       <div class="panel"><strong>{{ overview.sessions }}</strong><span>训练会话</span></div>
       <div class="panel"><strong>{{ overview.averageScore }}</strong><span>平均综合评分</span></div>
+      <div class="panel recording-metric">
+        <strong>{{ recordings ? recordings.totalMb : '—' }}<small>MB</small></strong>
+        <span>录制占用（{{ recordings ? recordings.count : 0 }} 个文件 · 保留 {{ recordings ? recordings.retentionDays : 30 }} 天）</span>
+        <button type="button" class="link" :disabled="purging" @click="purgeRecordings">{{ purging ? '清理中…' : '立即清理过期录制' }}</button>
+      </div>
     </div>
     <nav class="admin-tabs" aria-label="管理功能">
       <button v-for="item in [{ id: 'users', label: '学员与权限' }, { id: 'scenes', label: '场景设计' }, { id: 'courses', label: '微课素材' }, { id: 'sessions', label: '训练与报告' }, { id: 'coverage', label: '题库与错题' }]" :key="item.id" :class="{ active: tab === item.id }" @click="tab = item.id as Tab">{{ item.label }}</button>
@@ -228,7 +250,11 @@ onMounted(load)
 </template>
 
 <style scoped>
-.admin-page { max-width: 1100px; } .workflow { display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:20px;padding:16px 20px;color:var(--text-2);font-size:13px; } .workflow span { color:var(--primary-hover);font-weight:700; } .workflow i {font-style:normal;color:var(--text-3)}.admin-metrics { margin-bottom:20px; display:grid; grid-template-columns:repeat(5,1fr); gap:10px; } .admin-metrics div { min-height:96px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; } .admin-metrics strong { font-size:30px;line-height:1;font-weight:750; } .admin-metrics span { color:var(--text-2); font-size:11px; } .admin-tabs { margin:0 0 16px; display:flex; gap:8px; overflow:auto; } .admin-tabs button { padding:10px 16px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card); color:var(--text-2); white-space:nowrap; cursor:pointer;transition:all .2s ease; } .admin-tabs button:hover{color:var(--text-2)}.coverage.panel-pad { padding: 22px; }
+.admin-page { max-width: 1100px; } .workflow { display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:20px;padding:16px 20px;color:var(--text-2);font-size:13px; } .workflow span { color:var(--primary-hover);font-weight:700; } .workflow i {font-style:normal;color:var(--text-3)}.admin-metrics { margin-bottom:20px; display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; } .admin-metrics div { min-height:96px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; } .admin-metrics strong { font-size:30px;line-height:1;font-weight:750; } .admin-metrics span { color:var(--text-2); font-size:11px; } .admin-tabs { margin:0 0 16px; display:flex; gap:8px; overflow:auto; } .admin-tabs button { padding:10px 16px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--card); color:var(--text-2); white-space:nowrap; cursor:pointer;transition:all .2s ease; } .admin-tabs button:hover{color:var(--text-2)}.coverage.panel-pad { padding: 22px; }
+.recording-metric strong small { margin-left: 4px; font-size: 12px; color: var(--text-3); }
+.recording-metric .link { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--primary-hover); font-size: 12px; cursor: pointer; }
+.recording-metric .link:disabled { opacity: .6; cursor: default; }
+@media (max-width: 900px) { .admin-metrics { grid-template-columns: repeat(2, 1fr); } }
 .coverage-stats { display: flex; justify-content: space-between; gap: 18px; margin: 0 0 22px; }
 .coverage-stats.mistake-stats { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); justify-content: initial; }
 .coverage-stats dt { color: var(--text-3); font-size: 11px; letter-spacing: .14em; }

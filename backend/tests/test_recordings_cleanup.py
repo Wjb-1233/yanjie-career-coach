@@ -96,6 +96,8 @@ async def test_purge_removes_expired_and_keeps_recent(session_factory, isolated_
 
 @pytest.mark.asyncio
 async def test_purge_removes_orphan_files(session_factory, isolated_recordings) -> None:
+    # 空库保护：先建一条会话，才会进入孤儿文件回收
+    await _make_session(session_factory, days_ago=1, recording=None)
     orphan = settings.recording_dir_path / "orphan-test.webm"
     orphan.write_bytes(b"orphan")
 

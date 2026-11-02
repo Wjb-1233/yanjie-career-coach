@@ -68,8 +68,9 @@ async def lifespan(_: FastAPI):
         await llm_gateway.health_status(force=True)
     async with session_factory() as session:
         await seed_database(session, include_demo_users=settings.environment != "production")
+    # 自动清理只在生产环境跑，开发/测试/演示环境用后台按钮手动触发
     janitor_task = None
-    if settings.environment != "test":
+    if settings.environment == "production" and settings.recording_janitor_enabled:
         import asyncio as _asyncio
 
         janitor_task = _asyncio.create_task(_recording_janitor())
