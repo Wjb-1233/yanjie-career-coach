@@ -231,8 +231,14 @@ async def delete_training_session(session: AsyncSession, user_id: str, session_i
     await session.execute(delete(ResumeContext).where(ResumeContext.session_id == session_id))
     await session.execute(delete(Message).where(Message.session_id == session_id))
     await session.execute(delete(Evaluation).where(Evaluation.session_id == session_id))
+    recording = training.recording_path
     await session.delete(training)
     await session.commit()
+    # 删除记录时同步清理录像，避免磁盘泄漏
+    try:
+        storage.remove(recording)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("training.recording_cleanup_failed error_type=%s", type(exc).__name__)
     try:
         await state_store.delete(session_id)
     except Exception as exc:
