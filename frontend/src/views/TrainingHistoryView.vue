@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, shallowRef } from 'vue'
+import { computed, onMounted, ref, shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
 
 import SelectField from '@/components/ui/SelectField.vue'
@@ -27,13 +27,32 @@ interface HistoryItem {
   archivedAt: string | null
 }
 
-const replay = shallowRef<{ url: string; channel: string; title: string } | null>(null)
+const replay = shallowRef<{ url: string; channel: string; title: string; sessionId: string } | null>(null)
+const replayMarks = shallowRef<Array<{ text: string; start: number; end: number }>>([])
+const replayMedia = ref<HTMLVideoElement | HTMLAudioElement | null>(null)
 const replayError = shallowRef('')
 
-function openReplay(item: HistoryItem): void {
+
+async function openReplay(item: HistoryItem): Promise<void> {
   if (!item.recordingUrl) return
   replayError.value = ''
-  replay.value = { url: item.recordingUrl, channel: item.channel ?? 'VOICE', title: item.sceneTitle }
+  replayMarks.value = []
+  replay.value = { url: item.recordingUrl, channel: item.channel ?? 'VOICE', title: item.sceneTitle, sessionId: item.id }
+  try {
+    const detail = await api.get<ApiEnvelope<{ delivery?: { marks?: Array<{ text: string; start: number; end: number }> } }>>(
+      `/training-sessions/${item.id}`,
+    )
+    replayMarks.value = detail.data.data.delivery?.marks ?? []
+  } catch {
+    replayMarks.value = []
+  }
+}
+
+function seekTo(seconds: number): void {
+  if (replayMedia.value) {
+    replayMedia.value.currentTime = seconds
+    void replayMedia.value.play().catch(() => undefined)
+  }
 }
 
 const items = shallowRef<HistoryItem[]>([])
@@ -199,8 +218,21 @@ async function exportReports(): Promise<void> {
         <strong>{{ replay.title }}</strong>
         <button type="button" class="close" @click="replay = null">×</button>
       </header>
-      <video v-if="replay.channel === 'VIDEO'" :src="replay.url" controls autoplay playsinline @error="replayError = '这段录像已被清理，无法回放'" />
-      <audio v-else :src="replay.url" controls autoplay @error="replayError = '这段录音已被清理，无法回放'" />
+      <video
+        v-if="replay.channel === 'VIDEO'"
+        ref="replayMedia"
+        :src="replay.url"
+        controls
+        autoplay
+        playsinline
+        @error="replayError = '这段录像已被清理，无法回放'"
+      />
+      <audio v-else ref="replayMedia" :src="replay.url" controls autoplay @error="replayError = '这段录音已被清理，无法回放'" />
+      <div v-if="replayMarks.length" class="marks">
+        <button v-for="(mark, index) in replayMarks" :key="index" type="button" @click="seekTo(mark.start)">
+          {{ String(index + 1).padStart(2, '0') }} {{ mark.text }}
+        </button>
+      </div>
       <p v-if="replayError" class="replay-error">{{ replayError }}</p>
       <p class="replay-hint">回放的是本次{{ replay.channel === 'VIDEO' ? '视频面试' : '语音对练' }}的原始录音，不对外分享。</p>
     </div>
@@ -238,6 +270,9 @@ async function exportReports(): Promise<void> {
 .replay-box video { width: 100%; max-height: 64vh; border-radius: 10px; background: #12100e; object-fit: contain; }
 .replay-box audio { width: 100%; border-radius: 10px; }
 .replay-box .close { width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--bg-2); color: var(--text-2); font-size: 18px; cursor: pointer; }
+.marks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.marks button { padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg-2); color: var(--text-2); font-size: 12px; cursor: pointer; }
+.marks button:hover { border-color: var(--accent); color: var(--accent-strong); }
 .replay-hint { margin: 10px 0 0; color: var(--text-3); font-size: 12px; }
 .replay-error { margin: 10px 0 0; color: #a4342a; font-size: 12px; }
 </style>

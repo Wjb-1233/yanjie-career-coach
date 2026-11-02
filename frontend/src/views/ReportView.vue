@@ -56,6 +56,18 @@ const visionStats = computed(() => {
   }
 })
 
+const replayMarks = computed<Array<{ text: string; start: number }>>(() => {
+  const marks = (session.value?.delivery as { marks?: Array<{ text: string; start: number }> } | undefined)?.marks
+  return Array.isArray(marks) ? marks : []
+})
+
+function replaySeek(seconds: number): void {
+  const media = document.querySelector<HTMLVideoElement>('.replay-media')
+  if (!media) return
+  media.currentTime = seconds
+  void media.play().catch(() => undefined)
+}
+
 const deliveryStats = computed(() => {
   const raw = session.value?.delivery
   if (!raw || !raw.speechRate) return null
@@ -207,6 +219,11 @@ onMounted(async () => {
         </header>
         <video v-if="session.channel === 'VIDEO'" :src="session.recordingUrl" controls playsinline class="replay-media" />
         <audio v-else :src="session.recordingUrl" controls class="replay-media" />
+        <div v-if="replayMarks.length" class="mark-row">
+          <button v-for="(mark, index) in replayMarks" :key="index" type="button" @click="replaySeek(mark.start)">
+            {{ String(index + 1).padStart(2, '0') }} {{ mark.text }}
+          </button>
+        </div>
       </section>
 
       <section v-if="visionStats" class="speech panel">
@@ -394,4 +411,7 @@ onMounted(async () => {
 .stability-note { margin: 8px 0 0; color: var(--text-3); font-size: 12px; }
 .reference-text { margin: 8px 0 0; color: var(--text-2); line-height: 1.9; font-size: 13.5px; }
 .replay-media { width: 100%; margin-top: 6px; border-radius: 10px; }
+.mark-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.mark-row button { padding: 5px 11px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg-2); color: var(--text-2); font-size: 12px; cursor: pointer; }
+.mark-row button:hover { border-color: var(--accent); color: var(--accent-strong); }
 </style>
