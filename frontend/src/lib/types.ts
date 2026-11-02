@@ -254,7 +254,7 @@ export interface AdminSessionRecord {
   overallScore: number | null
 }
 
-export type PlanTaskAction = 'COURSE' | 'TRAINING' | 'REWRITE' | 'RETEST' | 'SCENE' | 'REVIEW'
+export type PlanTaskAction = 'COURSE' | 'TRAINING' | 'REWRITE' | 'RETEST' | 'SCENE' | 'REVIEW' | 'VIDEO'
 
 export interface PersonalizedLesson {
   title: string

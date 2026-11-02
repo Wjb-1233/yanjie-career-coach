@@ -17,6 +17,9 @@ export function taskRoute(planId: string, task: TrainingPlanTask) {
   if (task.actionType === 'SCENE') {
     return { name: 'scenes', query: { ...query, sceneId: task.sceneId ?? undefined } }
   }
+  if (task.actionType === 'VIDEO') {
+    return { name: 'video', query: { ...query, sceneId: task.sceneId ?? undefined } }
+  }
   if (task.actionType === 'REVIEW') {
     return { name: 'scripts' }
   }
@@ -29,6 +32,7 @@ export function taskRoute(planId: string, task: TrainingPlanTask) {
 export function stepTitle(task: TrainingPlanTask): string {
   if (task.actionType === 'COURSE') return '专项练习 · 学习微课'
   if (task.actionType === 'SCENE') return '能力匹配 · 场景复练'
+  if (task.actionType === 'VIDEO') return '能力匹配 · 视频面试'
   if (task.actionType === 'REVIEW') return '间隔复习 · 到期错题'
   if (task.actionType === 'TRAINING') return '专项练习 · 场景对练'
   if (task.actionType === 'REWRITE') return '逐轮修改 · 改写薄弱回答'

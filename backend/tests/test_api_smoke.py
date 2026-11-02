@@ -138,7 +138,7 @@ def test_training_plan_can_be_opened_and_checked_in() -> None:
         assert plan["progress"] == 0
         actions = [item["actionType"] for item in plan["tasks"]]
         assert actions[-1] == "COURSE"
-        assert set(actions) <= {"SCENE", "REVIEW", "COURSE"}
+        assert set(actions) <= {"SCENE", "VIDEO", "REVIEW", "COURSE"}
         course_task = next(item for item in plan["tasks"] if item["actionType"] == "COURSE")
         assert course_task["lesson"]["steps"]
 

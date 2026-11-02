@@ -11,6 +11,8 @@ interface Question {
 const route = useRoute()
 const router = useRouter()
 const sceneId = computed(() => (typeof route.query.sceneId === 'string' ? route.query.sceneId : ''))
+const planId = computed(() => (typeof route.query.planId === 'string' ? route.query.planId : ''))
+const taskKey = computed(() => (typeof route.query.taskKey === 'string' ? route.query.taskKey : ''))
 
 const scene = shallowRef<Scene | null>(null)
 const questions = shallowRef<Question[]>([])
@@ -112,6 +114,11 @@ async function submit() {
     const created = await api.post<ApiEnvelope<{ id: string }>>('/video-interviews', form, { timeout: 300_000 })
     const sessionId = created.data.data.id
     await api.post(`/training-sessions/${sessionId}/finish`)
+    if (planId.value && taskKey.value) {
+      await api
+        .post(`/training-plans/${planId.value}/tasks/${taskKey.value}/complete`, { evidence: sessionId })
+        .catch(() => undefined)
+    }
     closeCamera()
     await router.push(`/report/${sessionId}`)
   } catch (reason) {

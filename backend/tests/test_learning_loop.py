@@ -97,7 +97,7 @@ def test_plan_is_review_then_lesson_and_closes(monkeypatch) -> None:
         assert plan["focusDimension"] == "内容与逻辑"
         keys = [(task["key"], task["actionType"]) for task in plan["tasks"]]
         assert keys[-1] == ("course", "COURSE")
-        assert all(action in {"SCENE", "REVIEW", "COURSE"} for _, action in keys)
+        assert all(action in {"SCENE", "VIDEO", "REVIEW", "COURSE"} for _, action in keys)
         course_task = next(item for item in plan["tasks"] if item["actionType"] == "COURSE")
         assert course_task["lesson"]["steps"][0]["title"] == "先给结论"
 

@@ -313,8 +313,17 @@ async def create_training_plan(
         if snapshot:
             weakest_key = min(snapshot, key=snapshot.get)
         focus = labels[weakest_key]
-    recommended_scene = await session.get(Scene, f"scene-foundation-{weakest_key}")
-    if recommended_scene is None or not recommended_scene.active:
+    # 历史 id 兼容：正确性维度的基础场景最初叫 impact（感染力时期）
+    candidates = [f"scene-foundation-{weakest_key}"]
+    if weakest_key == "correctness":
+        candidates.append("scene-foundation-impact")
+    recommended_scene = None
+    for candidate in candidates:
+        scene = await session.get(Scene, candidate)
+        if scene is not None and scene.active:
+            recommended_scene = scene
+            break
+    if recommended_scene is None:
         raise RuntimeError(f"Missing active foundation scene for {weakest_key}")
     original_scene = await session.get(Scene, training.scene_id)
     course = await session.scalar(
@@ -355,12 +364,19 @@ async def create_training_plan(
         "concision": "表达干净",
     }
     for index, (scene, dimension) in enumerate(recommended, start=1):
+        # 第一场按文字/语音练，第二场改成视频面试：视频更接近真实面试压力
+        video = index >= 2
+        label = fit_labels.get(dimension, dimension)
         scene_tasks.append({
             "key": f"scene-{index}",
             "day": index,
-            "task": f"到「{scene.title}」练一场，重点练{fit_labels.get(dimension, dimension)}（{scene.difficulty}）",
-            "dimension": fit_labels.get(dimension, dimension),
-            "actionType": "SCENE",
+            "task": (
+                f"到「{scene.title}」开一场视频面试，重点练{label}（{scene.difficulty}）"
+                if video
+                else f"到「{scene.title}」练一场，重点练{label}（{scene.difficulty}）"
+            ),
+            "dimension": label,
+            "actionType": "VIDEO" if video else "SCENE",
             "sceneId": scene.id,
             "completed": False,
             "completedAt": None,

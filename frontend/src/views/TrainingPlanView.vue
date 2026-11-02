@@ -68,7 +68,7 @@ const rounds = computed<Round[]>(() => {
 
 const annotatedCount = computed(() => rounds.value.filter((round) => round.problem || round.advice).length)
 const sceneTasks = computed(() =>
-  (plan.value?.tasks ?? []).filter((task) => task.actionType === 'SCENE' || task.actionType === 'REVIEW'),
+  (plan.value?.tasks ?? []).filter((task) => ['SCENE', 'VIDEO', 'REVIEW'].includes(task.actionType)),
 )
 
 const courseTask = computed(() => plan.value?.tasks.find((task) => task.actionType === 'COURSE') ?? null)
@@ -144,7 +144,7 @@ function stateOf(task: TrainingPlanTask | null): TaskState {
         </header>
         <ul class="scene-tasks">
           <li v-for="task in sceneTasks" :key="task.key">
-            <span class="scene-day num">{{ task.day ? 'D' + task.day : '复习' }}</span>
+            <span class="scene-day num">{{ task.actionType === 'VIDEO' ? '视频' : task.day ? 'D' + task.day : '复习' }}</span>
             <span class="scene-text">
               <b v-if="task.dimension" class="scene-focus">{{ task.dimension }}</b>
               {{ task.task }}
