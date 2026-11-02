@@ -46,6 +46,10 @@ def save_file(src: Path, suffix: str) -> str:
     return name
 
 
+def path_of(name: str) -> Path:
+    return settings.recording_dir_path / name
+
+
 def exists(name: str | None) -> bool:
     return bool(name) and (settings.recording_dir_path / name).is_file()
 

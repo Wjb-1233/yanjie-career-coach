@@ -30,6 +30,7 @@ from app.features.plans.router import router as plans_router
 from app.features.scenes.router import router as scenes_router
 from app.features.scripts.router import router as scripts_router
 from app.features.training.router import router as training_router
+from app.features.tasks.router import router as tasks_router
 from app.features.video.router import router as video_router
 from app.features.voice.router import router as voice_router
 from app.infrastructure.state_store import state_store
@@ -69,6 +70,12 @@ async def lifespan(_: FastAPI):
     async with session_factory() as session:
         await seed_database(session, include_demo_users=settings.environment != "production")
     # 自动清理只在生产环境跑，开发/测试/演示环境用后台按钮手动触发
+    worker_enabled = settings.environment != "test"
+    if worker_enabled:
+        from app.features.tasks.service import start_worker
+
+        start_worker()
+
     janitor_task = None
     if settings.environment == "production" and settings.recording_janitor_enabled:
         import asyncio as _asyncio
@@ -77,6 +84,10 @@ async def lifespan(_: FastAPI):
     yield
     if janitor_task is not None:
         janitor_task.cancel()
+    if worker_enabled:
+        from app.features.tasks.service import stop_worker
+
+        await stop_worker()
     await rate_limiter.close()
     await state_store.close()
     await engine.dispose()
@@ -146,6 +157,7 @@ for api_router in (
     admin_router,
     voice_router,
     video_router,
+    tasks_router,
 ):
     app.include_router(api_router, prefix=settings.api_prefix)
 

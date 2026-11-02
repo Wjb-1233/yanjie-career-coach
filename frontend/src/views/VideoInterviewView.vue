@@ -23,6 +23,8 @@ const elapsed = ref(0)
 const preview = ref<HTMLVideoElement | null>(null)
 const cameraOn = ref(false)
 const rounds = shallowRef<Array<{ text: string; start: number; end: number }>>([])
+const taskProgress = ref(0)
+const taskStage = shallowRef('')
 
 let stream: MediaStream | null = null
 let recorder: MediaRecorder | null = null
@@ -92,6 +94,20 @@ function round(value: number): number {
   return Math.round(value * 10) / 10
 }
 
+/** 轮询后台任务，直到分析完成 */
+async function waitForTask(taskId: string): Promise<string> {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    const response = await api.get<ApiEnvelope<{ status: string; progress: number; stage: string | null; sessionId: string | null; error: string | null }>>(`/tasks/${taskId}`)
+    const task = response.data.data
+    taskProgress.value = task.progress
+    taskStage.value = task.stage ?? '分析中'
+    if (task.status === 'DONE' && task.sessionId) return task.sessionId
+    if (task.status === 'FAILED') throw new Error(task.error || '分析失败，请重新录制')
+  }
+  throw new Error('分析超时，请稍后在训练记录里查看')
+}
+
 async function submit() {
   if (!recorder) return
   stage.value = 'uploading'
@@ -111,9 +127,9 @@ async function submit() {
   form.append('durationSeconds', String(duration))
   form.append('video', blob, 'answer.webm')
   try {
-    const created = await api.post<ApiEnvelope<{ id: string }>>('/video-interviews', form, { timeout: 300_000 })
-    const sessionId = created.data.data.id
-    await api.post(`/training-sessions/${sessionId}/finish`)
+    const created = await api.post<ApiEnvelope<{ taskId: string }>>('/video-interviews', form, { timeout: 60_000 })
+    const taskId = created.data.data.taskId
+    const sessionId = await waitForTask(taskId)
     if (planId.value && taskKey.value) {
       await api
         .post(`/training-plans/${planId.value}/tasks/${taskKey.value}/complete`, { evidence: sessionId })
@@ -180,7 +196,7 @@ onBeforeUnmount(closeCamera)
           <template v-if="stage === 'idle'">点「开启摄像头」检查画面，再开始回答。</template>
           <template v-else-if="stage === 'ready'">共有 {{ total }} 道题，答完一道点「下一题」。</template>
           <template v-else-if="stage === 'recording'">说完这题点「下一题」，最后一题会直接提交。</template>
-          <template v-else-if="stage === 'uploading'">正在上传并分析录像，大约需要 30–60 秒…</template>
+          <template v-else-if="stage === 'uploading'">{{ taskStage || '正在上传录像' }} · {{ taskProgress }}%</template>
         </p>
 
         <div class="actions">
@@ -188,7 +204,7 @@ onBeforeUnmount(closeCamera)
           <button v-if="stage === 'recording'" class="primary" type="button" @click="nextQuestion">
             {{ index + 1 < total ? '下一题' : '结束并生成报告' }}
           </button>
-          <button v-if="stage === 'uploading'" class="primary" type="button" disabled>分析中…</button>
+          <button v-if="stage === 'uploading'" class="primary" type="button" disabled>分析中 {{ taskProgress }}%</button>
         </div>
 
         <ol v-if="stage === 'recording'" class="marks">

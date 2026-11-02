@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.base import get_session
@@ -79,35 +80,30 @@ async def create_video_interview(
             handle.write(chunk)
 
     from app.features.recordings import storage
+    from app.features.tasks.service import create_task
 
-    recording_path: str | None = None
     try:
-        delivery = await asyncio.to_thread(analyze, target)
-        vision = await asyncio.to_thread(analyze_video, target)
         recording_path = await asyncio.to_thread(storage.save_file, target, suffix)
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
-    words = delivery.get("words", []) if delivery else []
-    turns = _split_turns(parsed, words)
-    if len(turns) < 1:
-        raise AppError(422, "VIDEO_NO_SPEECH", "录像里没有识别到作答内容，请检查麦克风")
-
-    if delivery:
-        delivery.pop("words", None)
-    payload = {**(delivery or {}), "vision": vision, "engine": "video"}
-    if duration_seconds:
-        payload["durationSeconds"] = round(float(duration_seconds), 1)
-
-    session_id = await create_voice_session(
-        session,
+    task = await create_task(
         user.id,
-        scene_id,
-        turns,
-        duration_seconds=int(duration_seconds or 0) or None,
-        delivery=payload,
-        engine="video",
-        channel="VIDEO",
-        recording_path=recording_path,
+        "VIDEO_INTERVIEW",
+        {
+            "sceneId": scene_id,
+            "questions": parsed,
+            "durationSeconds": float(duration_seconds or 0),
+            "recording": recording_path,
+        },
     )
-    return ok({"id": session_id, "vision": vision, "delivery": payload, "recordingUrl": storage.url_of(recording_path)})
+    return JSONResponse(
+        status_code=202,
+        content=ok(
+            {
+                "taskId": task.id,
+                "status": task.status,
+                "recordingUrl": storage.url_of(recording_path),
+            }
+        ),
+    )

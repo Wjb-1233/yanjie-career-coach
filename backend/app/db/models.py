@@ -122,6 +122,21 @@ class MistakeState(TimestampMixin, Base):
     )
 
 
+class AnalysisTask(TimestampMixin, Base):
+    """后台长任务（视频分析等），状态落库以便重启恢复。"""
+
+    __tablename__ = "analysis_tasks"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(30), index=True)
+    status: Mapped[str] = mapped_column(String(20), default="PENDING", index=True)
+    progress: Mapped[int] = mapped_column(Integer, default=0)
+    stage: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    error: Mapped[str | None] = mapped_column(String(300), nullable=True)
+
+
 class TrainingSession(Base):
     __tablename__ = "training_sessions"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
