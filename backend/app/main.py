@@ -163,5 +163,8 @@ app.mount("/media/lessons", StaticFiles(directory=str(MEDIA_ROOT)), name="lesson
 
 RECORDING_ROOT = settings.recording_dir_path
 RECORDING_ROOT.mkdir(parents=True, exist_ok=True)
-app.mount("/media/recordings", StaticFiles(directory=str(RECORDING_ROOT)), name="recordings")
+
+from app.features.recordings.router import router as recordings_router  # noqa: E402
+
+app.include_router(recordings_router)
 

@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     recording_dir: str = "static/recordings"
     recording_retention_days: int = Field(default=30, ge=1, le=365)
     recording_janitor_enabled: bool = True
+    recording_signing_secret: str = ""
     lesson_video_engine: str = "remotion"
     evaluation_samples: int = Field(default=3, ge=1, le=3)
     doubao_realtime_app_id: str = ""

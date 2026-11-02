@@ -50,8 +50,18 @@ def exists(name: str | None) -> bool:
     return bool(name) and (settings.recording_dir_path / name).is_file()
 
 
+def signed_url(name: str | None, ttl: int | None = None) -> str | None:
+    """带过期签名的回放地址；文件不存在时返回 None。"""
+    from app.features.recordings.signing import DEFAULT_TTL_SECONDS, sign
+
+    if not exists(name):
+        return None
+    token, expires = sign(name, ttl or DEFAULT_TTL_SECONDS)
+    return f"/media/recordings/{name}?token={token}&expires={expires}"
+
+
 def url_of(name: str | None) -> str | None:
-    return f"/media/recordings/{name}" if exists(name) else None
+    return signed_url(name)
 
 
 def remove(name: str | None) -> None:

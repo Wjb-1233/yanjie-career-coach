@@ -19,7 +19,9 @@ def test_save_upload_writes_file_and_returns_url() -> None:
         assert saved.exists()
         assert saved.read_bytes() == b"fake-audio-bytes"
         assert name.endswith(".webm")
-        assert storage.url_of(name) == f"/media/recordings/{name}"
+        url = storage.url_of(name)
+        assert url.startswith(f"/media/recordings/{name}?token=")
+        assert "expires=" in url
     finally:
         storage.remove(name)
 
