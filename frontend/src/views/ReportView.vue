@@ -61,6 +61,25 @@ const replayMarks = computed<Array<{ text: string; start: number }>>(() => {
   return Array.isArray(marks) ? marks : []
 })
 
+const comparison = computed(() => {
+  const current = evaluation.value
+  if (!current?.previousScores || current.previousOverall === null) return null
+  const rows = (['logic', 'relevance', 'correctness', 'concision'] as Array<keyof Scores>).map((key) => ({
+    key,
+    label: labels[key],
+    before: current.previousScores![key],
+    after: current.scores[key],
+    delta: current.scores[key] - current.previousScores![key],
+  }))
+  return {
+    before: current.previousScores,
+    after: current.scores,
+    beforeOverall: current.previousOverall,
+    afterOverall: current.overallScore,
+    rows,
+  }
+})
+
 function replaySeek(seconds: number): void {
   const media = document.querySelector<HTMLVideoElement>('.replay-media')
   if (!media) return
@@ -217,6 +236,29 @@ onMounted(async () => {
           <span class="tag">说话 {{ deliveryStats.charCount }} 字</span>
           <span v-if="deliveryStats.fillerTotal" class="tag">填充词 {{ deliveryStats.fillerTotal }} 次</span>
         </p>
+      </section>
+
+      <section v-if="comparison" class="compare panel">
+        <header class="speech-head"><h2>与上次对比</h2><span>同一场景的历史最好成绩</span></header>
+        <div class="compare-body">
+          <div class="compare-radars">
+            <div class="compare-radar">
+              <p class="compare-label">上次 {{ comparison.beforeOverall }} 分</p>
+              <ScoreRadar :scores="comparison.before" />
+            </div>
+            <div class="compare-radar">
+              <p class="compare-label now">本次 {{ comparison.afterOverall }} 分</p>
+              <ScoreRadar :scores="comparison.after" />
+            </div>
+          </div>
+          <ul class="compare-rows">
+            <li v-for="row in comparison.rows" :key="row.key">
+              <span class="label">{{ row.label }}</span>
+              <span class="num">{{ row.before }} → {{ row.after }}</span>
+              <span class="delta" :class="{ up: row.delta > 0, down: row.delta < 0 }">{{ row.delta > 0 ? '+' + row.delta : row.delta }}</span>
+            </li>
+          </ul>
+        </div>
       </section>
 
       <section v-if="session?.recordingUrl" class="speech panel">
@@ -423,6 +465,19 @@ onMounted(async () => {
 .mark-row button:hover { border-color: var(--accent); color: var(--accent-strong); }
 
 .report-actions { display: flex; gap: 10px; }
+.compare.panel { display: grid; grid-template-columns: 1fr; padding: 22px; }
+.compare-body { display: grid; gap: 20px; width: 100%; }
+.compare-radars { display: flex; justify-content: center; gap: 120px; flex-wrap: wrap; }
+.compare-radar { width: 240px; text-align: center; }
+.compare-label { margin: 0 0 4px; color: var(--text-3); font-size: 12px; }
+.compare-label.now { color: var(--accent-strong); font-weight: 600; }
+.compare-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; width: fit-content; margin-inline: auto; }
+.compare-rows li { display: grid; grid-template-columns: 84px 92px 40px; align-items: center; gap: 14px; font-size: 12.5px; }
+.compare-rows .label { color: var(--text-3); }
+.compare-rows .delta { text-align: right; color: var(--text-3); }
+.compare-rows .delta.up { color: var(--success); }
+.compare-rows .delta.down { color: var(--danger); }
+@media (max-width: 900px) { .compare-radars { gap: 12px; } .compare-radar { width: 45%; } }
 @media print {
   .app-shell aside, .app-shell header, .report-actions, .mark-row, .replay-media,
   .speech.panel:has(.mark-row), button { display: none !important; }
