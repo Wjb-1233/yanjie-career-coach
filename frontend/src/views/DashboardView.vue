@@ -2,6 +2,7 @@
 import { computed, onMounted, shallowRef } from 'vue'
 
 import DashboardAbilityPanel from '@/components/dashboard/DashboardAbilityPanel.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import DashboardScoreFeature from '@/components/dashboard/DashboardScoreFeature.vue'
 import ScoreTrend from '@/components/report/ScoreTrend.vue'
 import { api, errorMessage } from '@/lib/api'
@@ -66,10 +67,25 @@ onMounted(async () => {
       />
 
       <DashboardAbilityPanel
+        v-if="data.trainingCount"
         :scores="data.dimensions"
         :focus="weakest"
         :training-count="data.trainingCount"
         :weaknesses="data.weaknesses"
+      />
+
+      <EmptyState
+        v-else
+        eyebrow="开始之前"
+        title="先完成一场对练，看板才会有数据"
+        description="一场 10 分钟的场景对练就能拿到四维评分、逐轮证据和下一步练什么。不需要先准备简历。"
+        :steps="[
+          { title: '选一个场景', detail: '从 HR 初面到终面共 25 场，按难度分层' },
+          { title: '对着 AI 面试官回答', detail: '文字、语音或视频都行，看自己的习惯' },
+          { title: '拿到可追溯的报告', detail: '每个分数都对应你原话里的证据' },
+        ]"
+        action-label="去选场景"
+        action-to="/scenes"
       />
 
       <section class="trend panel" aria-labelledby="trend-title">

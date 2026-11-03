@@ -2,6 +2,7 @@
 import { computed, onMounted, shallowRef } from 'vue'
 import { useRoute } from 'vue-router'
 import { api, errorMessage } from '@/lib/api'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import type { ApiEnvelope } from '@/lib/types'
 
 interface Story {
@@ -176,9 +177,13 @@ onMounted(async () => {
       </header>
 
       <div v-if="loading" class="skeleton loading-line" />
-      <p v-else-if="!filtered.length" class="empty">
-        还没有故事。可以在训练报告里点「沉淀为故事」，或手动新增。
-      </p>
+      <EmptyState
+        v-else-if="!filtered.length"
+        title="还没有故事"
+        description="故事库用来放你已经讲顺的项目经历。可以从训练报告一键沉淀，也可以手动补一条。"
+        action-label="去训练"
+        action-to="/scenes"
+      />
 
       <ul v-else class="story-list">
         <li v-for="story in filtered" :key="story.id" class="story">

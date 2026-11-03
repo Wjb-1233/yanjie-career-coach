@@ -61,12 +61,9 @@ function formatDate(value: string): string {
           <span>最近 {{ (trends ?? []).slice(-10).length }} 次</span>
         </div>
       </div>
-      <div v-else class="figure is-empty">
-        <span class="num dash">—</span>
-        <span class="den">/ 100</span>
-      </div>
+      <p v-else class="empty-score">还没有评分<span>完成一次对练后生成</span></p>
 
-      <p class="caption">{{ caption }}</p>
+      <p v-if="trainingCount" class="caption">{{ caption }}</p>
 
 
       <RouterLink class="cta" to="/scenes">
@@ -115,6 +112,8 @@ function formatDate(value: string): string {
   line-height: .8;
 }
 .figure .num.dash { color: var(--text-3); letter-spacing: 0; }
+.empty-score { margin: 10px 0 0; display: grid; gap: 6px; font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
+.empty-score span { color: var(--text-3); font-size: 12.5px; font-weight: 400; letter-spacing: .02em; }
 .figure .den { padding-bottom: 12px; color: var(--text-3); font-family: var(--font-num); font-size: 13px; letter-spacing: .06em; }
 
 .caption { margin: 22px 0 0; color: var(--text-3); font-size: 12px; line-height: 1.7; letter-spacing: .02em; }
