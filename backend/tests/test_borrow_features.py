@@ -211,7 +211,8 @@ def test_mistake_generation_and_status(monkeypatch) -> None:
         assert generated.status_code == 201
         versions = generated.json()["data"]["versions"]
         assert len(versions) == 3
-        assert versions[0]["dimension"] == item["dimension"]
+        # 旧维度名会被映射到当前四维
+        assert versions[0]["dimension"] in {"内容与逻辑", item["dimension"]}
         assert versions[0]["sourceSessionId"] == item["sessionId"]
 
         after = client.get("/api/v1/training-sessions/mistakes", headers=headers).json()["data"]["items"]
