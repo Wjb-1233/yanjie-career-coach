@@ -56,7 +56,7 @@ const labels = computed(() => AXES.map((axis, index) => {
     :class="{ quiet }"
     viewBox="0 0 280 244"
     role="img"
-    aria-label="五维沟通能力雷达图"
+    aria-label="四维沟通能力雷达图"
   >
     <g class="grid">
       <polygon

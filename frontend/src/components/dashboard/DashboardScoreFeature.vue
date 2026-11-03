@@ -10,7 +10,25 @@ const props = defineProps<{
   focus: string
   styleTags: string[]
   lastTrainedAt?: string | null
+  trends?: Array<{ date: string; score: number }>
 }>()
+
+const spark = computed(() => {
+  const points = (props.trends ?? []).slice(-10)
+  if (points.length < 2) return null
+  const width = 168
+  const height = 34
+  const scores = points.map((item) => item.score)
+  const min = Math.min(...scores)
+  const max = Math.max(...scores)
+  const span = max - min || 1
+  const coords = scores.map((score, index) => {
+    const x = (index / (scores.length - 1)) * width
+    const y = height - ((score - min) / span) * (height - 6) - 3
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  })
+  return { width, height, path: coords.join(' '), last: coords[coords.length - 1].split(',') }
+})
 
 const caption = computed(() => {
   if (!props.trainingCount) return '完成一次场景训练后，这里会显示综合评分'
@@ -35,6 +53,13 @@ function formatDate(value: string): string {
         <span class="num"><AnimatedNumber :value="latestScore" /></span>
         <span v-if="latestDegraded" class="degraded-tag">规则兜底</span>
         <span class="den">/ 100</span>
+        <div v-if="spark" class="spark" aria-hidden="true">
+          <svg :viewBox="`0 0 ${spark.width} ${spark.height}`" preserveAspectRatio="none">
+            <polyline :points="spark.path" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+            <circle :cx="spark.last[0]" :cy="spark.last[1]" r="2.4" fill="currentColor" />
+          </svg>
+          <span>最近 {{ (trends ?? []).slice(-10).length }} 次</span>
+        </div>
       </div>
       <div v-else class="figure is-empty">
         <span class="num dash">—</span>
@@ -42,6 +67,7 @@ function formatDate(value: string): string {
       </div>
 
       <p class="caption">{{ caption }}</p>
+
 
       <RouterLink class="cta" to="/scenes">
         <span>{{ trainingCount ? '开始一次训练' : '开始第一次训练' }}</span>
@@ -167,4 +193,10 @@ function formatDate(value: string): string {
   color: #0b0b0c;
 }
 .degraded-tag { margin-left: 10px; padding: 3px 10px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent-strong); font-size: 11px; }
+
+.spark { margin-left: auto; align-self: flex-end; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; color: var(--accent); }
+.spark svg { width: 168px; height: 40px; }
+@media (max-width: 720px) { .spark { display: none; } }
+.spark span { color: var(--text-3); font-size: 11px; letter-spacing: .04em; }
+.hero .figure .num { font-size: clamp(64px, 7vw, 86px); font-weight: 600; letter-spacing: -.045em; }
 </style>

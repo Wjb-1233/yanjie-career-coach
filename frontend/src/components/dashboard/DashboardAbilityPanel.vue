@@ -12,11 +12,10 @@ const props = defineProps<{
 }>()
 
 const dimensions: Array<{ key: keyof Scores; label: string }> = [
-  { key: 'logic', label: '逻辑性' },
-  
-  { key: 'correctness', label: '正确性' },
-  { key: 'relevance', label: '针对性' },
-  { key: 'concision', label: '简洁度' },
+  { key: 'logic', label: '内容与逻辑' },
+  { key: 'correctness', label: '信息完整' },
+  { key: 'concision', label: '表达干净' },
+  { key: 'relevance', label: '贴合问题' },
 ]
 
 const rows = computed(() => dimensions.map(({ key, label }) => {
@@ -30,7 +29,7 @@ const weakest = computed(() => props.weaknesses[0] ?? null)
 <template>
   <section class="ability panel" aria-labelledby="ability-title">
     <header class="section-head">
-      <h2 id="ability-title" class="label">五维能力</h2>
+      <h2 id="ability-title" class="label">四维能力</h2>
       <span class="note">最近一次 · 每项 5 分</span>
     </header>
 
@@ -40,7 +39,7 @@ const weakest = computed(() => props.weaknesses[0] ?? null)
       </div>
 
       <div class="detail">
-        <ul class="dims" aria-label="五维评分明细">
+        <ul class="dims" aria-label="四维评分明细">
           <li v-for="(item, index) in rows" :key="item.key" :class="{ focus: item.label === focus }">
             <span class="name">{{ item.label }}</span>
             <span class="bar"><b :style="{ '--w': item.width, animationDelay: `${index * 85}ms` }" /></span>
@@ -53,7 +52,7 @@ const weakest = computed(() => props.weaknesses[0] ?? null)
       </div>
     </div>
 
-    <p v-else class="empty-note">完成一次场景训练后，这里会显示五维评分与能力轮廓。</p>
+    <p v-else class="empty-note">完成一次场景训练后，这里会显示四维评分与能力轮廓。</p>
   </section>
 </template>
 

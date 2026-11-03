@@ -42,7 +42,7 @@ const answerParts = computed(() => {
       </RouterLink>
     </div>
 
-    <div class="dimension-tabs" role="tablist" aria-label="查看五维评分依据">
+    <div class="dimension-tabs" role="tablist" aria-label="查看四维评分依据">
       <button
         v-for="key in keys"
         :key="key"

@@ -189,7 +189,7 @@ async function exportReports(): Promise<void> {
             class="button"
             type="button"
             :disabled="Boolean(scoringId)"
-            :title="scoringId === item.id ? '正在生成五维评分' : '为这场已结束的训练补生成评分报告'"
+            :title="scoringId === item.id ? '正在生成四维评分' : '为这场已结束的训练补生成评分报告'"
             @click="generateScore(item)"
           >{{ scoringId === item.id ? '正在评分…' : '生成评分 →' }}</button>
           <RouterLink v-else class="button" :to="`/training/${item.id}`">继续训练 →</RouterLink>

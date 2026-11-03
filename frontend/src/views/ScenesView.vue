@@ -103,8 +103,8 @@ async function confirmStart(file: File | null): Promise<void> {
   <div class="page">
     <header class="page-heading scene-hero">
       <AtmosphereBackdrop variant="panel" />
-      <div class="hero-copy"><p class="eyebrow">{{ foundationFocus ? '五维基础练习' : '场景训练' }}</p><h1 class="page-title">把难回答的问题，<br /><span>先在这里练一遍。</span></h1><p class="page-lead">{{ foundationFocus ? '围绕一个表达维度进行连续对练，完成后查看五维反馈。' : '先选行业与岗位，再按真实招聘阶段选择面试。不同岗位只展示适用的阶段；难度越高，追问越深入。' }}</p></div>
-      <div class="hero-aside" aria-label="场景概览"><span>训练场景</span><strong>{{ catalogScenes.length.toString().padStart(2, '0') }}</strong><small>从模拟对话到五维复盘</small></div>
+      <div class="hero-copy"><p class="eyebrow">{{ foundationFocus ? '四维基础练习' : '场景训练' }}</p><h1 class="page-title">把难回答的问题，<br /><span>先在这里练一遍。</span></h1><p class="page-lead">{{ foundationFocus ? '围绕一个表达维度进行连续对练，完成后查看四维反馈。' : '先选行业与岗位，再按真实招聘阶段选择面试。不同岗位只展示适用的阶段；难度越高，追问越深入。' }}</p></div>
+      <div class="hero-aside" aria-label="场景概览"><span>训练场景</span><strong>{{ catalogScenes.length.toString().padStart(2, '0') }}</strong><small>从模拟对话到四维复盘</small></div>
     </header>
 
     <div v-if="planId" class="plan-notice">
@@ -180,7 +180,7 @@ async function confirmStart(file: File | null): Promise<void> {
 .focus-notice { margin-bottom: 20px; padding: 13px 16px; border: 1px solid var(--border); border-radius:var(--radius); background: var(--glass); color: var(--text-2); font-size: 13px; }
 .focus-notice a { margin-left: 8px; color: var(--text); border-bottom: 1px solid var(--border-bright); padding-bottom: 1px; }
 .category-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
-.category-tabs button { min-height: 38px; padding: 0 15px; border: 1px solid var(--line); border-radius: 999px; background:var(--card); cursor: pointer; color: var(--ink-soft); transition: background .18s, border-color .18s, color .18s; }
+.category-tabs button { min-height: 38px; padding: 0 15px; border: 1px solid var(--line); border-radius: 7px; background:var(--card); cursor: pointer; color: var(--ink-soft); transition: background .18s, border-color .18s, color .18s; }
 .category-tabs button:hover { border-color: var(--mint-dark); color: var(--mint-dark); }
 .category-tabs button.active { border-color: var(--ink); background: var(--ink); color: white; }
 .search { width: 100%; grid-column: 1 / -1; background: var(--bg-2); }

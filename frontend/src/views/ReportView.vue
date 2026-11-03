@@ -109,10 +109,13 @@ const deliveryStats = computed(() => {
 
 const labels: Record<keyof Scores, string> = { logic: '内容与逻辑', relevance: '贴合问题', correctness: '信息完整', concision: '表达干净' }
 
+const DIMS: Array<keyof Scores> = ['logic', 'relevance', 'correctness', 'concision']
+
 const orderedScores = computed(() => evaluation.value
-  ? (Object.entries(evaluation.value.scores) as Array<[keyof Scores, number]>).sort((a, b) => b[1] - a[1])
+  ? DIMS.map((key) => [key, Number(evaluation.value!.scores[key]) || 0] as [keyof Scores, number])
+    .sort((a, b) => b[1] - a[1])
   : [])
-const weakestScore = computed(() => evaluation.value ? Math.min(...Object.values(evaluation.value.scores)) : 0)
+const weakestScore = computed(() => (orderedScores.value.length ? orderedScores.value[orderedScores.value.length - 1][1] : 0))
 
 const overallDelta = computed(() => {
   const current = evaluation.value
@@ -402,16 +405,17 @@ onMounted(async () => {
 .radar { display: flex; justify-content: center; }
 
 .dims { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.dims .val { display: inline-flex; align-items: baseline; justify-content: flex-end; gap: 3px; white-space: nowrap; }
 .dims li {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) 58px;
+  grid-template-columns: 92px minmax(0, 1fr) 66px;
   align-items: center;
   gap: 16px;
   padding: 9px 0;
   border-bottom: 1px solid var(--divider);
 }
 .dims li:last-child { border-bottom: 0; }
-.dims .name { color: var(--text-3); font-size: 12px; letter-spacing: .08em; }
+.dims .name { color: var(--text-3); font-size: 12px; letter-spacing: .04em; white-space: nowrap; }
 .dims .bar { position: relative; height: 2px; background: var(--track); }
 .dims .bar b { position: absolute; inset: 0 auto 0 0; background: var(--fill); }
 .dims .val { color: var(--text); font-family: var(--font-num); font-size: 14px; text-align: right; }

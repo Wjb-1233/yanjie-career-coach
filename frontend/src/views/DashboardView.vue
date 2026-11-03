@@ -62,6 +62,7 @@ onMounted(async () => {
         :focus="weakest"
         :style-tags="data.styleTags"
         :last-trained-at="lastTrainedAt"
+        :trends="data.trends"
       />
 
       <DashboardAbilityPanel

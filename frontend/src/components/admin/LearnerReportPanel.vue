@@ -63,7 +63,7 @@ function joinedAt(): string {
         <div><b>{{ report.averageScore }}</b><span>平均综合分</span></div>
       </div>
 
-      <h3>五维能力平均分</h3>
+      <h3>四维能力平均分</h3>
       <div class="dimensions">
         <div v-for="(score, key, index) in report.dimensions" :key="key">
           <span>{{ LABELS[key] ?? key }}</span>

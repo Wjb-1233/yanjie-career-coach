@@ -148,10 +148,10 @@ async function signOut() {
   gap: 16px;
   padding: 0 34px;
   border-bottom: 1px solid var(--panel-line);
-  background: linear-gradient(180deg, rgba(28, 22, 44, .72) 0%, rgba(14, 11, 24, .55) 100%);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
   backdrop-filter: blur(20px) saturate(125%);
   -webkit-backdrop-filter: blur(20px) saturate(125%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1);
+  box-shadow: none;
 }
 .topbar-start { display: flex; align-items: center; gap: 18px; }
 .menu-toggle {
@@ -198,8 +198,8 @@ async function signOut() {
   display: flex;
   flex-direction: column;
   border-right: 1px solid rgba(255, 255, 255, .07);
-  background: linear-gradient(180deg, rgba(255, 255, 255, .07) 0%, rgba(255, 255, 255, .015) 100%);
-  box-shadow: inset 1px 0 0 rgba(255, 255, 255, .05);
+  background: var(--bg-2);
+  box-shadow: none;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   overflow-y: auto;

@@ -126,7 +126,7 @@ function submit() {
     </form>
     <div v-if="finished" class="finished-block">
       <strong>本场训练已完成</strong>
-      <span>现在可以查看五维评分与逐轮改写建议。</span>
+      <span>现在可以查看四维评分与逐轮改写建议。</span>
       <button class="button signal" type="button" :disabled="sending" @click="emit('report')">{{ sending ? '报告生成中…' : '生成训练报告' }}</button>
     </div>
   </section>

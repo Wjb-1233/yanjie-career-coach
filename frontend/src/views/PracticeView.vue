@@ -27,7 +27,7 @@ onMounted(async () => {
     </header>
 
     <FoundationPracticeGrid v-if="foundationScenes.length" :scenes="foundationScenes" />
-    <p v-if="foundationError" class="error-banner" role="alert">五维通用练习暂时无法加载：{{ foundationError }}</p>
+    <p v-if="foundationError" class="error-banner" role="alert">四维通用练习暂时无法加载：{{ foundationError }}</p>
     <div v-if="!foundationScenes.length && !foundationError" class="loading">
       <div class="skeleton loading-card" />
       <div class="skeleton loading-card" />

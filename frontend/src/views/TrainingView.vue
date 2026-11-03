@@ -187,7 +187,7 @@ async function clearResume(): Promise<void> {
     <div v-if="training.session.value?.resumeOpeningDegraded" class="model-notice">首题由本地模板生成；请检查大模型配置。后续对话会继续尝试使用大模型结合简历追问。</div>
     <div v-if="pageError || training.error.value" class="error-banner">{{ pageError || training.error.value }}</div>
     <div v-if="training.degraded.value" class="model-notice">本轮由本地教练模板接续。请确认模型服务状态；这轮内容仍可继续训练。</div>
-    <div v-if="finishing" class="model-notice">正在生成五维评分，请稍候；报告通常比单轮对话需要更长时间。</div>
+    <div v-if="finishing" class="model-notice">正在生成四维评分，请稍候；报告通常比单轮对话需要更长时间。</div>
     <div v-if="loading" class="panel skeleton dialogue-loading" />
     <DialoguePanel
       v-else-if="training.session.value"

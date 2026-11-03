@@ -40,10 +40,10 @@ const emit = defineEmits<{ start: [scene: Scene, mode: 'text' | 'voice' | 'video
 .scene-card { min-height: 332px; padding: 25px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--line); border-radius:var(--radius); background:var(--card); box-shadow: 0 7px 22px rgba(16,37,43,.035); transition: transform .2s, box-shadow .2s, border-color .2s; }
 .scene-card:hover { transform: translateY(-3px); border-color: #a8cdc5; box-shadow: 0 19px 42px rgba(16,37,43,.1); }
 .scene-topline { display: flex; align-items: center; justify-content: space-between; }
-.category { padding: 7px 10px; border-radius: 6px; background: var(--sky); color: var(--mint-dark); font-size: 12px; font-weight: 800; }
+.category { padding: 4px 9px; border-radius: 5px; background: var(--accent-soft); color: var(--accent-strong); font-size: 11px; font-weight: 600; letter-spacing: .02em; }
 .favorite { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 50%; background:var(--card); color: var(--signal); cursor: pointer; }
 .scene-main { flex: 1; }
-h3 { margin: 21px 0 9px; font-family: var(--font-ui); font-size: 25px; line-height: 1.3; }
+h3 { margin: 18px 0 8px; font-size: 20px; font-weight: 600; letter-spacing: -.02em; line-height: 1.35; }
 .meta { margin: 0 0 17px; display: flex; flex-wrap: wrap; gap: 8px; color: var(--ink-soft); font-size: 12px; }
 .meta span + span::before { content: '/'; margin-right: 8px; color: #a8bab5; }
 .role { margin: 0 0 11px; display: flex; align-items: center; gap: 7px; color: var(--mint-dark); font-size: 12px; font-weight: 800; }

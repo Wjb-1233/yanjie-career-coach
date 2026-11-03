@@ -99,7 +99,7 @@ async function demoLogin(role: 'STUDENT' | 'ADMIN') {
         <div class="facts">
           <span>真实面试场景</span><i aria-hidden="true" />
           <span>逐轮批注</span><i aria-hidden="true" />
-          <span>五维评分</span>
+          <span>四维评分</span>
         </div>
       </div>
 

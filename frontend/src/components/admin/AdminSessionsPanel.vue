@@ -6,7 +6,7 @@ const emit = defineEmits<{ export: []; report: [userId: string] }>()
 </script>
 
 <template>
-  <section class="panel table-panel"><header><div><p class="eyebrow">训练与报告</p><h2>学员训练概览</h2><p class="panel-hint">一个学员一行；点任意一行打开他的五维评分、趋势与逐轮批注。</p></div><button class="button" @click="emit('export')">导出全部训练报告</button></header>
+  <section class="panel table-panel"><header><div><p class="eyebrow">训练与报告</p><h2>学员训练概览</h2><p class="panel-hint">一个学员一行；点任意一行打开他的四维评分、趋势与逐轮批注。</p></div><button class="button" @click="emit('export')">导出全部训练报告</button></header>
     <div v-if="loading" class="loading">正在读取学员数据…</div>
     <div v-else class="table-wrap"><table><thead><tr><th>学员</th><th>邮箱</th><th>训练场次</th><th>已完成</th><th>平均分</th><th>最近训练</th><th>状态</th><th>报告</th></tr></thead><tbody>
       <tr
