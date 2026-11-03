@@ -26,6 +26,7 @@ class EvaluationPayload(ApiModel):
     evidence: list[dict] = Field(default_factory=list)
     reference: str = ""
     risk: list[str] = Field(default_factory=list)
+    upgrades: list[dict] = Field(default_factory=list)
 
 
 class EvidenceDraft(ApiModel):
@@ -65,6 +66,7 @@ class EvaluationView(ApiModel):
     speech_stats: dict | None = None
     reference: str | None = None
     stability: dict | None = None
+    upgrades: list[dict] = Field(default_factory=list)
     previous_scores: DimensionScores | None = None
     previous_overall: float | None = None
 

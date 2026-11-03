@@ -63,6 +63,13 @@ SYSTEM_PROMPT = """你是中文面试表达的评分员。只评价用户的表�
 
 另外判断风险（不参与分数）：命中「命令式表达 / 推卸责任 / 绝对化表达」时在 risk 中列出，最多三条。
 
+还要给出措辞升级（upgrades，最多 4 条）：原句 → 改后句，并标注类型：
+- 动词升级：把「负责/参与/帮忙」换成能体现主导性的动词；
+- 量化补充：给结果补上数量、比例或时间；
+- 去口语化：去掉「然后/就是/那个」等口头语，改成书面衔接；
+- 结构补全：把一句结论补成「结论 + 依据 + 结果」。
+每条含 original（用户原话片段）、problem（问题一句话）、improved（改写，保留原事实）、type（上面四类之一）。
+
 流程要求：
 1. 先写 reference：针对本场最差的一轮，写出「面试官心中的满分回答」，保留用户真实事实，40 字以上，不新增经历；
 2. 再逐维定档，并给出一条证据（quote 必须逐字截取该轮用户原话，不得改写拼接），reason 说明该证据如何支持这一档，nextAction 给出一个具体练习动作；
@@ -73,6 +80,7 @@ SYSTEM_PROMPT = """你是中文面试表达的评分员。只评价用户的表�
 {"reference":"满分回答","scores":{"logic":1,"relevance":1,"correctness":1,"concision":1},
 "summary":"...","suggestions":[{"roundNo":1,"problem":"...","original":"...","rewrite":"...","reference":"..."}],
 "styleTags":["..."],"risk":["命令式表达"],
+"upgrades":[{"original":"...","problem":"...","improved":"...","type":"动词升级"}],
 "evidence":[{"dimension":"logic","roundNo":1,"quote":"原话片段","reason":"...","nextAction":"...","resumeQuote":null}]}。
 evidence 的 dimension 必须覆盖 logic、relevance、correctness、concision 四个键。"""
 
@@ -241,6 +249,7 @@ async def evaluate_session(
         speech_stats=speech_statistics(messages),
         duration_ms=int((time.monotonic() - started_at) * 1000),
         reference_text=payload.reference or None,
+        upgrades=payload.upgrades or None,
         stability=stability,
         degraded=degraded,
     )
@@ -488,6 +497,39 @@ def validated_evidence(
     return result
 
 
+WEAK_VERBS = {"负责": "主导", "参与": "推动", "帮忙": "承担", "做了": "完成了"}
+FILLERS_UP = ("然后", "就是", "那个", "其实", "反正")
+
+
+def fallback_upgrades(messages) -> list[dict]:
+    """规则兜底：找出口头语与弱动词，给最基础的两类改写。"""
+    upgrades: list[dict] = []
+    for message in messages:
+        text = message.content
+        for weak, strong in WEAK_VERBS.items():
+            if weak in text and len(upgrades) < 4:
+                upgrades.append(
+                    {
+                        "original": text[:40],
+                        "problem": f"「{weak}」弱化了你的主导性",
+                        "improved": text.replace(weak, strong, 1)[:60],
+                        "type": "动词升级",
+                    }
+                )
+                break
+        filler = next((word for word in FILLERS_UP if word in text), None)
+        if filler and len(upgrades) < 4:
+            upgrades.append(
+                {
+                    "original": text[:40],
+                    "problem": f"含口头语「{filler}」，显得不熟练",
+                    "improved": text.replace(filler, "", 1)[:60],
+                    "type": "去口语化",
+                }
+            )
+    return upgrades[:4]
+
+
 def fallback_evaluation(user_messages: list[Message]) -> EvaluationPayload:
     text = "".join(message.content for message in user_messages)
     average_length = len(text) / max(len(user_messages), 1)
@@ -512,6 +554,7 @@ def fallback_evaluation(user_messages: list[Message]) -> EvaluationPayload:
         ),
         summary="表达基本完成了沟通目标。下一步应让结论更靠前，并用可验证事实支撑关键判断。",
         reference="（规则兜底未生成满分回答）",
+        upgrades=fallback_upgrades(user_messages),
         suggestions=[
             {
                 "roundNo": target.round_no if target else 1,
@@ -591,6 +634,7 @@ async def to_view(session: AsyncSession, evaluation: Evaluation) -> EvaluationVi
         plan_id=plan.id if plan else None,
         speech_stats=evaluation.speech_stats or speech_statistics(messages),
         reference=evaluation.reference_text,
+        upgrades=evaluation.upgrades or [],
         stability=evaluation.stability,
         previous_scores=DimensionScores(
             logic=previous.logic_score,

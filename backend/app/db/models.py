@@ -215,6 +215,7 @@ class Evaluation(Base):
     style_tags: Mapped[list[str]] = mapped_column(JSON, default=list)
     speech_stats: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     reference_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    upgrades: Mapped[list | None] = mapped_column(JSON, nullable=True)
     stability: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     degraded: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)

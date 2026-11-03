@@ -174,6 +174,7 @@ export interface Evaluation {
   createdAt: string
   degraded: boolean
   reference?: string | null
+  upgrades?: Array<{ original: string; problem: string; improved: string; type: string }>
   stability?: { samples: number; maxSpread: number; reliable: boolean } | null
   evidence: ScoreEvidence[]
   planId: string | null

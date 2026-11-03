@@ -91,6 +91,16 @@ function exportPdf(): void {
   window.print()
 }
 
+const upgradeStats = computed(() => {
+  const rows = evaluation.value?.upgrades ?? []
+  const counts = new Map<string, number>()
+  for (const row of rows) counts.set(row.type, (counts.get(row.type) ?? 0) + 1)
+  return {
+    total: rows.length,
+    types: [...counts.entries()].map(([type, count]) => `${type} ×${count}`),
+  }
+})
+
 const deliveryStats = computed(() => {
   const raw = session.value?.delivery
   if (!raw || !raw.speechRate) return null
@@ -305,6 +315,21 @@ onMounted(async () => {
         </p>
       </section>
 
+      <section v-if="upgradeStats.total" class="speech panel">
+        <header class="speech-head">
+          <h2>措辞升级</h2>
+          <span>{{ upgradeStats.total }} 处 · {{ upgradeStats.types.join(' / ') }}</span>
+        </header>
+        <ul class="upgrade-list">
+          <li v-for="(item, index) in evaluation.upgrades" :key="index">
+            <span class="type">{{ item.type }}</span>
+            <p class="origin">原句：{{ item.original }}</p>
+            <p class="problem">{{ item.problem }}</p>
+            <p class="improved">改后：{{ item.improved }}</p>
+          </li>
+        </ul>
+      </section>
+
       <section v-if="evaluation.reference && !evaluation.reference.startsWith('（规则兜底')" class="speech panel">
         <header class="speech-head"><h2>满分回答参考</h2><span>保留你的真实事实，不编造经历</span></header>
         <p class="reference-text">{{ evaluation.reference }}</p>
@@ -482,6 +507,13 @@ onMounted(async () => {
 .mark-row button:hover { border-color: var(--accent); color: var(--accent-strong); }
 
 .report-actions { display: flex; gap: 10px; }
+.upgrade-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 12px; }
+.upgrade-list li { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2); display: grid; gap: 4px; }
+.upgrade-list .type { width: fit-content; padding: 2px 9px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent-strong); font-size: 11px; }
+.upgrade-list p { margin: 0; font-size: 12.5px; line-height: 1.75; }
+.upgrade-list .origin { color: var(--text-3); }
+.upgrade-list .problem { color: #a4342a; }
+.upgrade-list .improved { color: var(--text); }
 .match-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 8px; }
 .match-list li { color: var(--text-2); font-size: 12.5px; line-height: 1.8; }
 .match-list b { margin-right: 8px; color: var(--text-3); font-weight: 500; font-size: 11.5px; }
