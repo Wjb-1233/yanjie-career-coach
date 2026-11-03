@@ -71,6 +71,6 @@ def test_modernize_replaces_legacy_dimension_words() -> None:
     cleaned = modernize(payload)
     text = str(cleaned)
     assert "感染力" not in text
-    assert "正确性提升微课" in cleaned["title"]
+    assert "信息完整提升微课" in cleaned["title"]
     assert cleaned["steps"][0]["meta"]["correctness"] == 2
     assert cleaned["items"][1] == 3
