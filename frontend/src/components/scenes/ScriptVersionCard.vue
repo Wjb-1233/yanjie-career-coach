@@ -6,7 +6,7 @@ import { scriptPresentation } from '@/lib/scriptPresentation'
 import type { ScriptVersion } from '@/lib/types'
 
 const props = defineProps<{ version: ScriptVersion; sceneTitle?: string; showActions?: boolean; allowDelete?: boolean }>()
-const emit = defineEmits<{ favorite: [version: ScriptVersion]; remove: [version: ScriptVersion] }>()
+const emit = defineEmits<{ favorite: [version: ScriptVersion]; remove: [version: ScriptVersion]; preview: [version: ScriptVersion] }>()
 const presentation = computed(() => scriptPresentation(props.version.style))
 const segments = computed(() =>
   props.version.original?.trim() ? diffChars(props.version.original, props.version.content) : null)
@@ -38,6 +38,7 @@ const hasDiff = computed(() => segments.value?.some((segment) => segment.type !=
       <span v-for="point in version.highlights" :key="point">{{ point }}</span>
     </div>
     <div v-if="showActions" class="actions">
+      <button type="button" @click="emit('preview', version)">▶ 试听</button>
       <button type="button" @click="emit('favorite', version)">{{ version.favorite ? '★ 已收藏' : '☆ 收藏' }}</button>
       <button v-if="allowDelete" type="button" class="danger" @click="emit('remove', version)">删除</button>
     </div>

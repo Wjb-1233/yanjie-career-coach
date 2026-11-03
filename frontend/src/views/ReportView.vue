@@ -329,6 +329,7 @@ onMounted(async () => {
             <p class="origin">原句：{{ item.original }}</p>
             <p class="problem">{{ item.problem }}</p>
             <p class="improved">改后：{{ item.improved }}</p>
+            <RouterLink class="deep-link" :to="{ name: 'scripts', query: { sceneId: session?.sceneId, original: item.original, dimension: item.type, objective: item.problem } }">在话术优化里深入改写 →</RouterLink>
           </li>
         </ul>
       </section>
@@ -518,6 +519,7 @@ onMounted(async () => {
 .upgrade-list .origin { color: var(--text-3); }
 .upgrade-list .problem { color: #a4342a; }
 .upgrade-list .improved { color: var(--text); }
+.upgrade-list .deep-link { margin-top: 4px; width: fit-content; color: var(--accent-strong); font-size: 12px; }
 .match-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 8px; }
 .match-list li { color: var(--text-2); font-size: 12.5px; line-height: 1.8; }
 .match-list b { margin-right: 8px; color: var(--text-3); font-weight: 500; font-size: 11.5px; }

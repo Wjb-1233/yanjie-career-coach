@@ -567,8 +567,8 @@ tbody tr:hover { background: var(--overlay-1); }
 :root[data-theme='light'] .select-item[data-highlighted] { background: rgba(16, 16, 20, .06); color: var(--text); }
 
 /* 按钮 */
-:root[data-theme='light'] .button { background: #1c1b18; color: #fbf9f5; border-color: #1c1b18; }
-:root[data-theme='light'] .button:hover { background: #000; border-color: #000; }
+:root[data-theme='light'] .button { background: var(--accent); color: #fff; border-color: var(--accent); }
+:root[data-theme='light'] .button:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
 :root[data-theme='light'] .button.secondary { background: transparent; color: var(--text-2); border-color: rgba(16, 16, 20, .18); }
 :root[data-theme='light'] .button.secondary:hover { background: rgba(16, 16, 20, .05); color: var(--text); }
 

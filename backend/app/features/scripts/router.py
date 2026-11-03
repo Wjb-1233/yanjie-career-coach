@@ -10,7 +10,7 @@ from app.core.security import CurrentUser
 from app.db.base import get_session
 from app.db.models import Script
 from app.features.scripts.schemas import GenerateScriptsRequest, ScriptVersion
-from app.features.scripts.service import generate
+from app.features.scripts.service import generate, preview_speech
 from app.infrastructure.rate_limit import limit_model_user
 
 router = APIRouter(prefix="/scripts", tags=["话术生成"])
@@ -66,3 +66,12 @@ async def delete_version(script_id: str, user: CurrentUser, session: DbSession) 
     await session.commit()
     return Response(status_code=204)
 
+
+@router.post("/preview")
+async def preview_script(body: dict, user: CurrentUser) -> dict:
+    """把一段改写读成语音，返回可播放地址。"""
+    text = str(body.get("text") or "")
+    if not text.strip():
+        raise not_found("文本")
+    url = preview_speech(text)
+    return ok({"url": url})

@@ -205,3 +205,7 @@ from app.features.recordings.router import router as recordings_router  # noqa: 
 
 app.include_router(recordings_router)
 
+TTS_ROOT = settings.tts_dir_path
+TTS_ROOT.mkdir(parents=True, exist_ok=True)
+app.mount("/media/tts", StaticFiles(directory=str(TTS_ROOT)), name="tts")
+

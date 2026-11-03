@@ -13,6 +13,7 @@ class GenerateScriptsRequest(ApiModel):
     dimension: str | None = Field(default=None, max_length=20)
     source_session_id: str | None = Field(default=None, max_length=36)
     source_round: int | None = Field(default=None, ge=0, le=12)
+    use_stories: bool = False
 
 
 class ScriptVersion(ApiModel):

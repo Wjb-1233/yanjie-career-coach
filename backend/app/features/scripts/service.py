@@ -12,12 +12,27 @@ logger = logging.getLogger(__name__)
 
 
 DIMENSION_GUIDANCE = {
-    "逻辑性": "重写时优先补齐结论、依据和细节，让推理链完整可核对。",
-    "得体性": "重写时注意身份、场合与分寸，避免命令式和过度承诺。",
-    "正确性": "重写时加入具体细节、结果和可感知的影响，避免空泛表态。",
-    "针对性": "重写时先正面回应对方关切，再补充背景与行动。",
-    "简洁度": "重写时删掉铺垫与重复，用更少的字说清结论与依据。",
+    "内容与逻辑": "重写时优先补齐结论、依据和细节，让推理链完整可核对。",
+    "贴合问题": "重写时先正面回应对方关切，再补充背景与行动。",
+    "信息完整": "重写时加入具体细节、结果和可感知的影响，避免空泛表态。",
+    "表达干净": "重写时删掉铺垫与重复，用更少的字说清结论与依据。",
 }
+
+# 历史数据里的旧维度名，读取与生成时统一映射到当前四维
+LEGACY_DIMENSIONS = {
+    "逻辑性": "内容与逻辑",
+    "针对性": "贴合问题",
+    "正确性": "信息完整",
+    "感染力": "信息完整",
+    "简洁度": "表达干净",
+    "得体性": "表达干净",
+}
+
+
+def normalize_dimension(value: str | None) -> str | None:
+    if not value:
+        return None
+    return LEGACY_DIMENSIONS.get(value, value)
 
 
 SYSTEM_PROMPT = """你是一名严谨的中文求职面试表达教练。请基于面试场景、岗位要求、沟通目标和用户原话，
@@ -31,14 +46,28 @@ async def generate(
     scene = await get_scene(session, body.scene_id)
     knowledge = await knowledge_store.search(scene.title + body.objective, 2)
     references = "\n".join(f"- {item.title}：{item.content}" for item in knowledge)
+    dimension = normalize_dimension(body.dimension)
+    story_block = ""
+    if body.use_stories:
+        stories = await _top_stories(session, user_id)
+        if stories:
+            story_block = (
+                "候选人已收录的真实经历（只可作为事实引用，不得改写或编造细节）：\n"
+                + "\n".join(
+                    f"- {item.title}：情境 {item.situation}；任务 {item.task}；行动 {item.action}；结果 {item.result}"
+                    for item in stories
+                )
+                + "\n"
+            )
     prompt = f"""面试场景：{scene.title}
 目标行业：{scene.industry}
 应聘岗位：{scene.position}
 对方角色：{scene.role_name}
 背景：{scene.background}
 训练目标：{body.objective}
-优化重点：{(DIMENSION_GUIDANCE.get(body.dimension or '', '保持原意，语气自然、可推进。'))}
+优化重点：{(DIMENSION_GUIDANCE.get(dimension or '', '保持原意，语气自然、可推进。'))}
 补充信息：{body.extra_context or '无'}
+{story_block}
 用户原话：{body.original_text or '未提供；请只给不包含虚构个人事实的参考表达'}
 可参考的沟通原则：
 {references}
@@ -62,7 +91,7 @@ async def generate(
             scene_id=scene.id,
             style=str(item.get("style", "正式")),
             original=(body.original_text or None),
-            dimension=body.dimension,
+            dimension=dimension,
             source_session_id=body.source_session_id,
             source_round=body.source_round,
             content=str(item.get("content", "")),
@@ -86,6 +115,48 @@ async def generate(
         )
     await session.commit()
     return ScriptGeneration(versions=versions, coach_note=coach_note, degraded=degraded)
+
+
+def preview_speech(text: str) -> str:
+    """把改写结果读出来（系统中文语音），返回可播放的相对地址。"""
+    import hashlib
+    import subprocess
+    import tempfile
+    from pathlib import Path as _Path
+
+    from app.core.config import settings
+
+    cleaned = " ".join(str(text or "").split())[:400]
+    if not cleaned:
+        raise ValueError("empty text")
+
+    directory = settings.tts_dir_path
+    directory.mkdir(parents=True, exist_ok=True)
+    digest = hashlib.sha1(cleaned.encode("utf-8")).hexdigest()[:16]
+    target = directory / f"{digest}.wav"
+    if target.exists():
+        return f"/media/tts/{target.name}"
+
+    workdir = _Path(tempfile.mkdtemp())
+    text_file = workdir / "text.txt"
+    text_file.write_text(cleaned, encoding="utf-8")
+    script = workdir / "tts.ps1"
+    script.write_text(
+        "Add-Type -AssemblyName System.Speech\n"
+        "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer\n"
+        "$s.SelectVoice('Microsoft Huihui Desktop')\n"
+        "$s.Rate = 0\n"
+        f"$s.SetOutputToWaveFile('{target.as_posix()}')\n"
+        f"$text = Get-Content -Raw -Encoding UTF8 '{text_file.as_posix()}'\n"
+        "$s.Speak($text)\n$s.Dispose()\n",
+        encoding="utf-8",
+    )
+    subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)],
+        check=True,
+        capture_output=True,
+    )
+    return f"/media/tts/{target.name}"
 
 
 def fallback_versions(scene_title: str, goal: str, objective: str, original_text: str | None = None) -> list[dict]:

@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     llm_json_mode: bool = True
     lesson_video_dir: str = "static/lessons"
     recording_dir: str = "static/recordings"
+    tts_dir: str = "static/tts"
     recording_retention_days: int = Field(default=30, ge=1, le=365)
     recording_janitor_enabled: bool = True
     recording_signing_secret: str = ""
@@ -110,6 +111,13 @@ class Settings(BaseSettings):
             raise ValueError("生产配置不安全：" + "；".join(problems))
         return self
 
+
+    @property
+    def tts_dir_path(self):
+        from pathlib import Path
+
+        path = Path(self.tts_dir)
+        return path if path.is_absolute() else Path(__file__).resolve().parents[2] / path
 
     @property
     def recording_dir_path(self):

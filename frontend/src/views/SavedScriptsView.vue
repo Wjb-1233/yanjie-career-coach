@@ -8,6 +8,18 @@ import { api, errorMessage } from '@/lib/api'
 import type { ApiEnvelope, Scene, ScriptVersion } from '@/lib/types'
 
 const versions = shallowRef<ScriptVersion[]>([])
+let audio: HTMLAudioElement | null = null
+
+async function playPreview(version: ScriptVersion): Promise<void> {
+  try {
+    const response = await api.post<ApiEnvelope<{ url: string }>>('/scripts/preview', { text: version.content })
+    audio?.pause()
+    audio = new Audio(response.data.data.url)
+    await audio.play().catch(() => undefined)
+  } catch (reason) {
+    error.value = errorMessage(reason)
+  }
+}
 const scenes = shallowRef<Scene[]>([])
 const loading = shallowRef(true)
 const error = shallowRef('')
@@ -92,6 +104,7 @@ async function remove(version: ScriptVersion): Promise<void> {
           show-actions
           allow-delete
           @favorite="favorite"
+          @preview="playPreview"
           @remove="remove"
         />
       </div>

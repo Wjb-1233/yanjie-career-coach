@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, shallowRef, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { ArrowRight, MessageSquareText } from 'lucide-vue-next'
 
 import ScriptVersionCard from '@/components/scenes/ScriptVersionCard.vue'
@@ -13,20 +14,39 @@ const mistakes = shallowRef<MistakeItem[]>([])
 const total = shallowRef(0)
 const history = shallowRef<ScriptVersion[]>([])
 const loading = shallowRef(true)
+let audio: HTMLAudioElement | null = null
 const error = shallowRef('')
 const generating = shallowRef<string | null>(null)
 const results = shallowRef<Record<string, ScriptResult>>({})
 const showResolved = shallowRef(false)
+const useStories = shallowRef(false)
+const deepRewrite = shallowRef<{ sceneId: string; original: string; dimension: string; objective: string } | null>(null)
+const deepBusy = shallowRef(false)
+const deepResult = shallowRef<ScriptResult | null>(null)
 const page = shallowRef(1)
 const PAGE_SIZE = 6
 
+const route = useRoute()
 const keyOf = (item: MistakeItem) => `${item.sessionId}-${item.roundNo}-${item.dimension}`
 const pending = computed(() => mistakes.value)
 const resolvedCount = computed(() => mistakes.value.filter((item) => item.status === 'RESOLVED').length)
 const pageCount = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
 const pagedPending = computed(() => pending.value)
 
-onMounted(load)
+onMounted(async () => {
+  await load()
+  const { sceneId, original, dimension, objective } = route.query
+  if (typeof original === 'string' && original.trim()) {
+    deepRewrite.value = {
+      sceneId: typeof sceneId === 'string' ? sceneId : mattersFirstScene.value,
+      original: original.slice(0, 2000),
+      dimension: typeof dimension === 'string' ? dimension : '',
+      objective: typeof objective === 'string' ? objective : '把这句话改得更具体、更可核查',
+    }
+  }
+})
+
+const mattersFirstScene = computed(() => mistakes.value[0]?.sceneId ?? '')
 watch([page, showResolved], () => { void load() })
 
 async function load(): Promise<void> {
@@ -78,6 +98,39 @@ async function generate(item: MistakeItem): Promise<void> {
   }
 }
 
+async function generateDeep(): Promise<void> {
+  const draft = deepRewrite.value
+  if (!draft || deepBusy.value) return
+  deepBusy.value = true
+  error.value = ''
+  try {
+    const response = await api.post<ApiEnvelope<ScriptResult>>('/scripts/generate', {
+      sceneId: draft.sceneId,
+      objective: draft.objective,
+      originalText: draft.original,
+      dimension: draft.dimension || undefined,
+      useStories: useStories.value,
+    }, { timeout: MODEL_REQUEST_TIMEOUT_MS })
+    deepResult.value = response.data.data
+    await load()
+  } catch (reason) {
+    error.value = errorMessage(reason)
+  } finally {
+    deepBusy.value = false
+  }
+}
+
+async function playPreview(version: ScriptVersion): Promise<void> {
+  try {
+    const response = await api.post<ApiEnvelope<{ url: string }>>('/scripts/preview', { text: version.content })
+    audio?.pause()
+    audio = new Audio(response.data.data.url)
+    await audio.play().catch(() => undefined)
+  } catch (reason) {
+    error.value = errorMessage(reason)
+  }
+}
+
 async function setStatus(item: MistakeItem, status: 'RESOLVED' | 'PENDING'): Promise<void> {
   try {
     await api.patch('/training-sessions/mistakes/state', {
@@ -121,6 +174,45 @@ async function favorite(version: ScriptVersion): Promise<void> {
     </header>
 
     <div v-if="error" class="error-banner">{{ error }}</div>
+
+    <section v-if="deepRewrite" class="block deep">
+      <header class="block-head">
+        <div><h2>深入改写</h2><span>来自报告中的措辞升级</span></div>
+        <button class="text-btn" type="button" @click="deepRewrite = null; deepResult = null">收起</button>
+      </header>
+
+      <div class="deep-form panel">
+        <label class="deep-field">
+          <span>要改的原句</span>
+          <textarea v-model="deepRewrite.original" class="field" rows="3" maxlength="2000" />
+        </label>
+        <label class="deep-field">
+          <span>希望达到的效果</span>
+          <input v-model="deepRewrite.objective" class="field" maxlength="500" placeholder="例如：把结果说清楚，带上可核实的数字" />
+        </label>
+        <div class="deep-actions">
+          <label class="deep-check">
+            <input v-model="useStories" type="checkbox" />
+            引用故事库里的真实经历（不会编造细节）
+          </label>
+          <button class="button" type="button" :disabled="deepBusy || !deepRewrite.original.trim()" @click="generateDeep">
+            {{ deepBusy ? '生成中…' : '生成三种风格' }}
+          </button>
+        </div>
+      </div>
+
+      <div v-if="deepResult" class="versions deep-versions">
+        <ScriptVersionCard
+          v-for="version in deepResult.versions"
+          :key="version.id"
+          :version="version"
+          :show-actions="true"
+          @favorite="favorite"
+          @preview="playPreview"
+        />
+        <p class="coach-note">{{ deepResult.coachNote }}</p>
+      </div>
+    </section>
 
     <section class="block">
       <header class="block-head">
@@ -173,6 +265,7 @@ async function favorite(version: ScriptVersion): Promise<void> {
           <div v-if="results[keyOf(item)]" class="versions">
             <ScriptVersionCard
               v-for="version in results[keyOf(item)]?.versions ?? []"
+              @preview="playPreview"
               :key="version.id"
               :version="version"
               :scene-title="item.sceneTitle"
@@ -226,4 +319,11 @@ async function favorite(version: ScriptVersion): Promise<void> {
 .versions { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 16px; }
 .saved-entry { align-self: flex-start; margin-top: 6px; padding: 8px 14px; border: 1px solid var(--border); border-radius: 999px; color: var(--text-2); font-size: 12.5px; white-space: nowrap; transition: border-color .16s var(--ease), color .16s var(--ease); }
 .saved-entry:hover { border-color: var(--border-bright); color: var(--text); }
+
+.deep .deep-form { padding: 18px; display: grid; gap: 12px; }
+.deep-field { display: grid; gap: 6px; color: var(--text-3); font-size: 12px; }
+.deep-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.deep-check { display: inline-flex; align-items: center; gap: 8px; color: var(--text-2); font-size: 12.5px; }
+.deep-versions { margin-top: 14px; }
+.coach-note { margin: 10px 0 0; color: var(--text-3); font-size: 12.5px; line-height: 1.8; }
 </style>
