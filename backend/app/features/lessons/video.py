@@ -168,7 +168,7 @@ def build_video(lesson: dict, out_path: Path) -> Path:
         }
     ]
     for index, step in enumerate(lesson.get("steps", []), start=1):
-        lines = [step.get("detail", "")]
+        lines = [step.get("explanation") or step.get("detail") or ""]
         if step.get("example"):
             lines.append(f"「{step['example']}」")
         if step.get("practice"):
@@ -179,7 +179,7 @@ def build_video(lesson: dict, out_path: Path) -> Path:
                 "title": f"0{index}",
                 "subtitle": step.get("title", ""),
                 "body": lines,
-                "say": f"第{index}步，{step.get('title', '')}。{step.get('detail', '')}",
+                "say": f"第{index}步，{step.get('title', '')}。{step.get('explanation') or step.get('detail') or ''}",
             }
         )
 

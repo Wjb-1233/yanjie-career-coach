@@ -15,6 +15,7 @@ import subprocess
 import wave
 from pathlib import Path
 
+from app.infrastructure.narration import synthesize
 from app.features.lessons.video import WIDTH, _speak
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,11 @@ def _concat_wavs(parts: list[Path], gap: float, out_path: Path) -> float:
     return _wav_seconds(out_path)
 
 
+def step_text(step: dict) -> str:
+    """课程步骤的讲解文字：历史数据里字段名叫 detail，新数据叫 explanation。"""
+    return (step.get("explanation") or step.get("detail") or "").strip()
+
+
 def render_lesson(lesson: dict, out_path: Path, key: str, dimension: str = "") -> Path:
     out_path = out_path.resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -61,12 +67,16 @@ def render_lesson(lesson: dict, out_path: Path, key: str, dimension: str = "") -
         (lesson.get("title", "微课"), lesson.get("intro", "")),
     ]
     for index, step in enumerate(lesson.get("steps", []), start=1):
-        slides.append((step.get("title", ""), step.get("detail", "")))
+        slides.append((step.get("title", ""), step_text(step)[:110]))
 
     wavs: list[Path] = []
     for index, (title, text) in enumerate(slides):
         wav = work / f"voice-{index}.wav"
-        _speak(f"{title}。{text}"[:220], wav)
+        narration_text = f"{title}。{text}"[:170]
+        try:
+            synthesize(narration_text, wav, style="tutor")
+        except Exception:  # noqa: BLE001
+            _speak(narration_text, wav)
         wavs.append(wav)
 
     narration = work / "narration.wav"
@@ -88,7 +98,7 @@ def render_lesson(lesson: dict, out_path: Path, key: str, dimension: str = "") -
         "steps": [
             {
                 "title": step.get("title", ""),
-                "detail": step.get("detail", ""),
+                "detail": step_text(step),
                 "example": step.get("example", ""),
             }
             for step in lesson.get("steps", [])

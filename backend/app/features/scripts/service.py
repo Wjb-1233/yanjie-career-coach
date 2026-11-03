@@ -7,6 +7,7 @@ from app.features.scenes.service import get_scene
 from app.features.scripts.schemas import GenerateScriptsRequest, ScriptGeneration, ScriptVersion
 from app.infrastructure.knowledge import knowledge_store
 from app.infrastructure.llm import llm_gateway
+from app.infrastructure.narration import synthesize
 
 logger = logging.getLogger(__name__)
 
@@ -137,25 +138,12 @@ def preview_speech(text: str) -> str:
     if target.exists():
         return f"/media/tts/{target.name}"
 
-    workdir = _Path(tempfile.mkdtemp())
-    text_file = workdir / "text.txt"
-    text_file.write_text(cleaned, encoding="utf-8")
-    script = workdir / "tts.ps1"
-    script.write_text(
-        "Add-Type -AssemblyName System.Speech\n"
-        "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer\n"
-        "$s.SelectVoice('Microsoft Huihui Desktop')\n"
-        "$s.Rate = 0\n"
-        f"$s.SetOutputToWaveFile('{target.as_posix()}')\n"
-        f"$text = Get-Content -Raw -Encoding UTF8 '{text_file.as_posix()}'\n"
-        "$s.Speak($text)\n$s.Dispose()\n",
-        encoding="utf-8",
-    )
-    subprocess.run(
-        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)],
-        check=True,
-        capture_output=True,
-    )
+    try:
+        synthesize(cleaned, target, style="tutor")
+    except Exception:  # noqa: BLE001
+        from app.infrastructure.narration import _system_tts
+
+        _system_tts(cleaned, target)
     return f"/media/tts/{target.name}"
 
 
