@@ -11,13 +11,19 @@ ANSWER = "我的结论是先解决客户问题，依据是已有反馈，明天�
 
 def _fake_llm(monkeypatch):
     async def fake_complete(system_prompt: str, user_prompt: str, **_kwargs):
-        if "面试出题策划" in system_prompt:
+        if "面试教练" in system_prompt:
             return {
                 "plan": [
-                    {"text": "请说明你如何定位这个岗位的核心职责", "dimension": "针对性", "difficulty": "中级"},
-                    {"text": "讲一个你主导的跨团队协作案例", "dimension": "逻辑性", "difficulty": "中级"},
-                    {"text": "如果资源不足你会怎么取舍", "dimension": "逻辑性", "difficulty": "进阶"},
-                ]
+                    {"text": "请说明你如何定位这个岗位的核心职责", "dimension": "贴合问题", "difficulty": "中级"},
+                    {"text": "讲一个你主导的跨团队协作案例", "dimension": "内容与逻辑", "difficulty": "中级"},
+                    {"text": "如果资源不足你会怎么取舍", "dimension": "内容与逻辑", "difficulty": "进阶"},
+                ],
+                "match": {
+                    "score": 72,
+                    "strengths": ["有后端实习经历"],
+                    "gaps": [{"requirement": "高并发经验", "why": "简历未体现", "drill": "准备压测案例"}],
+                    "followUps": ["QPS 峰值多少"],
+                },
             }
         if "评分员" in system_prompt:
             return {
@@ -117,6 +123,10 @@ def test_job_description_builds_question_plan(monkeypatch) -> None:
         data = jd.json()["data"]
         assert data["jdText"]
         assert data["questionTotal"] == 3
+        match = data["jobMatch"]
+        assert match["score"] == 72
+        assert match["gaps"][0]["requirement"] == "高并发经验"
+        assert match["degraded"] is False
         assert data["questionCovered"] == 0
 
         client.post(

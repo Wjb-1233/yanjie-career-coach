@@ -61,6 +61,7 @@ class SessionView(ApiModel):
     resume_filename: str | None = None
     resume_opening_degraded: bool = False
     jd_text: str | None = None
+    job_match: dict | None = None
     question_plan: list[dict] = Field(default_factory=list)
     question_total: int = 0
     question_covered: int = 0

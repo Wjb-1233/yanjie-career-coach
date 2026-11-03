@@ -155,6 +155,7 @@ class TrainingSession(Base):
     delivery: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     recording_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
     jd_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    job_match: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     question_plan: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
 
 
