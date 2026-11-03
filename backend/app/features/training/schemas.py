@@ -7,6 +7,7 @@ from app.core.schemas import ApiModel
 
 class CreateSessionRequest(ApiModel):
     scene_id: str
+    mode: str = Field(default="STANDARD", pattern="^(STANDARD|DRILL)$")
 
 
 class SendMessageRequest(ApiModel):
@@ -52,6 +53,7 @@ class SessionView(ApiModel):
     current_round: int
     max_rounds: int
     channel: str = "TEXT"
+    mode: str = "STANDARD"
     duration_seconds: int | None = None
     delivery: dict | None = None
     recording_url: str | None = None

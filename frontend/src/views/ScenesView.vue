@@ -40,7 +40,21 @@ async function toggleFavorite(scene: Scene) {
   scenes.value = scenes.value.map((item) => item.id === scene.id ? { ...item, favorite: response.data.data.favorite } : item)
 }
 
-function start(scene: Scene, mode: 'text' | 'voice' | 'video') {
+async function startDrill(scene: Scene): Promise<void> {
+  startError.value = ''
+  try {
+    const created = await api.post<ApiEnvelope<{ id: string }>>('/training-sessions', { sceneId: scene.id, mode: 'DRILL' })
+    void router.push(`/training/${created.data.data.id}`)
+  } catch (reason) {
+    startError.value = errorMessage(reason)
+  }
+}
+
+function start(scene: Scene, mode: 'text' | 'voice' | 'video' | 'drill') {
+  if (mode === 'drill') {
+    void startDrill(scene)
+    return
+  }
   startError.value = ''
   if (mode === 'video') {
     void router.push({ name: 'video', query: { sceneId: scene.id } })

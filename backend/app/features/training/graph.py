@@ -131,7 +131,13 @@ def prompt_node(state: ConversationState) -> dict:
             "本轮没有固定的必问题。结合核心思想、岗位 JD 与简历，"
             "针对候选人上一轮回答继续追问一个具体问题，不要重复已经问过的内容。\n"
         )
-    prompt = f"""你正在进行中文{'基础能力场景对练' if is_foundation else '求职面试模拟'}。
+    drill_note = ""
+    if state.get("mode") == "DRILL":
+        drill_note = (
+            "\n这是深挖模式：像严格但专业的教练，只围绕候选人上一轮回答里最薄弱的一点连续追问，"
+            "每次只问一个问题、不超过 40 字；不给答案、不换话题、不评价，直到对方说清楚依据为止。\n"
+        )
+    prompt = f"""{drill_note}你正在进行中文{'基础能力场景对练' if is_foundation else '求职面试模拟'}。
 场景：{state['scene_title']}
 你的角色：{state['role_name']}
 背景：{state['scene_background']}

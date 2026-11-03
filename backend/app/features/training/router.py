@@ -77,7 +77,7 @@ async def update_mistake_state(body: MistakeStateRequest, user: CurrentUser, ses
 
 @router.post("", status_code=201)
 async def create(body: CreateSessionRequest, user: CurrentUser, session: DbSession) -> dict:
-    result = await create_training_session(session, user.id, body.scene_id)
+    result = await create_training_session(session, user.id, body.scene_id, mode=body.mode)
     return ok(result.model_dump(by_alias=True))
 
 

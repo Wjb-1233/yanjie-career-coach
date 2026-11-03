@@ -36,8 +36,11 @@ async def create_training_session(
     scene_id: str,
     resume_filename: str | None = None,
     resume_text: str | None = None,
+    mode: str = "STANDARD",
 ) -> SessionView:
     scene = await get_scene(session, scene_id)
+    if mode == "DRILL" and scene.difficulty != "进阶":
+        raise AppError(422, "DRILL_REQUIRES_ADVANCED", "深挖模式只在进阶难度场景开放")
     if resume_text and scene.category == "基础能力提升":
         raise AppError(422, "RESUME_NOT_APPLICABLE", "五维基础练习不需要上传简历，请直接开始训练")
     opening_line = (scene.opening_line or "").strip()
@@ -49,6 +52,7 @@ async def create_training_session(
     training = TrainingSession(
         user_id=user_id,
         scene_id=scene.id,
+        mode=mode if mode in {"STANDARD", "DRILL"} else "STANDARD",
         max_rounds=settings.max_training_rounds,
     )
     session.add(training)
@@ -81,6 +85,7 @@ async def create_training_session(
         current_round=training.current_round,
         max_rounds=training.max_rounds,
         channel=training.channel,
+        mode=training.mode or "STANDARD",
         duration_seconds=training.duration_seconds,
         delivery=training.delivery,
         recording_url=storage.url_of(training.recording_path),
@@ -121,6 +126,7 @@ async def get_training_session(
         current_round=training.current_round,
         max_rounds=training.max_rounds,
         channel=training.channel,
+        mode=training.mode or "STANDARD",
         duration_seconds=training.duration_seconds,
         delivery=training.delivery,
         recording_url=storage.url_of(training.recording_path),
@@ -308,6 +314,7 @@ async def stream_reply(session_id: str, user_id: str, user_text: str, finish_aft
                 "scene_id": scene.id,
                 "scene_category": scene.category,
                 "scene_difficulty": scene.difficulty,
+                "mode": training.mode or "STANDARD",
                 "role_name": scene.role_name,
                 "scene_background": scene.background,
                 "scene_goal": scene.goal,

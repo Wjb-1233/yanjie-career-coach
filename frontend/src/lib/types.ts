@@ -47,6 +47,7 @@ export interface TrainingSession {
   currentRound: number
   maxRounds: number
   channel?: 'TEXT' | 'VOICE' | 'VIDEO'
+  mode?: 'STANDARD' | 'DRILL'
   recordingUrl?: string | null
   durationSeconds?: number | null
   delivery?: {

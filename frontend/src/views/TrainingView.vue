@@ -112,7 +112,7 @@ async function clearResume(): Promise<void> {
 <template>
   <div class="page training-page" :class="{ 'voice-page': mode === 'voice' }">
     <header class="training-heading">
-      <div><p class="eyebrow">角色演练 · {{ stageLabel }}</p><h1>{{ training.session.value?.sceneTitle || '情景训练' }}</h1><p class="training-subtitle">面对模拟角色，按自己的节奏回答。系统会记录对话并在结束后提供复盘建议。</p></div>
+      <div><p class="eyebrow">角色演练 · {{ stageLabel }}<span v-if="training.session.value?.mode === 'DRILL'" class="drill-tag">深挖模式</span></p><h1>{{ training.session.value?.sceneTitle || '情景训练' }}</h1><p class="training-subtitle">面对模拟角色，按自己的节奏回答。系统会记录对话并在结束后提供复盘建议。</p></div>
       <div class="heading-actions">
         <button v-if="training.session.value?.status === 'FINISHED'" class="button secondary" type="button" @click="restart">同场景重新开始</button>
         <RouterLink class="back" to="/scenes">退出训练</RouterLink>
@@ -212,6 +212,7 @@ async function clearResume(): Promise<void> {
 <style scoped>
 .training-page { max-width: 1080px; }
 .model-notice { margin-bottom: 14px; padding: 11px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--sky); color: var(--mint-dark); font-size: 13px; }
+.drill-tag { margin-left: 8px; padding: 2px 9px; border-radius: 999px; background: rgba(107,79,160,.12); color: #6b4fa0; font-size: 11px; }
 .training-heading { margin-bottom: 20px; padding: 27px 30px; display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; border: 1px solid var(--line); border-radius:var(--radius); background:var(--card); }
 .training-heading h1 { margin: 0; font: 700 clamp(26px, 3vw, 34px)/1.2 var(--font-ui); }
 .training-subtitle { max-width: 550px; margin: 10px 0 0; color: var(--ink-soft); font-size: 13px; line-height: 1.7; }

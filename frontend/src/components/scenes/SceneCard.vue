@@ -3,7 +3,7 @@ import type { Scene } from '@/lib/types'
 import { difficultyCue, difficultyTone } from '@/lib/sceneTaxonomy'
 
 defineProps<{ scene: Scene }>()
-const emit = defineEmits<{ start: [scene: Scene, mode: 'text' | 'voice' | 'video']; favorite: [scene: Scene] }>()
+const emit = defineEmits<{ start: [scene: Scene, mode: 'text' | 'voice' | 'video' | 'drill']; favorite: [scene: Scene] }>()
 </script>
 
 <template>
@@ -30,6 +30,7 @@ const emit = defineEmits<{ start: [scene: Scene, mode: 'text' | 'voice' | 'video
         <button class="start text" type="button" @click="emit('start', scene, 'text')">文字对练</button>
         <button class="start voice" type="button" @click="emit('start', scene, 'voice')">语音对练</button>
         <button class="start video" type="button" @click="emit('start', scene, 'video')">视频面试</button>
+        <button v-if="scene.difficulty === '进阶'" class="start drill" type="button" @click="emit('start', scene, 'drill')">深挖</button>
       </div>
     </div>
   </article>
@@ -52,6 +53,7 @@ h3 { margin: 21px 0 9px; font-family: var(--font-ui); font-size: 25px; line-heig
 .difficulty { background: rgba(193,112,62,.12); color: var(--accent-strong); }
 .card-actions { display: grid; gap: 10px; padding-top: 17px; border-top: 1px solid var(--line); }
 .start-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.start-actions .drill { grid-column: 1 / -1; }
 .start-actions .start { padding: 0 16px; }
 .script, .start { min-height: 43px; border: 0; border-radius:var(--radius); background: transparent; color: var(--ink); cursor: pointer; font-weight: 800; font-size: 12px; }
 .script { min-height: 35px; width: fit-content; padding: 0 5px; color: var(--mint-dark); }
@@ -59,6 +61,7 @@ h3 { margin: 21px 0 9px; font-family: var(--font-ui); font-size: 25px; line-heig
 .start { display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--ink); color: white; }
 .start.voice { background: var(--mint-dark); }
 .start.video { background: var(--accent-strong); }
+.start.drill { background: #6b4fa0; }
 .start span { color: var(--signal); font-size: 18px; transition: transform .18s; }
 .start:hover span { transform: translateX(4px); }
 .scene-card { border-color: var(--border); border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); animation: rise-in .28s ease both; transition: border-color var(--ease),box-shadow var(--ease); }

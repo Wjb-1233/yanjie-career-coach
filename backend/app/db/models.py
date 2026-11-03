@@ -167,6 +167,7 @@ class TrainingSession(Base):
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     covered_count: Mapped[int] = mapped_column(Integer, default=0)
     channel: Mapped[str] = mapped_column(String(10), default="TEXT", index=True)
+    mode: Mapped[str] = mapped_column(String(12), default="STANDARD")
     duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     delivery: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     recording_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
