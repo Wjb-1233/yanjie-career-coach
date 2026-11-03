@@ -42,3 +42,8 @@ tools/ffmpeg/
 
 # 面试录制文件（本地存储，不进仓库）
 backend/static/recordings/
+
+# 微课渲染中间文件与试听缓存
+backend/static/lessons/.remotion-*/
+backend/static/tts/*.wav
+video/public/narration-*.wav

@@ -23,7 +23,7 @@ def test_synthesize_falls_back_to_system_voice(monkeypatch, tmp_path: Path) -> N
     def boom(text: str, out_wav: Path, style: str) -> None:
         raise RuntimeError("offline")
 
-    def fake_system(text: str, out_wav: Path) -> None:
+    def fake_system(text: str, out_wav: Path, style: str = "tutor") -> None:
         calls.append(text)
         out_wav.write_bytes(b"RIFF")
 

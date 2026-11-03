@@ -61,56 +61,79 @@ def _split_sentences(text: str, limit: int = 90) -> list[str]:
 
 
 def _edge_tts(text: str, out_wav: Path, style: str) -> None:
-    import edge_tts
+    """用 edge-tts 命令行合成，避免在长驻进程里嵌套事件循环。"""
+    import sys
 
     voice, rate, pitch = VOICE_MAP.get(style, VOICE_MAP["tutor"])
     mp3 = out_wav.with_suffix(".mp3")
 
-    async def run() -> None:
-        communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
-        with mp3.open("wb") as handle:
-            async for chunk in communicate.stream():
-                if chunk["type"] == "audio":
-                    handle.write(chunk["data"])
-
     last: Exception | None = None
     for attempt in range(ATTEMPTS):
         try:
-            loop = asyncio.new_event_loop()
-            try:
-                loop.run_until_complete(run())
-            finally:
-                loop.close()
-            if mp3.is_file() and mp3.stat().st_size > 1024:
-                subprocess.run(
-                    ["ffmpeg", "-y", "-loglevel", "error", "-i", str(mp3), "-ar", "24000", "-ac", "1", str(out_wav)],
-                    check=True,
-                    capture_output=True,
-                )
-                mp3.unlink(missing_ok=True)
-                return
-            raise RuntimeError("empty audio")
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "edge_tts",
+                    "--voice",
+                    voice,
+                    f"--rate={rate}",
+                    f"--pitch={pitch}",
+                    "--text",
+                    text,
+                    "--write-media",
+                    str(mp3),
+                ],
+                capture_output=True,
+                timeout=90,
+            )
+            if result.returncode != 0 or not mp3.is_file() or mp3.stat().st_size < 2048:
+                raise RuntimeError(f"edge-tts exit={result.returncode}")
+            subprocess.run(
+                ["ffmpeg", "-y", "-loglevel", "error", "-i", str(mp3), "-ar", "24000", "-ac", "1", str(out_wav)],
+                check=True,
+                capture_output=True,
+            )
+            mp3.unlink(missing_ok=True)
+            return
         except Exception as exc:  # noqa: BLE001
             last = exc
             mp3.unlink(missing_ok=True)
             logger.warning("narration.edge_retry attempt=%s error_type=%s", attempt + 1, type(exc).__name__)
-            time.sleep(0.6 * (attempt + 1))
+            time.sleep(0.8 * (attempt + 1))
     raise RuntimeError(f"edge-tts failed: {type(last).__name__}")
 
 
-def _system_tts(text: str, out_wav: Path) -> None:
+def _system_tts(text: str, out_wav: Path, style: str = "tutor") -> None:
+    """系统语音兜底：用 SSML 调语速、停顿和重音，避免念稿式的平铺直叙。"""
+    sentences = _split_sentences(text) or [text]
+    voice = "Microsoft Huihui Desktop"
+    body: list[str] = []
+    for index, sentence in enumerate(sentences):
+        # 短句放慢、长句略快；相邻句子在音高上做一点起伏
+        rate = "+8%" if len(sentence) <= 12 else "+2%" if len(sentence) <= 26 else "-2%"
+        pitch = "+4%" if index % 2 == 0 else "+1%"
+        emphasis = ' level="moderate"' if len(sentence) <= 18 else ""
+        body.append(
+            f'<prosody rate="{rate}" pitch="{pitch}">'
+            f"<emphasis{emphasis}>{_escape(sentence)}</emphasis>"
+            "</prosody><break time=\"220ms\"/>"
+        )
+    ssml = (
+        '<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="zh-CN">'
+        f'<voice name="{voice}">' + "".join(body) + "</voice></speak>"
+    )
+
     workdir = Path(tempfile.mkdtemp())
-    text_file = workdir / "text.txt"
-    text_file.write_text(text, encoding="utf-8")
+    ssml_file = workdir / "ssml.xml"
+    ssml_file.write_text(ssml, encoding="utf-8")
     script = workdir / "tts.ps1"
     script.write_text(
         "Add-Type -AssemblyName System.Speech\n"
         "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer\n"
-        "$s.SelectVoice('Microsoft Huihui Desktop')\n"
-        "$s.Rate = 2\n"
         f"$s.SetOutputToWaveFile('{out_wav.as_posix()}')\n"
-        f"$text = Get-Content -Raw -Encoding UTF8 '{text_file.as_posix()}'\n"
-        "$s.Speak($text)\n"
+        f"$xml = Get-Content -Raw -Encoding UTF8 '{ssml_file.as_posix()}'\n"
+        "$s.SpeakSsml($xml)\n"
         "$s.Dispose()\n",
         encoding="utf-8",
     )
@@ -118,6 +141,12 @@ def _system_tts(text: str, out_wav: Path) -> None:
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)],
         check=True,
         capture_output=True,
+    )
+
+
+def _escape(text: str) -> str:
+    return (
+        text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
     )
 
 
@@ -138,7 +167,7 @@ def synthesize(text: str, out_wav: Path, style: str = "tutor") -> tuple[Path, st
             _edge_tts(sentence, piece, style)
         except Exception:  # noqa: BLE001
             engine = "system"
-            _system_tts(sentence, piece)
+            _system_tts(sentence, piece, style)
         pieces.append(piece)
 
     _concat(pieces, out_wav)
