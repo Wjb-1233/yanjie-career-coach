@@ -182,7 +182,7 @@ async function confirmStart(file: File | null): Promise<void> {
 .category-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
 .category-tabs button { min-height: 38px; padding: 0 15px; border: 1px solid var(--line); border-radius: 7px; background:var(--card); cursor: pointer; color: var(--ink-soft); transition: background .18s, border-color .18s, color .18s; }
 .category-tabs button:hover { border-color: var(--mint-dark); color: var(--mint-dark); }
-.category-tabs button.active { border-color: var(--ink); background: var(--ink); color: white; }
+.category-tabs button.active { border-color: var(--accent); background: var(--accent); color: var(--on-solid); }
 .search { width: 100%; grid-column: 1 / -1; background: var(--bg-2); }
 .scene-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .scene-loading { min-height: 330px; }
@@ -196,7 +196,7 @@ async function confirmStart(file: File | null): Promise<void> {
 .plan-notice { border-color: var(--border); background: var(--card); color: var(--text-2); }
 .category-tabs button { border-color: var(--border); background: var(--bg-2); color: var(--text-2); transition: background var(--ease),border-color var(--ease),color var(--ease); }
 .category-tabs button:hover { border-color: var(--border-bright); color: var(--text); }
-.category-tabs button.active { border-color: var(--text); background: var(--text); color: var(--on-solid); box-shadow: none; }
+.category-tabs button.active { border-color: var(--accent); background: var(--accent); color: var(--on-solid); box-shadow: none; }
 .search { background: var(--bg-2); }
 .difficulty-guide { display:flex;flex-wrap:wrap;gap:8px 18px;padding:2px 3px;color:var(--text);font-size:12px; }
 .difficulty-guide span { display:inline-flex;align-items:center;gap:6px; }

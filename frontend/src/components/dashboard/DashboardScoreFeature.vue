@@ -125,17 +125,17 @@ function formatDate(value: string): string {
   gap: 14px;
   margin-top: auto;
   padding: 12px 18px 12px 20px;
-  border: 1px solid var(--text);
+  border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
-  background: var(--text);
-  color: var(--on-solid);
+  background: var(--accent);
+  color: #fff;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: .04em;
   transition: background var(--ease), border-color var(--ease), gap var(--ease);
 }
 .cta svg { transition: transform var(--ease); }
-.cta:hover { background: var(--accent); border-color: var(--accent); color: #fff; gap: 18px; }
+.cta:hover { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; gap: 18px; }
 .cta:hover svg { transform: translateX(2px); }
 
 .hero-facts { display: flex; flex-direction: column; margin: 0; border-left: 1px solid var(--divider); }
@@ -182,14 +182,14 @@ function formatDate(value: string): string {
   -webkit-backdrop-filter: blur(20px) saturate(120%);
 }
 :root[data-theme='dark'] .cta {
-  border-color: #f2f1ef;
-  background: #f2f1ef;
-  color: #0b0b0c;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #0b0b0e;
 }
 :root[data-theme='dark'] .cta:hover {
-  background: #ffffff;
-  border-color: #ffffff;
-  color: #0b0b0c;
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #0b0b0e;
 }
 .degraded-tag { margin-left: 10px; padding: 3px 10px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent-strong); font-size: 11px; }
 
