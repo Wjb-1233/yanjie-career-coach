@@ -242,7 +242,7 @@ function submit() {
 .mode-button.active { background: var(--overlay-3); color: var(--text); }
 
 .form-heading { margin: 10px 0 4px; }
-.form-title { margin: 0; color: var(--text); font-size: 26px; font-weight: 600; letter-spacing: -.01em; line-height: 1.35; }
+.form-title { font-family: var(--font-display); letter-spacing: .01em; margin: 0; color: var(--text); font-size: 26px; font-weight: 600; letter-spacing: -.01em; line-height: 1.35; }
 .hint { margin: 10px 0 0; color: var(--text-3); font-size: 13px; line-height: 1.8; }
 .field-help { color: var(--text-3); font-size: 11px; font-weight: 400; line-height: 1.6; }
 .field-error { color: #e0a49b; font-size: 11px; font-weight: 400; line-height: 1.6; }
