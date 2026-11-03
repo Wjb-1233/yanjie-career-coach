@@ -1,11 +1,13 @@
 import asyncio
 import json
+import copy
 import logging
 from datetime import datetime, timezone
 
 from pydantic import Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.errors import AppError, not_found
 from app.core.schemas import ApiModel
@@ -493,19 +495,18 @@ async def personalized_lesson(
     )
 
     payload = lesson.model_dump(by_alias=True)
-    tasks = list(plan.tasks or [])
+    # JSON 列必须在副本上改并显式标脏，否则原地修改不会触发 UPDATE
+    tasks = copy.deepcopy(list(plan.tasks or []))
     for item in tasks:
         if item.get("key") == task_key:
             item["lesson"] = payload
-    plan.tasks = tasks
-    await session.commit()
-
-    if chosen.get("id") and chosen["id"] != target.get("courseId"):
-        for item in tasks:
-            if item.get("key") == task_key:
+            if item.get("actionType") == "COURSE":
+                item["task"] = f"学习微课《{payload.get('title', '')}》，按三个步骤完成表达练习"
+            if chosen.get("id") and chosen["id"] != item.get("courseId"):
                 item["courseId"] = chosen["id"]
-        plan.tasks = tasks
-        await session.commit()
+    plan.tasks = tasks
+    flag_modified(plan, "tasks")
+    await session.commit()
 
     return {
         "lesson": payload,
