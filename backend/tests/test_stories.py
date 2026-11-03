@@ -17,6 +17,21 @@ def _auth(client: TestClient) -> dict:
     return {"Authorization": f"Bearer {response.json()['data']['accessToken']}"}
 
 
+def test_extract_falls_back_when_model_returns_empty(monkeypatch) -> None:
+    """模型没提炼出内容时应退回规则提取，而不是直接报错。"""
+    from app.features.stories import service
+
+    async def empty_llm(*_args, **_kwargs):
+        return {"stories": []}
+
+    class Msg:
+        def __init__(self, content: str) -> None:
+            self.content = content
+
+    monkeypatch.setattr(service.llm_gateway, "complete_json", empty_llm)
+    assert service.fallback_stories([Msg("我负责订单系统，把 P99 从 800ms 降到 200ms，用 Redis 预扣库存。")])
+
+
 def test_normalize_story_requires_title_and_action() -> None:
     assert normalize_story({"title": "", "action": "做了很多事"}) is None
     assert normalize_story({"title": "订单优化", "action": ""}) is None

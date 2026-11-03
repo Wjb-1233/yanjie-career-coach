@@ -147,6 +147,7 @@ onMounted(async () => {
       </div>
       <div class="report-actions">
         <button type="button" class="button secondary" @click="exportPdf">打印 / 导出 PDF</button>
+        <RouterLink class="button secondary" :to="{ name: 'stories', query: { sessionId: route.params.id } }">沉淀为故事</RouterLink>
         <RouterLink class="button secondary" to="/scenes">再练一个场景</RouterLink>
       </div>
     </header>

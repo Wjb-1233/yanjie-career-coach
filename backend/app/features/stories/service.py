@@ -170,8 +170,10 @@ async def extract_from_session(session: AsyncSession, user_id: str, session_id: 
                 candidates.append(normalized)
     except Exception as exc:  # noqa: BLE001
         logger.warning("story.extract_degraded error_type=%s", type(exc).__name__)
+        candidates = []
+    if not candidates:
+        # 模型没提炼出内容时，退回到规则提取，保证有可用素材
         candidates = fallback_stories(messages)
-
     if not candidates:
         raise AppError(422, "STORY_NO_CONTENT", "没有提炼出可用的故事，回答可能缺少具体事实")
 
