@@ -238,6 +238,22 @@ onMounted(async () => {
         </p>
       </section>
 
+      <section v-if="session?.jobMatch" class="speech panel">
+        <header class="speech-head">
+          <h2>岗位匹配</h2>
+          <span>{{ session.jobMatch.score }} / 100 · {{ session.jobMatch.degraded ? '规则估算' : '按 JD 与简历对比' }}</span>
+        </header>
+        <ul v-if="session.jobMatch.strengths.length" class="match-list">
+          <li v-for="item in session.jobMatch.strengths" :key="item"><b>优势</b>{{ item }}</li>
+        </ul>
+        <ul v-if="session.jobMatch.gaps.length" class="match-list">
+          <li v-for="gap in session.jobMatch.gaps" :key="gap.requirement">
+            <b>缺口</b>{{ gap.requirement }} — {{ gap.why }}
+            <em>{{ gap.drill }}</em>
+          </li>
+        </ul>
+      </section>
+
       <section v-if="comparison" class="compare panel">
         <header class="speech-head"><h2>与上次对比</h2><span>同一场景的历史最好成绩</span></header>
         <div class="compare-body">
@@ -465,6 +481,10 @@ onMounted(async () => {
 .mark-row button:hover { border-color: var(--accent); color: var(--accent-strong); }
 
 .report-actions { display: flex; gap: 10px; }
+.match-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 8px; }
+.match-list li { color: var(--text-2); font-size: 12.5px; line-height: 1.8; }
+.match-list b { margin-right: 8px; color: var(--text-3); font-weight: 500; font-size: 11.5px; }
+.match-list em { display: block; color: var(--accent-strong); font-style: normal; font-size: 12px; }
 .compare.panel { display: grid; grid-template-columns: 1fr; padding: 22px; }
 .compare-body { display: grid; gap: 20px; width: 100%; }
 .compare-radars { display: flex; justify-content: center; gap: 120px; flex-wrap: wrap; }

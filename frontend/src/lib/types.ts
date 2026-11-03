@@ -66,6 +66,14 @@ export interface TrainingSession {
   questionTotal: number
   questionCovered: number
   jdText: string | null
+  jobMatch?: {
+    score: number
+    strengths: string[]
+    gaps: Array<{ requirement: string; why: string; drill: string }>
+    followUps: string[]
+    degraded: boolean
+    requirementCount: number
+  } | null
   messages: TrainingMessage[]
 }
 

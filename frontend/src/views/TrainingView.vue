@@ -135,6 +135,32 @@ async function clearResume(): Promise<void> {
         </div>
       </details>
     </div>
+    <div v-if="training.session.value?.jobMatch" class="match-card">
+      <header>
+        <div class="score"><strong>{{ training.session.value.jobMatch.score }}</strong><span>/100 匹配度</span></div>
+        <p v-if="training.session.value.jobMatch.degraded" class="degraded">规则估算（模型暂不可用）</p>
+        <p v-else class="degraded">按 JD 与简历对比得出</p>
+      </header>
+      <div v-if="training.session.value.jobMatch.strengths.length" class="match-block">
+        <strong>优势</strong>
+        <ul><li v-for="item in training.session.value.jobMatch.strengths" :key="item">{{ item }}</li></ul>
+      </div>
+      <div v-if="training.session.value.jobMatch.gaps.length" class="match-block">
+        <strong>缺口</strong>
+        <ul class="gaps">
+          <li v-for="gap in training.session.value.jobMatch.gaps" :key="gap.requirement">
+            <b>{{ gap.requirement }}</b>
+            <span>{{ gap.why }}</span>
+            <em>{{ gap.drill }}</em>
+          </li>
+        </ul>
+      </div>
+      <div v-if="training.session.value.jobMatch.followUps.length" class="match-block">
+        <strong>可能被追问</strong>
+        <ul><li v-for="item in training.session.value.jobMatch.followUps" :key="item">{{ item }}</li></ul>
+      </div>
+    </div>
+
     <div v-if="training.session.value && training.session.value.questionPlan?.length" class="plan-card">
       <details>
         <summary>本场必问题 · {{ training.session.value.questionPlan.length }} 个</summary>
@@ -247,5 +273,17 @@ async function clearResume(): Promise<void> {
   .voice-page .mode-bar { margin-bottom: 12px; padding: 8px 12px; }
   .voice-page .mode-bar > div:first-child { display: none; }
 }
+
+.match-card { margin: 14px 0; padding: 16px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); display: grid; gap: 12px; }
+.match-card header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.match-card .score strong { font-size: 30px; font-weight: 750; }
+.match-card .score span { margin-left: 6px; color: var(--text-3); font-size: 12px; }
+.match-card .degraded { margin: 0; color: var(--text-3); font-size: 11.5px; }
+.match-block strong { display: block; margin-bottom: 6px; color: var(--text-3); font-size: 11.5px; letter-spacing: .06em; }
+.match-block ul { margin: 0; padding-left: 18px; color: var(--text-2); font-size: 12.5px; line-height: 1.8; }
+.match-block .gaps li { margin-bottom: 6px; }
+.match-block .gaps b { color: var(--text); font-weight: 600; }
+.match-block .gaps span { margin-left: 6px; color: var(--text-2); }
+.match-block .gaps em { display: block; color: var(--accent-strong); font-style: normal; font-size: 12px; }
 </style>
 
