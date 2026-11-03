@@ -123,5 +123,16 @@ def render_lesson(lesson: dict, out_path: Path, key: str, dimension: str = "") -
         logger.warning("remotion.render_failed stderr=%s", (result.stderr or "")[-400:])
         raise RuntimeError("Remotion 渲染失败")
 
+    chapters = []
+    cursor = 0.0
+    for index, duration in enumerate(durations):
+        title = lesson.get("title", "微课") if index == 0 else lesson.get("steps", [{}])[index - 1].get("title", "")
+        chapters.append({"title": title, "start": round(cursor, 2), "duration": duration})
+        cursor += duration
+    (out_path.with_suffix(".json")).write_text(
+        json.dumps({"chapters": chapters, "duration": round(cursor, 2)}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
     shutil.rmtree(work, ignore_errors=True)
     return out_path

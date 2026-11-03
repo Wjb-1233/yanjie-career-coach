@@ -23,11 +23,22 @@ const videoUrl = shallowRef('')
 const videoBuilding = shallowRef(false)
 const videoError = shallowRef('')
 const videoElapsed = shallowRef(0)
+const chapters = shallowRef<Array<{ title: string; start: number; duration: number }>>([])
+const videoEl = shallowRef<HTMLVideoElement | null>(null)
+const activeChapter = shallowRef(0)
 let videoTimer: ReturnType<typeof setInterval> | null = null
 const lessonError = shallowRef('')
 const lesson = computed(() => generated.value?.lesson ?? props.task.lesson)
 const nextStep = computed(() => props.task.completedSteps.length)
 const readyToPractice = computed(() => nextStep.value === lesson.value?.steps.length)
+const sourcePoints = computed(() =>
+  (generated.value?.source.content ?? '')
+    .split(/[；;\n]/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 8),
+)
+
 const canSubmit = computed(() => readyToPractice.value && answer.value.trim().length >= 40 && !props.submitting)
 
 async function buildVideo(): Promise<void> {
@@ -43,7 +54,9 @@ async function buildVideo(): Promise<void> {
       { task_key: 'course' },
       { timeout: 180_000 },
     )
-    videoUrl.value = `${(import.meta.env.VITE_API_BASE ?? '/api/v1').replace('/api/v1', '')}${response.data.data.url}`
+    const payload = response.data.data as { url: string; chapters?: Array<{ title: string; start: number; duration: number }> }
+    videoUrl.value = `${(import.meta.env.VITE_API_BASE ?? '/api/v1').replace('/api/v1', '')}${payload.url}`
+    chapters.value = payload.chapters ?? []
   } catch (reason) {
     videoError.value = errorMessage(reason)
   } finally {
@@ -69,7 +82,51 @@ async function loadLesson(force = false): Promise<void> {
   }
 }
 
-onMounted(() => loadLesson(false))
+async function loadCachedVideo(): Promise<void> {
+  try {
+    const response = await api.get<ApiEnvelope<{ url: string | null; chapters?: Array<{ title: string; start: number; duration: number }> }>>(
+      `/training-plans/${props.plan.id}/lesson/video`,
+      { params: { task_key: props.task.key } },
+    )
+    const data = response.data.data
+    if (data.url) {
+      videoUrl.value = `${(import.meta.env.VITE_API_BASE ?? '/api/v1').replace('/api/v1', '')}${data.url}`
+      chapters.value = data.chapters ?? []
+    }
+  } catch {
+    // 查询失败不影响文字课件
+  }
+}
+
+function seekChapter(index: number): void {
+  const chapter = chapters.value[index]
+  if (!chapter || !videoEl.value) return
+  videoEl.value.currentTime = chapter.start
+  activeChapter.value = index
+  void videoEl.value.play().catch(() => undefined)
+}
+
+function onLoadedMetadata(): void {
+  // 让视频停在第一帧，避免封面是空白
+  if (videoEl.value && videoEl.value.currentTime === 0) {
+    videoEl.value.currentTime = 0.35
+  }
+}
+
+function onTimeUpdate(): void {
+  if (!videoEl.value) return
+  const time = videoEl.value.currentTime
+  const index = chapters.value.findIndex((chapter, position) => {
+    const next = chapters.value[position + 1]
+    return time >= chapter.start && (!next || time < next.start)
+  })
+  if (index >= 0) activeChapter.value = index
+}
+
+onMounted(async () => {
+  await loadLesson(false)
+  await loadCachedVideo()
+})
 </script>
 
 <template>
@@ -93,7 +150,19 @@ onMounted(() => loadLesson(false))
       </div>
     </div>
     <div v-if="videoUrl" class="lesson-video">
-      <video :src="videoUrl" controls autoplay playsinline />
+      <video ref="videoEl" :src="videoUrl" controls playsinline preload="metadata" @loadedmetadata="onLoadedMetadata" @timeupdate="onTimeUpdate" />
+      <div v-if="chapters.length" class="chapters">
+        <button
+          v-for="(chapter, index) in chapters"
+          :key="chapter.start"
+          type="button"
+          :class="{ active: index === activeChapter }"
+          @click="seekChapter(index)"
+        >
+          <span class="no">{{ String(index).padStart(2, '0') }}</span>
+          {{ chapter.title }}
+        </button>
+      </div>
     </div>
     <p v-if="videoError" class="lesson-generating degraded">视频渲染失败：{{ videoError }}</p>
     <p v-if="lessonGenerating" class="lesson-generating">正在根据你这次的表现生成专属微课…</p>
@@ -110,16 +179,29 @@ onMounted(() => loadLesson(false))
     <details v-if="generated" class="lesson-source">
       <summary>查看原始课件素材 · {{ generated.source.title }}</summary>
       <p v-if="generated.source.description">{{ generated.source.description }}</p>
-      <pre>{{ generated.source.content }}</pre>
+      <ul class="source-points">
+        <li v-for="(point, index) in sourcePoints" :key="index">{{ point }}</li>
+      </ul>
     </details>
 
     <div class="steps">
       <article v-for="(step, index) in lesson.steps" :key="index" class="step" :class="{ done: task.completedSteps.includes(index) }">
-        <div class="step-number">0{{ index + 1 }}</div>
+        <div class="step-rail" aria-hidden="true">
+          <span class="step-number">0{{ index + 1 }}</span>
+          <i class="rail-line" />
+        </div>
         <div class="step-body">
-          <h3>{{ step.title }}</h3>
+          <header class="step-head">
+            <h3>{{ step.title }}</h3>
+            <button
+              v-if="videoUrl && chapters[index + 1]"
+              type="button"
+              class="watch-button"
+              @click="seekChapter(index + 1)"
+            >看这一段</button>
+          </header>
           <p>{{ step.explanation }}</p>
-          <blockquote>{{ step.example }}</blockquote>
+          <blockquote class="example"><span class="example-tag">示范</span>{{ step.example }}</blockquote>
           <button
             v-if="!task.completedSteps.includes(index)"
             class="button step-button"
@@ -208,4 +290,45 @@ onMounted(() => loadLesson(false))
 .feedback.degraded { color:var(--text-2);background:var(--bg-2); }
 .lesson-video { margin: 18px 0 22px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: #000; }
 .lesson-video video { display: block; width: 100%; height: auto; }
+
+/* ---------- 课程视觉：章节 + 时间轴 + 示范卡 ---------- */
+.lesson-video { margin: 22px 0 8px; display: grid; gap: 10px; }
+.lesson-video video { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-md); background: #0b0b0e; }
+.chapters { display: flex; flex-wrap: wrap; gap: 8px; }
+.chapters button { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--card); color: var(--text-2); font-size: 12px; cursor: pointer;
+  transition: border-color .14s var(--ease), color .14s var(--ease), background .14s var(--ease);
+}
+.chapters button:hover { border-color: var(--border-bright); color: var(--text); }
+.chapters button.active { border-color: var(--accent); color: var(--accent-strong); background: var(--accent-soft); }
+.chapters .no { color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+.steps { display: grid; gap: 0; margin-top: 8px; }
+.step { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 18px; padding: 20px 0; border-top: 1px solid var(--divider); }
+.step:first-child { border-top: 0; }
+.step-rail { display: grid; justify-items: center; gap: 8px; }
+.step-number {
+  display: grid; place-items: center; width: 40px; height: 40px;
+  border: 1px solid var(--border); border-radius: 50%;
+  background: var(--card); color: var(--text-2);
+  font-family: var(--font-num); font-size: 13px; letter-spacing: .02em;
+}
+.step.done .step-number { border-color: var(--accent); color: var(--accent-strong); }
+.rail-line { width: 1px; flex: 1; min-height: 12px; background: var(--border); }
+.step:last-child .rail-line { display: none; }
+.step-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+.step-body h3 { margin: 0 0 10px; font-size: 17px; font-weight: 600; }
+.watch-button { flex: none; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text-3); font-size: 11.5px; cursor: pointer; }
+.watch-button:hover { border-color: var(--accent); color: var(--accent-strong); }
+.step-body p { margin: 0 0 12px; color: var(--text-2); font-size: 13.5px; line-height: 1.9; }
+.example {
+  margin: 0 0 14px; padding: 12px 14px 12px 14px;
+  border: 1px solid var(--border); border-left: 2px solid var(--accent);
+  border-radius: 0 8px 8px 0; background: var(--bg-2);
+  color: var(--text-2); font-size: 13px; line-height: 1.85;
+}
+.example-tag { display: inline-block; margin-right: 8px; color: var(--accent-strong); font-size: 11px; letter-spacing: .06em; }
+.source-points { margin: 8px 0 0; padding-left: 18px; color: var(--text-2); font-size: 12.5px; line-height: 1.9; }
 </style>

@@ -1,4 +1,5 @@
 import asyncio
+import json
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -72,7 +73,50 @@ async def lesson_video(plan_id: str, body: LessonRequest, user: CurrentUser, ses
             await asyncio.to_thread(render_lesson, lesson, target, key, plan.focus_dimension)
         else:
             await asyncio.to_thread(build_video, lesson, target)
-    return ok({"url": f"/media/lessons/{key}.mp4", "key": key, "engine": engine})
+    chapters: list[dict] = []
+    sidecar = target.with_suffix(".json")
+    if sidecar.is_file():
+        try:
+            chapters = json.loads(sidecar.read_text(encoding="utf-8")).get("chapters", [])
+        except Exception:  # noqa: BLE001
+            chapters = []
+    return ok(
+        {"url": f"/media/lessons/{key}.mp4", "key": key, "engine": engine, "chapters": chapters}
+    )
+
+
+@router.get("/{plan_id}/lesson/video")
+async def lesson_video_state(
+    plan_id: str,
+    user: CurrentUser,
+    session: DbSession,
+    task_key: str = "course",
+    engine: str = "auto",
+) -> dict:
+    """只查询是否已有缓存的视频与小节，不触发渲染。"""
+    import json as _json
+
+    from app.features.lessons.video import lesson_key
+
+    result = await personalized_lesson(session, user.id, plan_id, task_key)
+    lesson = ((result or {}).get("lesson") or {})
+    if not lesson.get("steps"):
+        return ok({"url": None, "chapters": []})
+
+    resolved = settings.lesson_video_engine if engine == "auto" and settings.lesson_video_engine in {"python", "remotion"} else engine
+    key = f"{lesson_key(lesson)}-{resolved}"
+    target = settings.lesson_video_dir_path / f"{key}.mp4"
+    if not target.exists():
+        return ok({"url": None, "chapters": []})
+
+    chapters: list[dict] = []
+    sidecar = target.with_suffix(".json")
+    if sidecar.is_file():
+        try:
+            chapters = _json.loads(sidecar.read_text(encoding="utf-8")).get("chapters", [])
+        except Exception:  # noqa: BLE001
+            chapters = []
+    return ok({"url": f"/media/lessons/{key}.mp4", "key": key, "chapters": chapters})
 
 
 @router.get("")
