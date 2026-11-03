@@ -48,8 +48,16 @@ REWRITE_PROMPT = """你是面试沟通改写教练。对照原评分建议，检
 
 SCORE_KEYS = ("logic", "appropriateness", "correctness", "relevance", "concision")
 DIMENSION_KEYS = {
-    "逻辑性": "logic", "得体性": "appropriateness", "正确性": "correctness",
-    "针对性": "relevance", "简洁度": "concision",
+    "内容与逻辑": "logic",
+    "贴合问题": "relevance",
+    "信息完整": "correctness",
+    "表达干净": "concision",
+    # 兼容历史计划里的旧命名
+    "逻辑性": "logic",
+    "针对性": "relevance",
+    "正确性": "correctness",
+    "简洁度": "concision",
+    "得体性": "concision",
 }
 
 
@@ -382,11 +390,10 @@ async def build_comparison(
 
 
 DIMENSION_LABELS = {
-    "logic": ("逻辑性", "logic_score"),
-    "appropriateness": ("得体性", "appropriateness_score"),
-    "correctness": ("正确性", "correctness_score"),
-    "relevance": ("针对性", "relevance_score"),
-    "concision": ("简洁度", "concision_score"),
+    "logic": ("内容与逻辑", "logic_score"),
+    "relevance": ("贴合问题", "relevance_score"),
+    "correctness": ("信息完整", "correctness_score"),
+    "concision": ("表达干净", "concision_score"),
 }
 
 

@@ -166,7 +166,7 @@ def test_report_exposes_speech_stats_and_mistakes(monkeypatch) -> None:
         mistakes = client.get("/api/v1/training-sessions/mistakes?size=50", headers=headers).json()["data"]["items"]
         assert mistakes, "低分轮次应进入错题本"
         first = mistakes[0]
-        assert first["dimension"] == "逻辑性"
+        assert first["dimension"] == "内容与逻辑"
         # 分数会与客观指标加权，允许一档浮动
         assert 1 <= first["score"] <= 3
         assert first["quote"]
