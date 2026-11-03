@@ -30,6 +30,7 @@ from app.features.plans.router import router as plans_router
 from app.features.scenes.router import router as scenes_router
 from app.features.scripts.router import router as scripts_router
 from app.features.training.router import router as training_router
+from app.features.stories.router import router as stories_router
 from app.features.tasks.router import router as tasks_router
 from app.features.video.router import router as video_router
 from app.features.voice.router import router as voice_router
@@ -181,6 +182,7 @@ for api_router in (
     voice_router,
     video_router,
     tasks_router,
+    stories_router,
 ):
     app.include_router(api_router, prefix=settings.api_prefix)
 

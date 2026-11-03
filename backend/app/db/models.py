@@ -95,6 +95,22 @@ class PasswordResetRequest(TimestampMixin, Base):
     handled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class Story(TimestampMixin, Base):
+    """STAR 故事：可复用的项目经历素材。"""
+
+    __tablename__ = "stories"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(60))
+    situation: Mapped[str] = mapped_column(Text, nullable=False)
+    task: Mapped[str] = mapped_column(Text, nullable=False)
+    action: Mapped[str] = mapped_column(Text, nullable=False)
+    result: Mapped[str] = mapped_column(Text, nullable=False)
+    tags: Mapped[list[str]] = mapped_column(JSON, default=list)
+    source_session_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    usage_count: Mapped[int] = mapped_column(Integer, default=0)
+
+
 class SkillState(TimestampMixin, Base):
     """学员 × 维度的能力值（Elo）。"""
 
