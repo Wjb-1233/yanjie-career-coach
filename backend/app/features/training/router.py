@@ -127,7 +127,7 @@ async def export_reports(user: CurrentUser, session: DbSession) -> StreamingResp
     writer = csv.writer(output)
     writer.writerow([
         "场景", "状态", "开始时间", "完成时间", "训练轮次", "综合分",
-        "逻辑性", "得体性", "正确性", "针对性", "简洁度", "评分摘要", "建议",
+        "内容与逻辑", "贴合问题", "信息完整", "表达干净", "评分摘要", "建议",
     ])
     for training, scene, evaluation in rows:
         writer.writerow([
@@ -138,9 +138,8 @@ async def export_reports(user: CurrentUser, session: DbSession) -> StreamingResp
             training.current_round,
             evaluation.overall_score if evaluation else "",
             evaluation.logic_score if evaluation else "",
-            evaluation.appropriateness_score if evaluation else "",
-            evaluation.correctness_score if evaluation else "",
             evaluation.relevance_score if evaluation else "",
+            evaluation.correctness_score if evaluation else "",
             evaluation.concision_score if evaluation else "",
             evaluation.summary if evaluation else "尚未生成报告",
             "；".join(item.get("rewrite", "") for item in (evaluation.suggestions or [])) if evaluation else "",

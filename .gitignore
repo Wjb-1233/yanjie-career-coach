@@ -49,3 +49,4 @@ backend/static/tts/*.wav
 video/public/narration-*.wav
 backend/static/tts/samples/*.mp3
 backend/static/lessons/*.mp3
+frontend/public/downloads/*.apk

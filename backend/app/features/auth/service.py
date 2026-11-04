@@ -1,5 +1,6 @@
 import hashlib
 import secrets
+import re
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import delete, func, or_, select
@@ -124,7 +125,7 @@ async def revoke_refresh(session: AsyncSession, raw_token: str | None) -> None:
         await session.commit()
 
 
-PASSWORD_PATTERN = __import__("re").compile(r"^(?=.*[A-Za-z])(?=.*\d).{8,}$")
+PASSWORD_PATTERN = re.compile(r"^(?=.*[A-Za-z])(?=.*\d).{8,}$")
 
 
 async def change_password(

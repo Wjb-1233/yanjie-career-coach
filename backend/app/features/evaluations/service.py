@@ -440,7 +440,7 @@ async def create_training_plan(
     return plan.id
 
 
-PUNCT_PATTERN = re.compile(r"[\s\u3000，。！？、；：""''（）()《》〈〉…—\-·.!,?;:'\"()\[\]{}]")
+PUNCT_PATTERN = re.compile(r"[\s\u3000，。！？、；：""''（）()《》〈〉…—·.!,?;:'\"()\[\]{}-]")
 
 
 def squash_text(text: str) -> str:
@@ -851,7 +851,7 @@ async def set_mistake_state(
     return {"status": row.status}
 
 
-PLAN_DIMENSIONS = ("逻辑性", "得体性", "正确性", "针对性", "简洁度")
+PLAN_DIMENSIONS = ("内容与逻辑", "贴合问题", "信息完整", "表达干净")
 
 
 async def regenerate_training_plan(

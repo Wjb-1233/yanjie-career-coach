@@ -237,15 +237,14 @@ async def export_reports(_: AdminUser, session: DbSession) -> StreamingResponse:
     output = StringIO(newline="")
     output.write("\ufeff")
     writer = csv.writer(output)
-    writer.writerow(["学员", "邮箱", "场景", "状态", "轮次", "综合分", "逻辑性", "得体性", "正确性", "针对性", "简洁度", "评分摘要", "开始时间"])
+    writer.writerow(["学员", "邮箱", "场景", "状态", "轮次", "综合分", "内容与逻辑", "贴合问题", "信息完整", "表达干净", "评分摘要", "开始时间"])
     for training, scene, user, evaluation in rows:
         writer.writerow([
             user.display_name, user.email, scene.title, training.status,
             training.current_round, evaluation.overall_score if evaluation else "",
             evaluation.logic_score if evaluation else "",
-            evaluation.appropriateness_score if evaluation else "",
-            evaluation.correctness_score if evaluation else "",
             evaluation.relevance_score if evaluation else "",
+            evaluation.correctness_score if evaluation else "",
             evaluation.concision_score if evaluation else "",
             evaluation.summary if evaluation else "尚未生成评分",
             training.started_at.isoformat(),
@@ -293,9 +292,9 @@ async def export_learner_report(user_id: str, _: AdminUser, session: DbSession) 
     output = StringIO(newline="")
     output.write("\ufeff")
     writer = csv.writer(output)
-    writer.writerow(["学员", "场景", "轮次", "综合分", "逻辑性", "得体性", "正确性", "针对性", "简洁度", "评分摘要", "时间"])
+    writer.writerow(["学员", "场景", "轮次", "综合分", "内容与逻辑", "贴合问题", "信息完整", "表达干净", "评分摘要", "时间"])
     for training, scene, evaluation in rows:
-        writer.writerow([learner.display_name, scene.title, training.current_round, evaluation.overall_score if evaluation else "", evaluation.logic_score if evaluation else "", evaluation.appropriateness_score if evaluation else "", evaluation.correctness_score if evaluation else "", evaluation.relevance_score if evaluation else "", evaluation.concision_score if evaluation else "", evaluation.summary if evaluation else "尚未生成评分", training.started_at.isoformat()])
+        writer.writerow([learner.display_name, scene.title, training.current_round, evaluation.overall_score if evaluation else "", evaluation.logic_score if evaluation else "", evaluation.relevance_score if evaluation else "", evaluation.correctness_score if evaluation else "", evaluation.concision_score if evaluation else "", evaluation.summary if evaluation else "尚未生成评分", training.started_at.isoformat()])
     return StreamingResponse(iter([output.getvalue()]), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": f'attachment; filename="learner_{user_id}_report.csv"'})
 
 @router.get("/question-coverage")
@@ -333,11 +332,10 @@ DIMENSION_SCORE_FIELD = {
 }
 
 DIMENSION_NAMES = {
-    "logic": "逻辑性",
-    "appropriateness": "得体性",
-    "correctness": "正确性",
-    "relevance": "针对性",
-    "concision": "简洁度",
+    "logic": "内容与逻辑",
+    "relevance": "贴合问题",
+    "correctness": "信息完整",
+    "concision": "表达干净",
 }
 
 

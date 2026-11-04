@@ -20,6 +20,7 @@ class ConversationState(TypedDict):
     flags: list[str]
     should_finish: bool
     finish_after_reply: bool
+    mode: str
     planned_question: str
     prompt: str
 

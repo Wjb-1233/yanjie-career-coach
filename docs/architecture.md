@@ -17,7 +17,7 @@
 - `AppShell`：导航、用户状态与路由出口。
 - `SceneCard`：只展示场景并发出选择事件。
 - `DialoguePanel`：展示消息、输入回答并发出发送/结束事件。
-- `ScoreRadar`：只负责五维评分可视化。
+- `ScoreRadar`：只负责四维评分可视化。
 - `useTrainingSession`：封装会话创建、SSE 读取和结束训练的副作用。
 - 计划详情页：单页面两步（逐轮复盘批注 → 个性化微课），批注来自评分建议与证据。
 - `useTrainingPlan`：封装计划读取、任务打卡和进度刷新。
