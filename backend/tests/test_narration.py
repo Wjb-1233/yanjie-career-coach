@@ -20,7 +20,7 @@ def test_split_sentences_limits_long_text() -> None:
 def test_synthesize_falls_back_to_system_voice(monkeypatch, tmp_path: Path) -> None:
     calls: list[str] = []
 
-    def boom(text: str, out_wav: Path, style: str) -> None:
+    def boom(*args, **kwargs) -> None:
         raise RuntimeError("offline")
 
     def fake_system(text: str, out_wav: Path, style: str = "tutor") -> None:
@@ -39,7 +39,7 @@ def test_synthesize_falls_back_to_system_voice(monkeypatch, tmp_path: Path) -> N
 
 
 def test_synthesize_prefers_doubao(monkeypatch, tmp_path: Path) -> None:
-    def fake_doubao(text: str, out_wav: Path, style: str) -> None:
+    def fake_doubao(text: str, out_wav: Path, style: str, emotion: str | None = None) -> None:
         out_wav.with_suffix(".mp3").write_bytes(b"ID3" + b"0" * 2048)
 
     monkeypatch.setattr(narration, "_doubao_tts", fake_doubao)
