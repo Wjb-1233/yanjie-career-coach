@@ -50,3 +50,7 @@ video/public/narration-*.wav
 backend/static/tts/samples/*.mp3
 backend/static/lessons/*.mp3
 frontend/public/downloads/*.apk
+
+# 运行期缓存与本地草稿
+backend/static/lessons/*.json
+docs/evidence/
