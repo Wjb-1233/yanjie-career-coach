@@ -75,7 +75,7 @@ def _split_sentences(text: str, limit: int = 90) -> list[str]:
     return chunks
 
 
-def _doubao_tts(text: str, out_wav: Path, style: str) -> None:
+def _doubao_tts(text: str, out_wav: Path, style: str, emotion: str | None = None) -> None:
     """豆包大模型语音合成：一次请求返回若干段 mp3，拼接后转 wav。"""
     import base64
     import json
@@ -91,7 +91,7 @@ def _doubao_tts(text: str, out_wav: Path, style: str) -> None:
         raise RuntimeError("doubao tts not configured")
 
     speaker = settings.doubao_tts_speaker or DOUBAO_SPEAKERS.get(style, DOUBAO_SPEAKERS["tutor"])
-    emotion = settings.doubao_tts_emotion or DOUBAO_EMOTION.get(style, "gentle")
+    emotion = emotion or settings.doubao_tts_emotion or DOUBAO_EMOTION.get(style, "gentle")
 
     payload = {
         "user": {"uid": "yanjie"},
@@ -231,7 +231,9 @@ def audio_duration(path: Path) -> float:
     return float(audio.info.length)
 
 
-def synthesize_slide(text: str, workdir: Path, index: int, style: str = "tutor") -> tuple[Path, float, str]:
+def synthesize_slide(
+    text: str, workdir: Path, index: int, style: str = "tutor", emotion: str | None = None
+) -> tuple[Path, float, str]:
     """合成一幕旁白，返回（音频文件, 秒数, 引擎）。"""
     sentences = _split_sentences(text) or [text]
     pieces: list[Path] = []
@@ -244,7 +246,7 @@ def synthesize_slide(text: str, workdir: Path, index: int, style: str = "tutor")
             try:
                 if provider == "doubao":
                     target = base.with_suffix(".mp3")
-                    _doubao_tts(sentence, target, style)
+                    _doubao_tts(sentence, target, style, emotion)
                 elif provider == "edge":
                     target = base.with_suffix(".mp3")
                     _edge_tts(sentence, target, style)

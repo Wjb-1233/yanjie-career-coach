@@ -77,7 +77,10 @@ def render_lesson(lesson: dict, out_path: Path, key: str, dimension: str = "") -
     for index, (title, text) in enumerate(slides):
         narration_text = f"{title}。{text}"[:170]
         try:
-            audio, seconds, engine = synthesize_slide(narration_text, work, index, style="tutor")
+            emotion = "happy" if index == 0 else "serious"
+            audio, seconds, engine = synthesize_slide(
+                narration_text, work, index, style="tutor", emotion=emotion
+            )
         except Exception:  # noqa: BLE001
             audio = work / f"voice-{index}.wav"
             _speak(narration_text, audio)
