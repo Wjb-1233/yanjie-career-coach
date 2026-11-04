@@ -2,6 +2,7 @@ import {
   AbsoluteFill,
   Audio,
   interpolate,
+  Sequence,
   spring,
   staticFile,
   useCurrentFrame,
@@ -16,6 +17,7 @@ export type LessonProps = {
   intro: string
   steps: LessonStep[]
   slideDurations: number[]
+  audioSources?: string[]
   audioSrc: string | null
 }
 
@@ -198,6 +200,7 @@ export const LessonVideo: React.FC<LessonProps> = ({
   intro,
   steps,
   slideDurations,
+  audioSources,
   audioSrc,
 }) => {
   const frame = useCurrentFrame()
@@ -228,7 +231,17 @@ export const LessonVideo: React.FC<LessonProps> = ({
       <Backdrop />
       <Grid />
 
-      {audioSrc ? <Audio src={staticFile(audioSrc)} /> : null}
+      {(audioSources && audioSources.length ? audioSources : audioSrc ? [audioSrc] : []).map(
+        (source, position) => {
+          const from = starts[position] ?? 0
+          const until = starts[position + 1] ?? durationInFrames
+          return (
+            <Sequence key={source} from={from} durationInFrames={Math.max(1, until - from)}>
+              <Audio src={staticFile(source)} />
+            </Sequence>
+          )
+        },
+      )}
 
       <Chrome progress={progress} index={index} total={segments.length} dimension={dimension || '微课'} />
 

@@ -23,3 +23,4 @@ pipecat-ai>=1.15,<2.0
 
 mediapipe>=1.2,<2.0
 edge-tts>=7.0
+mutagen>=1.47

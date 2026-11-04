@@ -64,6 +64,12 @@ class Settings(BaseSettings):
     doubao_realtime_ws_url: str = "wss://openspeech.bytedance.com/api/v3/realtime/dialogue"
     doubao_realtime_voice: str = "zh_female_cancan_mars_bigtts"
 
+    # 语音合成（seed-tts-2.0）：与实时对话共用应用凭证，可单独覆盖
+    doubao_tts_app_id: str = ""
+    doubao_tts_access_token: str = ""
+    doubao_tts_speaker: str = "saturn_zh_male_tiancaitongzhuo_tob"
+    doubao_tts_emotion: str = "gentle"
+
     milvus_enabled: bool = False
     milvus_uri: str = "http://localhost:19530"
     milvus_token: str = "root:Milvus"

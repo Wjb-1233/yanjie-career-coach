@@ -1,7 +1,7 @@
-"""微课旁白：优先用在线神经语音（更像人），失败再退回系统语音。
+"""微课旁白合成。
 
-顺序：edge-tts（中文神经声线，带停顿与语气起伏）→ Windows 系统语音。
-在线合成偶发连不上，所以每次都做有限次重试；失败不影响整门课。
+优先级：豆包 seed-tts-2.0（支持情绪，国内网络稳定）→ edge-tts 神经声线 → 系统语音。
+后者用 SSML 调语速与停顿，避免念稿感。任何一层失败都不影响整门课。
 """
 
 from __future__ import annotations
@@ -23,6 +23,21 @@ VOICE_MAP = {
 }
 
 ATTEMPTS = 4
+
+# 豆包音色：kangkang 之外都是角色音色，适合讲课的是「天才同桌 / 爽朗少年」
+DOUBAO_SPEAKERS = {
+    "tutor": "saturn_zh_male_tiancaitongzhuo_tob",
+    "coach": "saturn_zh_male_tiancaitongzhuo_tob",
+    "female": "saturn_zh_female_bingjiaojiejie_tob",
+}
+
+DOUBAO_EMOTION = {
+    "tutor": "gentle",
+    "coach": "serious",
+    "female": "gentle",
+}
+
+DOUBAO_URL = "https://openspeech.bytedance.com/api/v3/tts/unidirectional"
 
 
 def _split_sentences(text: str, limit: int = 90) -> list[str]:
@@ -60,6 +75,68 @@ def _split_sentences(text: str, limit: int = 90) -> list[str]:
     return chunks
 
 
+def _doubao_tts(text: str, out_wav: Path, style: str) -> None:
+    """豆包大模型语音合成：一次请求返回若干段 mp3，拼接后转 wav。"""
+    import base64
+    import json
+    import uuid
+
+    import httpx
+
+    from app.core.config import settings
+
+    app_id = settings.doubao_tts_app_id or settings.doubao_realtime_app_id
+    token = settings.doubao_tts_access_token or settings.doubao_realtime_access_token
+    if not app_id or not token:
+        raise RuntimeError("doubao tts not configured")
+
+    speaker = settings.doubao_tts_speaker or DOUBAO_SPEAKERS.get(style, DOUBAO_SPEAKERS["tutor"])
+    emotion = settings.doubao_tts_emotion or DOUBAO_EMOTION.get(style, "gentle")
+
+    payload = {
+        "user": {"uid": "yanjie"},
+        "req_params": {
+            "text": text,
+            "speaker": speaker,
+            "emotion": emotion,
+            "audio_params": {"format": "mp3", "sample_rate": 24000, "speech_rate": 0},
+        },
+    }
+    headers = {
+        "X-Api-App-Id": app_id,
+        "X-Api-Access-Key": token,
+        "X-Api-Resource-Id": "seed-tts-2.0",
+        "X-Api-Request-Id": str(uuid.uuid4()),
+        "Content-Type": "application/json",
+    }
+
+    mp3 = out_wav.with_suffix(".mp3")
+    audio = bytearray()
+    last_error: str | None = None
+    with httpx.Client(timeout=60, trust_env=False) as client:
+        response = client.post(DOUBAO_URL, json=payload, headers=headers)
+        for line in response.text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                chunk = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if chunk.get("data"):
+                audio.extend(base64.b64decode(chunk["data"]))
+            code = chunk.get("code")
+            if code not in (None, 0):
+                last_error = str(chunk.get("message") or code)
+
+    if len(audio) < 2048:
+        raise RuntimeError(f"doubao tts empty: {last_error or response.status_code}")
+
+    mp3.write_bytes(bytes(audio))
+    # 直接交付 mp3：浏览器与 Remotion 都能播，省掉 ffmpeg 依赖
+    mp3.replace(out_wav.with_suffix(".mp3"))
+
+
 def _edge_tts(text: str, out_wav: Path, style: str) -> None:
     """用 edge-tts 命令行合成，避免在长驻进程里嵌套事件循环。"""
     import sys
@@ -89,12 +166,6 @@ def _edge_tts(text: str, out_wav: Path, style: str) -> None:
             )
             if result.returncode != 0 or not mp3.is_file() or mp3.stat().st_size < 2048:
                 raise RuntimeError(f"edge-tts exit={result.returncode}")
-            subprocess.run(
-                ["ffmpeg", "-y", "-loglevel", "error", "-i", str(mp3), "-ar", "24000", "-ac", "1", str(out_wav)],
-                check=True,
-                capture_output=True,
-            )
-            mp3.unlink(missing_ok=True)
             return
         except Exception as exc:  # noqa: BLE001
             last = exc
@@ -150,43 +221,50 @@ def _escape(text: str) -> str:
     )
 
 
-def synthesize(text: str, out_wav: Path, style: str = "tutor") -> tuple[Path, str]:
-    """合成一段旁白，返回（文件, 实际使用的引擎）。"""
-    out_wav = Path(out_wav)
-    out_wav.parent.mkdir(parents=True, exist_ok=True)
+def audio_duration(path: Path) -> float:
+    """读取音频时长（mp3 或 wav）。"""
+    from mutagen import File as MutagenFile
 
-    sentences = _split_sentences(text)
-    if not sentences:
-        raise ValueError("empty narration text")
+    audio = MutagenFile(str(path))
+    if audio is None or audio.info is None:
+        raise RuntimeError(f"cannot read duration: {path.name}")
+    return float(audio.info.length)
 
+
+def synthesize_slide(text: str, workdir: Path, index: int, style: str = "tutor") -> tuple[Path, float, str]:
+    """合成一幕旁白，返回（音频文件, 秒数, 引擎）。"""
+    sentences = _split_sentences(text) or [text]
     pieces: list[Path] = []
-    engine = "edge"
-    for index, sentence in enumerate(sentences):
-        piece = out_wav.with_name(f"{out_wav.stem}-part{index}.wav")
-        try:
-            _edge_tts(sentence, piece, style)
-        except Exception:  # noqa: BLE001
-            engine = "system"
-            _system_tts(sentence, piece, style)
-        pieces.append(piece)
+    engine = "doubao"
 
-    _concat(pieces, out_wav)
+    for position, sentence in enumerate(sentences):
+        base = workdir / f"slide-{index}-part{position}"
+        piece: Path | None = None
+        for provider, label in (("doubao", "doubao"), ("edge", "edge"), ("system", "system")):
+            try:
+                if provider == "doubao":
+                    target = base.with_suffix(".mp3")
+                    _doubao_tts(sentence, target, style)
+                elif provider == "edge":
+                    target = base.with_suffix(".mp3")
+                    _edge_tts(sentence, target, style)
+                else:
+                    target = base.with_suffix(".wav")
+                    _system_tts(sentence, target, style)
+                if target.is_file() and target.stat().st_size > 512:
+                    piece = target
+                    engine = label if not pieces else engine
+                    break
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("narration.%s_failed error_type=%s", provider, type(exc).__name__)
+        if piece:
+            pieces.append(piece)
+
+    if not pieces:
+        raise RuntimeError("no narration audio produced")
+
+    merged = workdir / f"slide-{index}{pieces[0].suffix}"
+    merged.write_bytes(b"".join(piece.read_bytes() for piece in pieces))
     for piece in pieces:
         piece.unlink(missing_ok=True)
-    return out_wav, engine
-
-
-def _concat(pieces: list[Path], out_wav: Path) -> None:
-    if len(pieces) == 1:
-        pieces[0].replace(out_wav)
-        return
-    listing = out_wav.with_suffix(".txt")
-    listing.write_text(
-        "\n".join(f"file '{piece.resolve().as_posix()}'" for piece in pieces), encoding="utf-8"
-    )
-    subprocess.run(
-        ["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(listing), str(out_wav)],
-        check=True,
-        capture_output=True,
-    )
-    listing.unlink(missing_ok=True)
+    return merged, audio_duration(merged), engine

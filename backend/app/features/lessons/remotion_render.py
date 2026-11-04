@@ -15,7 +15,7 @@ import subprocess
 import wave
 from pathlib import Path
 
-from app.infrastructure.narration import synthesize
+from app.infrastructure.narration import synthesize_slide
 from app.features.lessons.video import WIDTH, _speak
 
 logger = logging.getLogger(__name__)
@@ -69,27 +69,26 @@ def render_lesson(lesson: dict, out_path: Path, key: str, dimension: str = "") -
     for index, step in enumerate(lesson.get("steps", []), start=1):
         slides.append((step.get("title", ""), step_text(step)[:110]))
 
-    wavs: list[Path] = []
+    PUBLIC_DIR.mkdir(parents=True, exist_ok=True)
+    audio_names: list[str] = []
+    durations: list[float] = []
+    engines: list[str] = []
+
     for index, (title, text) in enumerate(slides):
-        wav = work / f"voice-{index}.wav"
         narration_text = f"{title}。{text}"[:170]
         try:
-            synthesize(narration_text, wav, style="tutor")
+            audio, seconds, engine = synthesize_slide(narration_text, work, index, style="tutor")
         except Exception:  # noqa: BLE001
-            _speak(narration_text, wav)
-        wavs.append(wav)
+            audio = work / f"voice-{index}.wav"
+            _speak(narration_text, audio)
+            seconds = _wav_seconds(audio)
+            engine = "system"
 
-    narration = work / "narration.wav"
-    total = _concat_wavs(wavs, GAP_SECONDS, narration)
-
-    durations = [round(_wav_seconds(wav) + GAP_SECONDS, 2) for wav in wavs]
-    got = sum(durations)
-    if got < total:
-        durations[-1] = round(durations[-1] + (total - got), 2)
-
-    PUBLIC_DIR.mkdir(parents=True, exist_ok=True)
-    audio_name = f"narration-{key}.wav"
-    shutil.copyfile(narration, PUBLIC_DIR / audio_name)
+        name = f"narration-{key}-{index}{audio.suffix}"
+        shutil.copyfile(audio, PUBLIC_DIR / name)
+        audio_names.append(name)
+        durations.append(round(seconds + GAP_SECONDS, 2))
+        engines.append(engine)
 
     props = {
         "title": lesson.get("title", "微课"),
@@ -104,7 +103,8 @@ def render_lesson(lesson: dict, out_path: Path, key: str, dimension: str = "") -
             for step in lesson.get("steps", [])
         ],
         "slideDurations": durations,
-        "audioSrc": audio_name,
+        "audioSources": audio_names,
+        "audioSrc": audio_names[0] if audio_names else None,
     }
     props_file = work / "props.json"
     props_file.write_text(json.dumps(props, ensure_ascii=False), encoding="utf-8")

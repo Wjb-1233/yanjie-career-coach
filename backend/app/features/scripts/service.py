@@ -7,7 +7,6 @@ from app.features.scenes.service import get_scene
 from app.features.scripts.schemas import GenerateScriptsRequest, ScriptGeneration, ScriptVersion
 from app.infrastructure.knowledge import knowledge_store
 from app.infrastructure.llm import llm_gateway
-from app.infrastructure.narration import synthesize
 
 logger = logging.getLogger(__name__)
 
@@ -138,13 +137,14 @@ def preview_speech(text: str) -> str:
     if target.exists():
         return f"/media/tts/{target.name}"
 
-    try:
-        synthesize(cleaned, target, style="tutor")
-    except Exception:  # noqa: BLE001
-        from app.infrastructure.narration import _system_tts
+    from app.infrastructure.narration import synthesize_slide
 
-        _system_tts(cleaned, target)
-    return f"/media/tts/{target.name}"
+    audio, _, _ = synthesize_slide(cleaned, directory, 0, style="tutor")
+    suffix = audio.suffix
+    final = target.with_suffix(suffix)
+    if audio != final:
+        audio.replace(final)
+    return f"/media/tts/{final.name}"
 
 
 def fallback_versions(scene_title: str, goal: str, objective: str, original_text: str | None = None) -> list[dict]:
