@@ -120,7 +120,7 @@ async def complete_training_task(
             )
             if progress is None or not progress.completed:
                 raise AppError(422, "COURSE_NOT_COMPLETED", "请先完成对应微课")
-    if target["actionType"] in {"TRAINING", "RETEST"}:
+    if target["actionType"] in {"TRAINING", "RETEST", "SCENE", "VIDEO"}:
         training = await session.get(TrainingSession, (evidence or "").strip())
         if training is None or training.user_id != user_id or training.status != "FINISHED":
             raise AppError(422, "TRAINING_NOT_COMPLETED", "请先完成本次情景训练")
@@ -128,14 +128,15 @@ async def complete_training_task(
             raise AppError(422, "TRAINING_ROUNDS_INSUFFICIENT", "计划训练至少需要完成 6 轮对话")
         if training.scene_id != target.get("sceneId"):
             raise AppError(422, "SCENE_MISMATCH", "请在计划指定的原场景完成训练")
-        if aware(training.started_at) <= aware(plan.created_at):
+        # 允许与计划创建同一秒开始的会话（时间戳只有秒精度）
+        if aware(training.started_at) < aware(plan.created_at):
             raise AppError(422, "TRAINING_NOT_NEW", "请使用生成计划后的新训练会话")
         baseline_id = next((item.get("sourceSessionId") for item in tasks if item.get("sourceSessionId")), None)
         used_ids = {baseline_id, *(item.get("evidence") for item in tasks if item["actionType"] in {"TRAINING", "RETEST"} and item["key"] != task_key)}
         if training.id in used_ids:
             raise AppError(422, "TRAINING_ALREADY_USED", "复练和复测必须使用不同的新会话")
         previous = tasks[task_index - 1] if task_index > 0 else None
-        if previous and previous.get("completedAt") and aware(training.started_at) <= aware(datetime.fromisoformat(previous["completedAt"])):
+        if previous and previous.get("completedAt") and aware(training.started_at) < aware(datetime.fromisoformat(previous["completedAt"])):
             raise AppError(422, "TRAINING_TOO_EARLY", "请完成前一项任务后，再创建本次训练会话")
         if target["actionType"] == "RETEST":
             practice = next(item for item in tasks if item["actionType"] == "TRAINING")
@@ -144,7 +145,9 @@ async def complete_training_task(
                 raise AppError(422, "RETEST_TOO_EARLY", "请在复练完成后开始新的复测")
         evaluation = await session.scalar(select(Evaluation).where(Evaluation.session_id == training.id, Evaluation.user_id == user_id))
         if evaluation is None:
-            raise AppError(422, "EVALUATION_REQUIRED", "请先生成本次训练的五维评分")
+            raise AppError(422, "EVALUATION_REQUIRED", "请先生成本次训练的四维评分")
+        if target["actionType"] == "VIDEO" and training.channel != "VIDEO":
+            raise AppError(422, "CHANNEL_MISMATCH", "这一项需要完成视频面试")
     if target["actionType"] == "REWRITE" and not target["completed"]:
         baseline_id = target.get("sourceSessionId")
         baseline = await session.scalar(select(Evaluation).where(Evaluation.session_id == baseline_id, Evaluation.user_id == user_id))

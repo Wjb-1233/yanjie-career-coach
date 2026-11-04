@@ -38,7 +38,7 @@ def _fake_llm(monkeypatch):
             if CHOSEN_COURSE_ID["value"]:
                 payload["courseId"] = CHOSEN_COURSE_ID["value"]
             return payload
-        if "两步训练计划" in system_prompt:
+        if "提升计划" in system_prompt:
             return PLAN_JSON
         if "评分员" in system_prompt:
             return {

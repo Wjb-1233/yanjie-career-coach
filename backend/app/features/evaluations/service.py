@@ -604,12 +604,16 @@ async def to_view(session: AsyncSession, evaluation: Evaluation) -> EvaluationVi
     plan = next((item for item in plans if any(
         task.get("sourceSessionId") == evaluation.session_id for task in (item.tasks or [])
     )), None)
+    current_session = await session.get(TrainingSession, evaluation.session_id)
+    # 只和「同一场景」的上一次评分比：跨场景对比没有可比性
     previous = await session.scalar(
         select(Evaluation)
+        .join(TrainingSession, TrainingSession.id == Evaluation.session_id)
         .where(
             Evaluation.user_id == evaluation.user_id,
             Evaluation.id != evaluation.id,
             Evaluation.created_at < evaluation.created_at,
+            TrainingSession.scene_id == (current_session.scene_id if current_session else None),
         )
         .order_by(Evaluation.created_at.desc())
         .limit(1)

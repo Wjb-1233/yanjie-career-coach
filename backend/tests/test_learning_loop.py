@@ -56,7 +56,7 @@ def finish_training(client: TestClient, headers: dict[str, str], scene_id: str, 
 
 def test_plan_is_review_then_lesson_and_closes(monkeypatch) -> None:
     async def fake_complete(system_prompt: str, _user_prompt: str, **_kwargs):
-        if "两步训练计划" in system_prompt or "微型训练计划" in system_prompt:
+        if "提升计划" in system_prompt:
             return PLAN_DRAFT
         if "微课教练" in system_prompt:
             return {"passed": True, "feedback": "回答具体，包含了课程方法与明确行动。"}
