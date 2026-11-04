@@ -713,7 +713,6 @@ async def list_mistakes(
 
     score_of = {
         "logic": lambda e: e.logic_score,
-        "appropriateness": lambda e: e.appropriateness_score,
         "correctness": lambda e: e.correctness_score,
         "relevance": lambda e: e.relevance_score,
         "concision": lambda e: e.concision_score,
@@ -751,7 +750,10 @@ async def list_mistakes(
         scene = scenes.get(training.scene_id) if training else None
         suggestions = evaluation.suggestions or []
         for row in by_evaluation.get(evaluation.id, []):
-            score = score_of.get(row.dimension, lambda e: 0)(evaluation)
+            if row.dimension not in score_of:
+                # 得体性已退役，历史证据不再进入错题清单
+                continue
+            score = score_of[row.dimension](evaluation)
             if score > 3:
                 continue
             suggestion = next(

@@ -15,7 +15,7 @@ class DimensionScores(ApiModel):
     relevance: int = Field(ge=1, le=5)
     correctness: int = Field(ge=1, le=5)
     concision: int = Field(ge=1, le=5)
-    appropriateness: int = Field(default=3, ge=1, le=5)
+    appropriateness: int = Field(default=3, ge=1, le=5, exclude=True)
 
 
 class EvaluationPayload(ApiModel):

@@ -19,7 +19,7 @@
 - `DialoguePanel`：展示消息、输入回答并发出发送/结束事件。
 - `ScoreRadar`：只负责四维评分可视化。
 - `useTrainingSession`：封装会话创建、SSE 读取和结束训练的副作用。
-- 计划详情页：单页面两步（逐轮复盘批注 → 个性化微课），批注来自评分建议与证据。
+- 计划详情页：三张任务卡（场景再练 / 视频面试 / 个性化微课）+ 复盘批注区，批注来自评分建议与证据。
 - `useTrainingPlan`：封装计划读取、任务打卡和进度刷新。
 - `MobileInstallBanner`：展示 Android 安装入口或 iOS 添加到主屏幕指引。
 - `NetworkStatusBanner`：断网时说明离线可用范围。

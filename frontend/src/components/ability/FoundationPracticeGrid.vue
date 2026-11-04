@@ -4,7 +4,7 @@ import type { Scene } from '@/lib/types'
 
 const props = defineProps<{ scenes: Scene[] }>()
 
-const dimensionOrder = ['logic', 'appropriateness', 'correctness', 'relevance', 'concision']
+const dimensionOrder = ['logic', 'relevance', 'correctness', 'concision']
 const sortedScenes = computed(() => [...props.scenes].sort((a, b) =>
   dimensionOrder.indexOf(a.id.replace('scene-foundation-', '')) - dimensionOrder.indexOf(b.id.replace('scene-foundation-', ''))))
 
