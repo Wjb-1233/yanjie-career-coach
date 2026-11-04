@@ -320,10 +320,11 @@ export interface ScoreComparison {
 }
 
 export interface TrainingPlan {
+  sequence: number
   id: string
   title: string
   focusDimension: string
-  status: 'ACTIVE' | 'COMPLETED' | 'SUPERSEDED'
+  status: 'ACTIVE' | 'COMPLETED' | 'SUPERSEDED' | 'ARCHIVED'
   progress: number
   tasks: readonly TrainingPlanTask[]
   comparison: ScoreComparison | null

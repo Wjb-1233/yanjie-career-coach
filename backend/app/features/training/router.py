@@ -77,7 +77,9 @@ async def update_mistake_state(body: MistakeStateRequest, user: CurrentUser, ses
 
 @router.post("", status_code=201)
 async def create(body: CreateSessionRequest, user: CurrentUser, session: DbSession) -> dict:
-    result = await create_training_session(session, user.id, body.scene_id, mode=body.mode)
+    result = await create_training_session(
+        session, user.id, body.scene_id, mode=body.mode, plan_id=body.plan_id, task_key=body.task_key
+    )
     return ok(result.model_dump(by_alias=True))
 
 
@@ -198,9 +200,25 @@ async def finish(
     create_plan: bool = True,
 ) -> dict:
     await limit_model_user(user.id)
-    await finish_session(session, user.id, session_id)
+    training = await finish_session(session, user.id, session_id)
     evaluation = await evaluate_session(session, user.id, session_id, create_plan=create_plan)
+    await auto_complete_plan_task(session, user.id, training, evaluation)
     return ok(evaluation.model_dump(by_alias=True))
+
+
+async def auto_complete_plan_task(session: DbSession, user_id: str, training, evaluation) -> None:
+    """从计划任务发起的训练，结束后自动勾掉任务；不满足条件时静默跳过。"""
+    if not training.plan_id or not training.task_key:
+        return
+    from app.core.errors import AppError
+
+    from app.features.plans.service import complete_training_task
+
+    try:
+        await complete_training_task(session, user_id, training.plan_id, training.task_key, training.id)
+    except AppError:
+        # 轮次不足或已有更好记录时，保持任务未完成，前端会给出提示
+        return
 
 
 @router.post("/{session_id}/restart", status_code=201)

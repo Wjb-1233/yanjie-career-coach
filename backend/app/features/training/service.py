@@ -37,6 +37,8 @@ async def create_training_session(
     resume_filename: str | None = None,
     resume_text: str | None = None,
     mode: str = "STANDARD",
+    plan_id: str | None = None,
+    task_key: str | None = None,
 ) -> SessionView:
     scene = await get_scene(session, scene_id)
     if mode == "DRILL" and scene.difficulty != "进阶":
@@ -49,9 +51,21 @@ async def create_training_session(
         opening_line, opening_degraded = await opening_question(scene, resume_text)
     elif not opening_line:
         opening_line, opening_degraded = await opening_question(scene, None)
+    if plan_id:
+        plan = await session.get(TrainingPlan, plan_id)
+        if plan is None or plan.user_id != user_id:
+            raise not_found("训练计划")
+        task = next((item for item in (plan.tasks or []) if item.get("key") == task_key), None)
+        if task is None:
+            raise not_found("计划任务")
+        if task.get("completed"):
+            raise AppError(409, "TASK_COMPLETED", "这项任务已经完成过了")
+
     training = TrainingSession(
         user_id=user_id,
         scene_id=scene.id,
+        plan_id=plan_id,
+        task_key=task_key,
         mode=mode if mode in {"STANDARD", "DRILL"} else "STANDARD",
         max_rounds=settings.max_training_rounds,
     )
@@ -267,6 +281,12 @@ async def finish_session(session: AsyncSession, user_id: str, session_id: str) -
     if training is None or training.user_id != user_id:
         raise not_found("训练会话")
     if training.status == "ACTIVE":
+        if training.plan_id and training.current_round < 6:
+            raise AppError(
+                422,
+                "PLAN_ROUNDS_INSUFFICIENT",
+                f"计划任务需要完成 6 轮对话，当前 {training.current_round} 轮",
+            )
         if training.current_round < 2:
             raise AppError(422, "TRAINING_ROUNDS_INSUFFICIENT", "至少完成 2 轮对话才能生成有效评分和训练计划")
         from app.db.models import now

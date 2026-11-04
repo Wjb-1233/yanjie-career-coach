@@ -115,7 +115,7 @@ function stateOf(task: TrainingPlanTask | null): TaskState {
     <template v-else-if="plan">
       <header class="plan-head">
         <div class="head-copy">
-          <p class="eyebrow">训练计划 · 针对{{ plan.focusDimension }}</p>
+          <p class="eyebrow">训练计划 #{{ plan.sequence }} · 针对{{ plan.focusDimension }}</p>
           <h1>{{ plan.title }}</h1>
         </div>
         <div class="head-right">

@@ -8,6 +8,8 @@ from app.core.schemas import ApiModel
 class CreateSessionRequest(ApiModel):
     scene_id: str
     mode: str = Field(default="STANDARD", pattern="^(STANDARD|DRILL)$")
+    plan_id: str | None = None
+    task_key: str | None = None
 
 
 class SendMessageRequest(ApiModel):

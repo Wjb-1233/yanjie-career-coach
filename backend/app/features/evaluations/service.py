@@ -267,17 +267,11 @@ async def evaluate_session(
         {key: getattr(evaluation, f"{key}_score") for key in ("logic", "relevance", "correctness", "concision")},
     )
 
-    if create_plan:
-        active_plan = await session.scalar(
-            select(TrainingPlan)
-            .where(TrainingPlan.user_id == user_id, TrainingPlan.status == "ACTIVE")
-            .order_by(TrainingPlan.created_at.desc())
-            .limit(1)
+    # 每次新评分都生成一份带序号的新计划；未完成的旧计划继续保留（最多同时进行 3 份）
+    if create_plan and not degraded:
+        await create_training_plan(
+            session, user_id, payload, training, user_messages, allow_generation=True
         )
-        if active_plan is None:
-            await create_training_plan(
-                session, user_id, payload, training, user_messages, allow_generation=not degraded
-            )
     await session.commit()
     return await to_view(session, evaluation)
 
@@ -405,10 +399,14 @@ async def create_training_plan(
             "evidence": None,
         })
 
+    latest_sequence = await session.scalar(
+        select(func.max(TrainingPlan.sequence)).where(TrainingPlan.user_id == user_id)
+    )
     plan = TrainingPlan(
         user_id=user_id,
         focus_dimension=focus,
         title=plan_title,
+        sequence=(latest_sequence or 0) + 1,
         tasks=scene_tasks + [
             {
                 "key": "course",
@@ -429,14 +427,22 @@ async def create_training_plan(
             },
         ],
     )
-    # 同一时间只保留一份进行中的计划：新计划生成后，旧的进行中计划标记为已被替代
-    await session.execute(
-        update(TrainingPlan)
-        .where(TrainingPlan.user_id == user_id, TrainingPlan.status == "ACTIVE")
-        .values(status="SUPERSEDED")
-    )
     session.add(plan)
     await session.flush()
+
+    # 未完成的计划保留，但最多同时进行 3 份；更早的自动归档，历史仍可查看
+    active_plans = list(
+        (
+            await session.scalars(
+                select(TrainingPlan)
+                .where(TrainingPlan.user_id == user_id, TrainingPlan.status == "ACTIVE")
+                .order_by(TrainingPlan.sequence.desc())
+            )
+        ).all()
+    )
+    for stale in active_plans[3:]:
+        stale.status = "ARCHIVED"
+    await session.commit()
     return plan.id
 
 

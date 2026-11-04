@@ -49,6 +49,9 @@ const mode = shallowRef<'text' | 'voice'>(route.query.mode === 'voice' ? 'voice'
 const planId = computed(() => String(route.query.planId ?? ''))
 const taskKey = computed(() => String(route.query.taskKey ?? ''))
 const isPlanTask = computed(() => Boolean(planId.value && taskKey.value))
+// 计划任务要求至少 6 轮，提前结束会被后端拒绝
+const planMinRounds = 6
+const roundsLeft = computed(() => Math.max(0, planMinRounds - (training.session.value?.currentRound ?? 0)))
 const stageLabel = computed(() => ({ OPENING: '情景开场', DISCOVERY: '深入追问', CHALLENGE: '情景应对', CLOSING: '沟通收尾' }[training.session.value?.stage ?? 'OPENING'] ?? '训练进行中'))
 
 // 一句话没说就离开的会话直接丢弃，避免留下"进行中 0 轮"的空记录
@@ -118,6 +121,10 @@ async function clearResume(): Promise<void> {
         <RouterLink class="back" to="/scenes">退出训练</RouterLink>
       </div>
     </header>
+    <div v-if="isPlanTask" class="plan-hint">
+      <template v-if="roundsLeft > 0">这是训练计划里的任务：至少完成 {{ planMinRounds }} 轮才能结束，还差 {{ roundsLeft }} 轮。</template>
+      <template v-else>已满足计划的 {{ planMinRounds }} 轮要求，可以结束并自动勾掉这项任务。</template>
+    </div>
     <div class="mode-bar">
       <div><strong>训练方式</strong><span>{{ mode === 'voice' ? '说出回答，听面试官回应' : '键入回答，按自己的节奏思考' }}</span></div>
     </div>
@@ -286,5 +293,17 @@ async function clearResume(): Promise<void> {
 .match-block .gaps b { color: var(--text); font-weight: 600; }
 .match-block .gaps span { margin-left: 6px; color: var(--text-2); }
 .match-block .gaps em { display: block; color: var(--accent-strong); font-style: normal; font-size: 12px; }
+
+.plan-hint {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  background: var(--bg-2);
+  color: var(--text-2);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
 </style>
 

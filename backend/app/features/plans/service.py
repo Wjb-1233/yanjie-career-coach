@@ -343,6 +343,7 @@ async def to_view(session: AsyncSession, plan: TrainingPlan) -> TrainingPlanView
     comparison = await build_comparison(session, plan, tasks)
     return TrainingPlanView(
         id=plan.id,
+        sequence=plan.sequence or 1,
         title=plan.title,
         focus_dimension=plan.focus_dimension,
         status=plan.status,

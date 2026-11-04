@@ -43,7 +43,11 @@ async function toggleFavorite(scene: Scene) {
 async function startDrill(scene: Scene): Promise<void> {
   startError.value = ''
   try {
-    const created = await api.post<ApiEnvelope<{ id: string }>>('/training-sessions', { sceneId: scene.id, mode: 'DRILL' })
+    const created = await api.post<ApiEnvelope<{ id: string }>>('/training-sessions', {
+      sceneId: scene.id,
+      mode: 'DRILL',
+      ...(planId.value && taskKey.value ? { planId: planId.value, taskKey: taskKey.value } : {}),
+    })
     void router.push(`/training/${created.data.data.id}`)
   } catch (reason) {
     startError.value = errorMessage(reason)
@@ -86,7 +90,10 @@ async function confirmStart(file: File | null): Promise<void> {
     }
     const response = file
       ? await api.post<ApiEnvelope<{ id: string }>>('/training-sessions/with-resume', form, { timeout: MODEL_REQUEST_TIMEOUT_MS })
-      : await api.post<ApiEnvelope<{ id: string }>>('/training-sessions', { sceneId: scene.id })
+      : await api.post<ApiEnvelope<{ id: string }>>('/training-sessions', {
+        sceneId: scene.id,
+        ...(planId.value && taskKey.value ? { planId: planId.value, taskKey: taskKey.value } : {}),
+      })
     startSelection.value = null
     await router.push({
       name: 'training',

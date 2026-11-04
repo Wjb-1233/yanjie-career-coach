@@ -174,6 +174,9 @@ class TrainingSession(Base):
     jd_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     job_match: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     question_plan: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
+    # 从计划任务发起的训练：记录来源，便于结束时自动完成任务并校验轮次
+    plan_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    task_key: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
 
 class ResumeContext(Base):
@@ -282,5 +285,7 @@ class TrainingPlan(Base):
     title: Mapped[str] = mapped_column(String(120))
     tasks: Mapped[list[dict]] = mapped_column(JSON, default=list)
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE")
+    # 每位学员的计划序号（#1、#2…），未完成的计划会累积保留
+    sequence: Mapped[int] = mapped_column(Integer, default=1, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 

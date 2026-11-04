@@ -49,6 +49,7 @@ class ScoreComparison(ApiModel):
 
 class TrainingPlanView(ApiModel):
     id: str
+    sequence: int = 1
     title: str
     focus_dimension: str
     status: str

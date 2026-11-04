@@ -3,6 +3,7 @@ import { computed, onMounted, shallowRef } from 'vue'
 import { ArrowRight } from 'lucide-vue-next'
 
 import EmptyState from '@/components/ui/EmptyState.vue'
+import { stepTitle } from '@/lib/planActions'
 
 import { api, errorMessage } from '@/lib/api'
 import type { ApiEnvelope, TrainingPlan } from '@/lib/types'
@@ -13,6 +14,7 @@ const error = shallowRef('')
 
 const activePlans = computed(() => plans.value.filter((plan) => plan.status === 'ACTIVE'))
 const finishedPlans = computed(() => plans.value.filter((plan) => plan.status === 'COMPLETED'))
+const archivedPlans = computed(() => plans.value.filter((plan) => plan.status === 'ARCHIVED'))
 const primaryPlan = computed(() => activePlans.value[0] ?? null)
 const otherActivePlans = computed(() => activePlans.value.slice(1))
 
@@ -36,13 +38,6 @@ function planCta(plan: TrainingPlan): string {
   return plan.progress > 0 ? '继续复盘优化' : '开始复盘优化'
 }
 
-function stepState(plan: TrainingPlan): string {
-  const task = plan.tasks[0]
-  if (!task) return '待完成'
-  if (task.completed) return '已完成'
-  return task.learningProgress > 0 ? `进行中 ${task.learningProgress}%` : '待完成'
-}
-
 function completedCount(plan: TrainingPlan): number {
   return plan.tasks.filter((task) => task.completed).length
 }
@@ -60,7 +55,7 @@ function formatDate(value: string): string {
       <div>
         <p class="eyebrow">能力提升</p>
         <h1 class="page-title">把一次评分，<br />变成一条练习线。</h1>
-        <p class="page-lead">每份计划由最近一次评分里最弱的一维生成，两步走完：先复盘批注，再学微课。</p>
+        <p class="page-lead">每次评分都会生成一份带编号的计划：先按复盘点再练一场，再看视频面试示范，最后学一门微课。没走完的计划会保留在下面。</p>
       </div>
       <RouterLink class="button secondary" to="/scenes">开始新训练</RouterLink>
     </header>
@@ -85,21 +80,16 @@ function formatDate(value: string): string {
       <template v-else>
         <RouterLink v-if="primaryPlan" class="plan-featured" :to="`/plans/${primaryPlan.id}`">
           <header class="plan-top">
-            <span class="focus-tag">{{ primaryPlan.focusDimension }}</span>
+            <span class="focus-tag">#{{ primaryPlan.sequence }} · {{ primaryPlan.focusDimension }}</span>
             <span class="plan-date">{{ formatDate(primaryPlan.createdAt) }}</span>
             <span class="plan-pct num">{{ primaryPlan.progress }}%</span>
           </header>
           <h3>{{ primaryPlan.title }}</h3>
           <ol class="plan-steps">
-            <li class="muted">
-              <span class="num">01</span>
-              <span class="step-name">复盘优化</span>
-              <span class="step-state">参考</span>
-            </li>
-            <li :class="{ done: primaryPlan.tasks[0]?.completed }">
-              <span class="num">02</span>
-              <span class="step-name">学习微课</span>
-              <span class="step-state">{{ stepState(primaryPlan) }}</span>
+            <li v-for="(task, index) in primaryPlan.tasks.slice(0, 4)" :key="task.key" :class="{ done: task.completed }">
+              <span class="num">0{{ index + 1 }}</span>
+              <span class="step-name">{{ stepTitle(task) }}</span>
+              <span class="step-state">{{ task.completed ? '已完成' : task.learningProgress > 0 ? `进行中 ${task.learningProgress}%` : '待完成' }}</span>
             </li>
           </ol>
           <footer class="plan-foot">
@@ -113,7 +103,7 @@ function formatDate(value: string): string {
           <ul class="compact-list">
             <li v-for="plan in otherActivePlans" :key="plan.id">
               <RouterLink :to="`/plans/${plan.id}`">
-                <span class="compact-title">{{ plan.title }}</span>
+                <span class="compact-title">#{{ plan.sequence }} {{ plan.title }}</span>
                 <span class="compact-meta">{{ plan.focusDimension }} · {{ completedCount(plan) }} / {{ plan.tasks.length }} 项</span>
                 <span class="num compact-percent">{{ plan.progress }}%</span>
                 <span class="chev" aria-hidden="true">→</span>
@@ -122,12 +112,12 @@ function formatDate(value: string): string {
           </ul>
         </div>
 
-        <div v-if="finishedPlans.length" class="plan-more">
-          <p class="sub-label">已完成的计划</p>
+        <div v-if="finishedPlans.length || archivedPlans.length" class="plan-more">
+          <p class="sub-label">历史计划</p>
           <ul class="compact-list">
-            <li v-for="plan in finishedPlans" :key="plan.id">
+            <li v-for="plan in [...finishedPlans, ...archivedPlans]" :key="plan.id">
               <RouterLink :to="`/plans/${plan.id}`">
-                <span class="compact-title">{{ plan.title }}</span>
+                <span class="compact-title">#{{ plan.sequence }} {{ plan.title }}</span>
                 <span class="compact-meta">{{ plan.focusDimension }} · {{ formatDate(plan.createdAt) }}</span>
                 <span class="num compact-percent">{{ plan.progress }}%</span>
                 <span class="chev" aria-hidden="true">→</span>
