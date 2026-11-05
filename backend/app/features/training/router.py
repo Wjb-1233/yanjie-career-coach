@@ -15,7 +15,7 @@ from app.core.responses import ok
 from app.core.security import CurrentUser, StreamingUser
 from app.db.base import get_session
 from app.db.models import Evaluation, Scene, TrainingSession
-from app.features.training.schemas import CreateSessionRequest, SendMessageRequest
+from app.features.training.schemas import CreateSessionRequest, SelfReviewRequest, SendMessageRequest
 from app.features.training.service import (
     create_training_session,
     delete_training_session,
@@ -267,3 +267,21 @@ async def apply_job_description(
 async def remove_job_description(session_id: str, user: CurrentUser, session: DbSession) -> dict:
     result = await clear_job_description(session, user.id, session_id)
     return ok(result.model_dump(by_alias=True))
+
+
+@router.put("/{session_id}/self-review")
+async def save_self_review(
+    session_id: str, body: SelfReviewRequest, user: CurrentUser, session: DbSession
+) -> dict:
+    """视频面试的逐题自评清单（V-06 的自评部分），存到会话 delivery 里。"""
+    from sqlalchemy.orm.attributes import flag_modified
+
+    training = await session.get(TrainingSession, session_id)
+    if training is None or training.user_id != user.id:
+        raise not_found("训练会话")
+    delivery = dict(training.delivery or {})
+    delivery["selfReview"] = [item.model_dump(by_alias=True) for item in body.items]
+    training.delivery = delivery
+    flag_modified(training, "delivery")
+    await session.commit()
+    return ok({"selfReview": delivery["selfReview"]})

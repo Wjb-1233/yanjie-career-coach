@@ -207,6 +207,7 @@ async function clearResume(): Promise<void> {
       :finished="training.session.value.status === 'FINISHED'"
       :flags="training.liveFlags.value"
       :minimum-rounds="isPlanTask ? 6 : 2"
+      :started-at="training.session.value.startedAt"
       :mode="mode"
       :finish-after-next="finishAfterNext"
       @send="send"

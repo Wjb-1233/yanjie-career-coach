@@ -58,6 +58,10 @@ export interface TrainingSession {
     durationSeconds: number
     charCount: number
     fillerTotal: number
+    engine?: string
+    vision?: { framing?: number; onCamera?: number; stability?: number; lighting?: number; tips?: string[] } | null
+    marks?: Array<{ text: string; start: number; end?: number }>
+    selfReview?: Array<{ roundNo: number; camera: boolean; structure: boolean; opening: boolean; note: string | null }>
   } | null
   startedAt: string
   finishedAt: string | null

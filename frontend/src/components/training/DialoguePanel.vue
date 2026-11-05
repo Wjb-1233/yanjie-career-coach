@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, shallowRef, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch } from 'vue'
 
 import ExpressionPreview from '@/components/training/ExpressionPreview.vue'
 import MarkdownText from '@/components/training/MarkdownText.vue'
@@ -20,9 +20,15 @@ const props = defineProps<{
   minimumRounds?: number
   mode: 'text' | 'voice'
   finishAfterNext: boolean
+  startedAt?: string
 }>()
 const emit = defineEmits<{ send: [content: string]; finish: []; report: [] }>()
 const input = shallowRef('')
+// T-01：整场计时与本题作答计时
+const elapsedSeconds = shallowRef(0)
+const answerSeconds = shallowRef(0)
+let clock: ReturnType<typeof setInterval> | null = null
+let answerTick: ReturnType<typeof setInterval> | null = null
 const rewrites = shallowRef<Record<number, MessageRewrite>>({})
 const rewriting = shallowRef<number | null>(null)
 
@@ -56,9 +62,78 @@ watch(input, async () => {
   composerInput.value.style.height = `${Math.min(composerInput.value.scrollHeight, 240)}px`
 })
 
+const draftKey = computed(() => `yanjie:draft:${props.sessionId}:${props.currentRound}`)
+const remainingRounds = computed(() => Math.max(0, props.maxRounds - props.currentRound))
+const elapsedLabel = computed(() => formatClock(elapsedSeconds.value))
+const answerLabel = computed(() => formatClock(answerSeconds.value))
+
+function formatClock(total: number): string {
+  const minutes = Math.floor(total / 60)
+  const seconds = total % 60
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+function restoreDraft(): void {
+  try {
+    const saved = localStorage.getItem(draftKey.value)
+    if (saved) input.value = saved
+  } catch {
+    // 隐私模式下 localStorage 不可用，忽略即可
+  }
+}
+
+function clearDraft(): void {
+  try { localStorage.removeItem(draftKey.value) } catch { /* 忽略 */ }
+}
+
+function startClock(): void {
+  const started = props.startedAt ? new Date(props.startedAt).getTime() : Date.now()
+  const tick = () => {
+    const base = Number.isFinite(started) ? started : Date.now()
+    elapsedSeconds.value = Math.max(0, Math.round((Date.now() - base) / 1000))
+  }
+  tick()
+  clock = setInterval(tick, 1000)
+}
+
+function startAnswerClock(): void {
+  answerSeconds.value = 0
+  if (answerTick) clearInterval(answerTick)
+  answerTick = setInterval(() => { answerSeconds.value += 1 }, 1000)
+}
+
+function stopAnswerClock(): void {
+  if (answerTick) { clearInterval(answerTick); answerTick = null }
+}
+
+onMounted(() => {
+  restoreDraft()
+  startClock()
+})
+onBeforeUnmount(() => {
+  if (clock) clearInterval(clock)
+  stopAnswerClock()
+})
+
+watch(draftKey, () => restoreDraft())
+watch(input, (value) => {
+  try {
+    if (value.trim()) localStorage.setItem(draftKey.value, value)
+    else localStorage.removeItem(draftKey.value)
+  } catch {
+    // 忽略存储失败
+  }
+})
+// 对方问完 → 开始计时；发送后停表
+watch(() => props.sending, (sendingNow, wasSending) => {
+  if (wasSending && !sendingNow && !props.finished) startAnswerClock()
+})
+
 function submit() {
   const content = input.value.trim()
   if (!content || props.sending || props.finished) return
+  stopAnswerClock()
+  clearDraft()
   input.value = ''
   emit('send', content)
 }
@@ -71,8 +146,15 @@ function submit() {
         <p class="eyebrow">实时演练 · {{ stage }}</p>
         <h2>已完成 {{ currentRound }} <span>/ {{ maxRounds }} 轮</span></h2>
       </div>
-      <div class="round-rail" aria-label="训练轮次进度">
-        <i v-for="round in maxRounds" :key="round" :class="{ active: round <= currentRound }" />
+      <div class="header-side">
+        <div class="timer-row" aria-label="训练计时">
+          <span class="timer"><b>{{ elapsedLabel }}</b> 整场</span>
+          <span class="timer" :class="{ overtime: answerSeconds >= 180 }"><b>{{ answerLabel }}</b> 本题</span>
+          <span class="remaining">剩余 {{ remainingRounds }} 轮</span>
+        </div>
+        <div class="round-rail" aria-label="训练轮次进度">
+          <i v-for="round in maxRounds" :key="round" :class="{ active: round <= currentRound }" />
+        </div>
       </div>
     </header>
 
@@ -269,5 +351,14 @@ function submit() {
   line-height: 1.7;
   white-space: pre-wrap;
 }
-</style>
 
+.header-side { display: grid; gap: 10px; justify-items: end; }
+.timer-row { display: flex; align-items: center; gap: 14px; color: var(--text-3); font-size: 11.5px; letter-spacing: .02em; }
+.timer-row b { color: var(--text); font-family: var(--font-num); font-size: 13px; font-variant-numeric: tabular-nums; }
+.timer-row .overtime b { color: var(--accent-strong); }
+.remaining { padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; }
+@media (max-width: 720px) {
+  .timer-row { gap: 8px; font-size: 10.5px; }
+  .remaining { display: none; }
+}
+</style>

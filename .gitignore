@@ -54,3 +54,4 @@ frontend/public/downloads/*.apk
 # 运行期缓存与本地草稿
 backend/static/lessons/*.json
 docs/evidence/
+video/public/narration-*.mp3

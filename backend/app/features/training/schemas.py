@@ -89,3 +89,14 @@ class TrainingHistoryItem(ApiModel):
     evaluation_degraded: bool = False
     archived_at: datetime | None = None
 
+
+class SelfReviewItem(ApiModel):
+    round_no: int = Field(ge=1, le=12)
+    camera: bool = False
+    structure: bool = False
+    opening: bool = False
+    note: str | None = Field(default=None, max_length=200)
+
+
+class SelfReviewRequest(ApiModel):
+    items: list[SelfReviewItem] = Field(default_factory=list, max_length=12)

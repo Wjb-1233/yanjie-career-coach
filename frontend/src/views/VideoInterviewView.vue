@@ -26,8 +26,18 @@ const rounds = shallowRef<Array<{ text: string; start: number; end: number }>>([
 const taskProgress = ref(0)
 const taskStage = shallowRef('')
 const queueHint = shallowRef('')
+// V-01 设备预检状态
+const micLevel = ref(0)
+const micHeard = ref(false)
+const speakerOk = ref(false)
+const networkLabel = shallowRef('检测中')
+const cameraLabel = shallowRef('未授权')
+const checked = computed(() => cameraOn.value && micHeard.value)
 
 let stream: MediaStream | null = null
+let audioContext: AudioContext | null = null
+let analyser: AnalyserNode | null = null
+let levelFrame = 0
 let recorder: MediaRecorder | null = null
 let chunks: Blob[] = []
 let timer: ReturnType<typeof setInterval> | null = null
@@ -36,6 +46,11 @@ let startedAt = 0
 const current = computed(() => questions.value[index.value]?.text ?? '')
 const total = computed(() => questions.value.length)
 async function openCamera() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    stage.value = 'error'
+    error.value = '当前浏览器不支持摄像头采集，请使用 Chrome / Edge 最新版，或改用语音面试'
+    return
+  }
   try {
     stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 }, audio: true })
     if (preview.value) {
@@ -43,15 +58,81 @@ async function openCamera() {
       await preview.value.play().catch(() => undefined)
     }
     cameraOn.value = true
+    cameraLabel.value = `已就绪 ${stream.getVideoTracks()[0]?.getSettings().width ?? 1280}×${stream.getVideoTracks()[0]?.getSettings().height ?? 720}`
     stage.value = 'ready'
+    watchMicrophone()
   } catch (reason) {
     stage.value = 'error'
-    error.value = '无法打开摄像头或麦克风，请检查浏览器权限'
-    void reason
+    const name = (reason as DOMException)?.name
+    error.value = name === 'NotAllowedError'
+      ? '摄像头或麦克风权限被拒绝：允许后可重试，或使用下面的语音模式'
+      : name === 'NotFoundError'
+        ? '没有找到摄像头或麦克风：插好设备后重试，或使用语音模式'
+        : '无法打开摄像头或麦克风，请检查浏览器权限'
   }
 }
 
+/** 麦克风电平：有声音后把 micHeard 置为 true，作为开始录制的前置条件 */
+function watchMicrophone(): void {
+  if (!stream) return
+  const track = stream.getAudioTracks()[0]
+  if (!track) return
+  try {
+    audioContext = new AudioContext()
+    analyser = audioContext.createAnalyser()
+    analyser.fftSize = 1024
+    audioContext.createMediaStreamSource(stream).connect(analyser)
+    const data = new Uint8Array(analyser.fftSize)
+    const loop = () => {
+      if (!analyser) return
+      analyser.getByteTimeDomainData(data)
+      let peak = 0
+      for (const value of data) peak = Math.max(peak, Math.abs(value - 128))
+      micLevel.value = Math.min(1, peak / 64)
+      if (micLevel.value > 0.18) micHeard.value = true
+      levelFrame = requestAnimationFrame(loop)
+    }
+    loop()
+    track.addEventListener('ended', () => {
+      cameraOn.value = false
+      error.value = '设备已断开，请重新插好设备后重新检测'
+      stage.value = 'error'
+    })
+  } catch {
+    // 电平检测失败不影响录制
+  }
+}
+
+/** 扬声器测试：播放一段 0.4 秒提示音 */
+function testSpeaker(): void {
+  try {
+    const context = new AudioContext()
+    const oscillator = context.createOscillator()
+    const gain = context.createGain()
+    oscillator.frequency.value = 660
+    gain.gain.value = 0.08
+    oscillator.connect(gain).connect(context.destination)
+    oscillator.start()
+    oscillator.stop(context.currentTime + 0.4)
+    oscillator.onended = () => {
+      void context.close()
+      speakerOk.value = true
+    }
+  } catch {
+    speakerOk.value = false
+  }
+}
+
+function switchToVoice(): void {
+  closeCamera()
+  void router.push({ name: 'voice', query: { sceneId: sceneId.value } })
+}
+
 function closeCamera() {
+  if (levelFrame) cancelAnimationFrame(levelFrame)
+  levelFrame = 0
+  analyser = null
+  if (audioContext) { void audioContext.close().catch(() => undefined); audioContext = null }
   stream?.getTracks().forEach((track) => track.stop())
   stream = null
   cameraOn.value = false
@@ -59,6 +140,10 @@ function closeCamera() {
 
 function startRecording() {
   if (!stream) return
+  if (!checked.value) {
+    error.value = '还没检测到麦克风声音：请对着麦克风说一句话，确认电平条有反应'
+    return
+  }
   chunks = []
   rounds.value = []
   index.value = 0
@@ -148,6 +233,10 @@ async function submit() {
 }
 
 onMounted(async () => {
+  const connection = (navigator as unknown as { connection?: { effectiveType?: string; downlink?: number } }).connection
+  networkLabel.value = navigator.onLine
+    ? `${connection?.effectiveType ?? 'online'}${connection?.downlink ? ` · ${Math.round(connection.downlink)} Mbps` : ''}`
+    : '离线'
   if (!sceneId.value) return
   try {
     const response = await api.get<ApiEnvelope<Scene>>(`/scenes/${sceneId.value}`)
@@ -197,14 +286,44 @@ onBeforeUnmount(closeCamera)
         <p class="step num">{{ String(index + 1).padStart(2, '0') }} / {{ String(total || 3).padStart(2, '0') }}</p>
         <h2>{{ stage === 'recording' ? current : '准备好了就开始' }}</h2>
         <p class="hint">
-          <template v-if="stage === 'idle'">点「开启摄像头」检查画面，再开始回答。</template>
+          <template v-if="stage === 'idle'">点「开启摄像头」检查画面与麦克风，再开始回答。</template>
           <template v-else-if="stage === 'ready'">共有 {{ total }} 道题，答完一道点「下一题」。</template>
           <template v-else-if="stage === 'recording'">说完这题点「下一题」，最后一题会直接提交。</template>
           <template v-else-if="stage === 'uploading'">{{ taskStage || '正在上传录像' }} · {{ taskProgress }}%<template v-if="queueHint">（{{ queueHint }}）</template></template>
         </p>
 
+        <ul v-if="stage !== 'recording' && stage !== 'uploading'" class="precheck" aria-label="设备预检">
+          <li :class="{ ok: cameraOn }">
+            <span class="dot" />
+            摄像头
+            <em>{{ cameraOn ? cameraLabel : '未检测' }}</em>
+          </li>
+          <li :class="{ ok: micHeard }">
+            <span class="dot" />
+            麦克风
+            <em v-if="micHeard">已收到声音</em>
+            <em v-else-if="cameraOn">请说一句话（电平 {{ Math.round(micLevel * 100) }}%）</em>
+            <em v-else>未检测</em>
+          </li>
+          <li :class="{ ok: speakerOk }">
+            <span class="dot" />
+            扬声器
+            <button type="button" class="mini" @click="testSpeaker">{{ speakerOk ? '再测一次' : '播放测试音' }}</button>
+          </li>
+          <li :class="{ ok: networkLabel !== '离线' }">
+            <span class="dot" />
+            网络
+            <em>{{ networkLabel }}</em>
+          </li>
+        </ul>
+        <button v-if="stage !== 'recording' && stage !== 'uploading'" type="button" class="voice-fallback" @click="switchToVoice">
+          不方便开摄像头？改用语音面试 →
+        </button>
+
         <div class="actions">
-          <button v-if="stage === 'ready'" class="primary" type="button" @click="startRecording">开始录制</button>
+          <button v-if="stage === 'ready'" class="primary" type="button" :disabled="!checked" @click="startRecording">
+            {{ checked ? '开始录制' : '先完成麦克风检测' }}
+          </button>
           <button v-if="stage === 'recording'" class="primary" type="button" @click="nextQuestion">
             {{ index + 1 < total ? '下一题' : '结束并生成报告' }}
           </button>
@@ -244,4 +363,12 @@ onBeforeUnmount(closeCamera)
 .marks { margin: 8px 0 0; padding-left: 18px; color: var(--text-3); font-size: 12.5px; line-height: 1.9; }
 .marks li.active { color: var(--accent-strong); font-weight: 600; }
 @media (max-width: 960px) { .panel { grid-template-columns: 1fr; } }
+
+.precheck { list-style: none; margin: 4px 0 10px; padding: 0; display: grid; gap: 6px; }
+.precheck li { display: flex; align-items: center; gap: 8px; color: var(--text-3); font-size: 12px; }
+.precheck li .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border-bright); flex: none; }
+.precheck li.ok .dot { background: var(--accent); }
+.precheck li em { margin-left: auto; color: var(--text-2); font-style: normal; }
+.precheck .mini { margin-left: auto; padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text-2); font-size: 11px; cursor: pointer; }
+.voice-fallback { width: fit-content; margin: 0 0 12px; padding: 0; border: 0; background: none; color: var(--accent-strong); font-size: 12px; cursor: pointer; }
 </style>

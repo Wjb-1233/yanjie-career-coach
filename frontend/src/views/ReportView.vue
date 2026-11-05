@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, shallowRef } from 'vue'
+import { computed, onMounted, shallowRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import AnimatedNumber from '@/components/report/AnimatedNumber.vue'
@@ -126,6 +126,77 @@ async function rescore(): Promise<void> {
   }
 }
 
+// T-04：逐题 STAR 完整度（启发式，只做提示，不参与评分）
+const STAR_PATTERNS: Array<[keyof StarCoverage, RegExp]> = [
+  ['situation', /(当时|背景|项目|公司|团队|客户|业务|系统|平台|产品|部门|实习|学校|课程|比赛)/],
+  ['task', /(负责|目标|需要|任务|要求|挑战|要解决|被安排|承担)/],
+  ['action', /(我(先|做|通过|主导|设计|搭建|负责|改成|调整)|首先|然后|接着|于是|具体|办法|方案|优化|协调|排查|推进)/],
+  ['result', /(结果|提升|降低|下降|完成|达成|最终|上线|节省|效率|从.{0,12}(到|降|升)|\d+\s*(%|倍|万|千|ms|秒|天|人))/],
+]
+
+interface StarCoverage { situation: boolean; task: boolean; action: boolean; result: boolean }
+
+function starOf(answer: string): StarCoverage {
+  return {
+    situation: STAR_PATTERNS[0][1].test(answer),
+    task: STAR_PATTERNS[1][1].test(answer),
+    action: STAR_PATTERNS[2][1].test(answer),
+    result: STAR_PATTERNS[3][1].test(answer),
+  }
+}
+
+function starScore(coverage: StarCoverage): number {
+  return Object.values(coverage).filter(Boolean).length
+}
+
+function starHint(answer: string): string {
+  const coverage = starOf(answer)
+  const missing = [
+    coverage.situation ? '' : '情境',
+    coverage.task ? '' : '任务',
+    coverage.action ? '' : '行动',
+    coverage.result ? '' : '结果',
+  ].filter(Boolean)
+  return missing.length ? `缺${missing.join('、')}` : '四要素齐全'
+}
+
+// V-06：视频逐题自评（镜头位置 / 信息组织 / 开场收尾）
+interface SelfReviewEntry { roundNo: number; camera: boolean; structure: boolean; opening: boolean; note: string }
+const selfReview = shallowRef<SelfReviewEntry[]>([])
+const reviewSaved = shallowRef(false)
+const reviewSaving = shallowRef(false)
+
+function initSelfReview(): void {
+  const marks = session.value?.delivery?.marks ?? []
+  const saved = new Map((session.value?.delivery?.selfReview ?? []).map((item) => [item.roundNo, item]))
+  const source = marks.length ? marks.map((mark, index) => ({ roundNo: index + 1, text: mark.text })) : rounds.value.map((round) => ({ roundNo: round.roundNo, text: round.question }))
+  selfReview.value = source.map((item) => {
+    const existing = saved.get(item.roundNo)
+    return {
+      roundNo: item.roundNo,
+      camera: existing?.camera ?? false,
+      structure: existing?.structure ?? false,
+      opening: existing?.opening ?? false,
+      note: existing?.note ?? '',
+    }
+  })
+}
+
+async function saveSelfReview(): Promise<void> {
+  if (!session.value || reviewSaving.value) return
+  reviewSaving.value = true
+  try {
+    await api.put(`/training-sessions/${session.value.id}/self-review`, { items: selfReview.value })
+    reviewSaved.value = true
+  } catch (reason) {
+    error.value = errorMessage(reason)
+  } finally {
+    reviewSaving.value = false
+  }
+}
+
+watch(session, () => initSelfReview())
+
 const orderedScores = computed(() => evaluation.value
   ? DIMS.map((key) => [key, Number(evaluation.value!.scores[key]) || 0] as [keyof Scores, number])
     .sort((a, b) => b[1] - a[1])
@@ -237,10 +308,33 @@ onMounted(async () => {
             <div class="replay-body">
               <p class="replay-q">{{ round.question }}</p>
               <p class="replay-a">{{ round.answer }}</p>
+              <div class="star-row" :class="`star-${starScore(starOf(round.answer))}`">
+                <span class="star-label">STAR {{ starScore(starOf(round.answer)) }}/4</span>
+                <span v-for="key in (['situation','task','action','result'] as const)" :key="key" class="star-dot" :class="{ on: starOf(round.answer)[key] }">
+                  {{ { situation: 'S', task: 'T', action: 'A', result: 'R' }[key] }}
+                </span>
+                <span class="star-hint">{{ starHint(round.answer) }}</span>
+              </div>
               <p v-if="round.flags.length" class="replay-flags">表达提醒：{{ round.flags.join('、') }}</p>
             </div>
           </li>
         </ol>
+      </section>
+
+      <section v-if="session?.channel === 'VIDEO' && selfReview.length" class="self-review panel">
+        <header><h2>逐题自评</h2><span>回看录像后勾选，指标会随报告保存</span></header>
+        <ul>
+          <li v-for="item in selfReview" :key="item.roundNo">
+            <span class="num">第 {{ item.roundNo }} 题</span>
+            <label><input v-model="item.camera" type="checkbox" /> 镜头位置合适</label>
+            <label><input v-model="item.structure" type="checkbox" /> 信息有结构</label>
+            <label><input v-model="item.opening" type="checkbox" /> 开场与收尾清楚</label>
+            <input v-model="item.note" class="field note" maxlength="200" placeholder="补充一句（可选）" />
+          </li>
+        </ul>
+        <button class="button secondary" type="button" :disabled="reviewSaving" @click="saveSelfReview">
+          {{ reviewSaving ? '保存中…' : reviewSaved ? '已保存 ✓ 再保存一次' : '保存自评' }}
+        </button>
       </section>
 
       <section v-if="evaluation.speechStats" class="speech panel">
@@ -567,4 +661,19 @@ onMounted(async () => {
   .page, .report { padding: 0 !important; max-width: none !important; }
   .panel { break-inside: avoid; box-shadow: none !important; border-color: #ccc !important; }
 }
+
+.star-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.star-label { color: var(--text-3); font-size: 11px; letter-spacing: .04em; }
+.star-dot { display: inline-grid; place-items: center; width: 18px; height: 18px; border: 1px solid var(--border); border-radius: 50%; color: var(--text-3); font-size: 10px; }
+.star-dot.on { border-color: var(--accent); color: var(--accent-strong); background: var(--accent-soft); }
+.star-hint { color: var(--text-3); font-size: 11px; }
+
+.self-review header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.self-review h2 { margin: 0; }
+.self-review header span { color: var(--text-3); font-size: 11.5px; }
+.self-review ul { list-style: none; margin: 14px 0; padding: 0; display: grid; gap: 10px; }
+.self-review li { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; }
+.self-review li .num { color: var(--text-3); font-size: 11.5px; }
+.self-review label { display: inline-flex; align-items: center; gap: 5px; color: var(--text-2); font-size: 12px; }
+.self-review .note { margin-left: auto; min-width: 180px; max-width: 260px; }
 </style>
