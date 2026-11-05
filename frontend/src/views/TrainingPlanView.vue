@@ -26,6 +26,20 @@ const totalCount = computed(() => plan.value?.tasks.length ?? 0)
 
 const labels: Record<keyof Scores, string> = { logic: '内容与逻辑', relevance: '贴合问题', correctness: '信息完整', concision: '表达干净' }
 const baseline = shallowRef<Evaluation | null>(null)
+const busyTask = shallowRef('')
+
+async function completeReview(taskKey: string): Promise<void> {
+  if (!plan.value || busyTask.value) return
+  busyTask.value = taskKey
+  try {
+    await trainingPlan.complete(taskKey)
+  } catch {
+    // 错误已由 composable 写入 plan 级错误提示
+  } finally {
+    busyTask.value = ''
+  }
+}
+
 const reviewSession = shallowRef<TrainingSession | null>(null)
 const baselineSessionId = computed(() => plan.value?.tasks.find((task) => task.sourceSessionId)?.sourceSessionId ?? '')
 const fallbackSessionId = shallowRef('')
@@ -149,7 +163,19 @@ function stateOf(task: TrainingPlanTask | null): TaskState {
               <b v-if="task.dimension" class="scene-focus">{{ task.dimension }}</b>
               {{ task.task }}
             </span>
-            <RouterLink class="button secondary compact" :to="taskRoute(plan.id, task) ?? { name: 'scenes' }">去练习</RouterLink>
+            <button
+              v-if="task.actionType === 'REVIEW' && !task.completed"
+              class="button secondary compact"
+              type="button"
+              :disabled="busyTask === task.key"
+              @click="completeReview(task.key)"
+            >{{ busyTask === task.key ? '处理中…' : '标记已复习' }}</button>
+            <RouterLink
+              v-else-if="!task.completed"
+              class="button secondary compact"
+              :to="taskRoute(plan.id, task) ?? { name: 'scenes' }"
+            >去练习</RouterLink>
+            <span v-else class="done-pill">已完成</span>
           </li>
         </ul>
       </section>

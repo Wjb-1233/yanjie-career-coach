@@ -63,7 +63,7 @@ def fallback_plan(focus: str, course_title: str, course_content: str) -> PlanDra
         ),
         practice_task=f"回到原场景，完成至少 6 轮对话，重点练习{focus}",
         rewrite_task=f"根据评分建议改写两段{focus}薄弱回答",
-        retest_task=f"再次训练同一场景，对比{focus}及五维评分",
+        retest_task=f"再次训练同一场景，对比{focus}及四维评分",
     )
 
 

@@ -44,7 +44,7 @@ async def create_training_session(
     if mode == "DRILL" and scene.difficulty != "进阶":
         raise AppError(422, "DRILL_REQUIRES_ADVANCED", "深挖模式只在进阶难度场景开放")
     if resume_text and scene.category == "基础能力提升":
-        raise AppError(422, "RESUME_NOT_APPLICABLE", "五维基础练习不需要上传简历，请直接开始训练")
+        raise AppError(422, "RESUME_NOT_APPLICABLE", "四维基础练习不需要上传简历，请直接开始训练")
     opening_line = (scene.opening_line or "").strip()
     opening_degraded = False
     if resume_filename and resume_text:
@@ -231,12 +231,16 @@ async def delete_training_session(session: AsyncSession, user_id: str, session_i
     ).all()
     for plan in plans:
         tasks = [dict(task) for task in (plan.tasks or [])]
+        # 计划由这次评分生成：保留计划，只断开来源，避免删一条记录连带毁掉整份计划
         if any(task.get("sourceSessionId") == session_id for task in tasks):
-            await session.delete(plan)
-            continue
+            for task in tasks:
+                if task.get("sourceSessionId") == session_id:
+                    task["sourceSessionId"] = None
+            plan.tasks = tasks
+        # SCENE / VIDEO 任务同样以会话为证据，删除后一并回退
         affected = next(
             (index for index, task in enumerate(tasks)
-             if task.get("actionType") in {"TRAINING", "RETEST"}
+             if task.get("actionType") in {"TRAINING", "RETEST", "SCENE", "VIDEO"}
              and task.get("evidence") == session_id),
             None,
         )
@@ -281,7 +285,7 @@ async def finish_session(session: AsyncSession, user_id: str, session_id: str) -
     if training is None or training.user_id != user_id:
         raise not_found("训练会话")
     if training.status == "ACTIVE":
-        if training.plan_id and training.current_round < 6:
+        if training.plan_id and training.channel != "VIDEO" and training.current_round < 6:
             raise AppError(
                 422,
                 "PLAN_ROUNDS_INSUFFICIENT",
@@ -393,7 +397,7 @@ async def stream_reply(session_id: str, user_id: str, user_text: str, finish_aft
         full_text = ""
         degraded = False
         if graph_state["should_finish"]:
-            full_text = "谢谢你的回答。本场模拟到这里结束，现在可以查看五维评分和具体改进建议。"
+            full_text = "谢谢你的回答。本场模拟到这里结束，现在可以结束训练并查看四维评分与改进建议。"
             yield sse("token", {"content": full_text})
         else:
             try:

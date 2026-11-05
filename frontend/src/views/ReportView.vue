@@ -111,6 +111,21 @@ const labels: Record<keyof Scores, string> = { logic: '内容与逻辑', relevan
 
 const DIMS: Array<keyof Scores> = ['logic', 'relevance', 'correctness', 'concision']
 
+const rescoring = shallowRef(false)
+
+async function rescore(): Promise<void> {
+  if (rescoring.value) return
+  rescoring.value = true
+  try {
+    await api.post(`/evaluations/${route.params.id}?force=true`)
+    await loadReport()
+  } catch (reason) {
+    error.value = errorMessage(reason)
+  } finally {
+    rescoring.value = false
+  }
+}
+
 const orderedScores = computed(() => evaluation.value
   ? DIMS.map((key) => [key, Number(evaluation.value!.scores[key]) || 0] as [keyof Scores, number])
     .sort((a, b) => b[1] - a[1])
@@ -137,16 +152,18 @@ function deltaLabel(diff: number | null): string {
 }
 const styleLine = computed(() => evaluation.value?.styleTags?.join(' · ') ?? '')
 
+async function loadReport(): Promise<void> {
+  const response = await api.get<ApiEnvelope<Evaluation>>(`/evaluations/${route.params.id}`)
+  const sessionResponse = await api.get<ApiEnvelope<TrainingSession>>(`/training-sessions/${String(route.params.id)}`).catch(() => null)
+  if (sessionResponse) {
+    session.value = sessionResponse.data.data
+    messages.value = sessionResponse.data.data.messages
+  }
+  evaluation.value = response.data.data
+}
+
 onMounted(async () => {
-  try {
-    const response = await api.get<ApiEnvelope<Evaluation>>(`/evaluations/${route.params.id}`)
-    const sessionResponse = await api.get<ApiEnvelope<TrainingSession>>(`/training-sessions/${String(route.params.id)}`).catch(() => null)
-    if (sessionResponse) {
-      session.value = sessionResponse.data.data
-      messages.value = sessionResponse.data.data.messages
-    }
-    evaluation.value = response.data.data
-  } catch (reason) { error.value = errorMessage(reason) }
+  try { await loadReport() } catch (reason) { error.value = errorMessage(reason) }
 })
 </script>
 
@@ -180,7 +197,12 @@ onMounted(async () => {
             {{ overallDelta === 0 ? '与上次持平' : overallDelta > 0 ? `比上次高 ${overallDelta} 分` : `比上次低 ${Math.abs(overallDelta)} 分` }}
           </p>
           <p v-if="styleLine" class="style-line">{{ styleLine }}</p>
-          <p v-if="evaluation.degraded" class="degraded">本报告由本地评分规则生成，未使用大模型语义评分。</p>
+          <p v-if="evaluation.degraded" class="degraded">
+            本报告由本地评分规则生成，未使用大模型语义评分。
+            <button class="rescore" type="button" :disabled="rescoring" @click="rescore">
+              {{ rescoring ? '重新评分中…' : '重新用大模型评分' }}
+            </button>
+          </p>
         </div>
 
         <div class="radar"><ScoreRadar :scores="evaluation.scores" /></div>
@@ -402,6 +424,8 @@ onMounted(async () => {
 .figure .den { padding-bottom: 9px; color: var(--text-3); font-family: var(--font-num); font-size: 12px; letter-spacing: .06em; }
 .style-line { margin: 20px 0 0; color: var(--text-2); font-size: 13px; letter-spacing: .04em; }
 .degraded { margin: 12px 0 0; color: var(--warning); font-size: 11px; line-height: 1.7; }
+.rescore { margin-left: 8px; padding: 2px 10px; border: 1px solid var(--border-bright); border-radius: 999px; background: transparent; color: var(--text-2); font-size: 11px; cursor: pointer; }
+.rescore:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-strong); }
 
 .radar { display: flex; justify-content: center; }
 

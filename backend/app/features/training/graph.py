@@ -89,7 +89,7 @@ def prompt_node(state: ConversationState) -> dict:
             "CLOSING": "围绕本场目标提出最后一个问题；对方回答后才结束。",
         }[state["stage"]]
     if is_foundation:
-        difficulty_instruction = "按场景难度逐步增加追问深度，但始终围绕本次五维表达目标，不转去考察简历项目。"
+        difficulty_instruction = "按场景难度逐步增加追问深度，但始终围绕本次四维表达目标，不转去考察简历项目。"
     else:
         difficulty_instruction = {
             "入门": "低压力：语气友好，问题直白，先考察基本理解与清楚表达；涉及技术时只问基础概念和亲自做过的例子。",
@@ -113,7 +113,7 @@ def prompt_node(state: ConversationState) -> dict:
             "不得编造候选人经历，每轮只问一个问题。\n"
             f"<resume>\n{state['resume_text']}\n</resume>\n"
         )
-    category_guidance = "聚焦本场五维表达目标。" if is_foundation else INTERVIEW_STAGE_GUIDANCE.get(stage_category, "围绕本场面试目标提问。")
+    category_guidance = "聚焦本场四维表达目标。" if is_foundation else INTERVIEW_STAGE_GUIDANCE.get(stage_category, "围绕本场面试目标提问。")
     core_note = ""
     if state.get("core_idea"):
         core_note = (

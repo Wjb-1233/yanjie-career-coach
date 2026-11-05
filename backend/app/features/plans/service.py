@@ -124,8 +124,10 @@ async def complete_training_task(
         training = await session.get(TrainingSession, (evidence or "").strip())
         if training is None or training.user_id != user_id or training.status != "FINISHED":
             raise AppError(422, "TRAINING_NOT_COMPLETED", "请先完成本次情景训练")
-        if training.current_round < 6:
-            raise AppError(422, "TRAINING_ROUNDS_INSUFFICIENT", "计划训练至少需要完成 6 轮对话")
+        required_rounds = 2 if target["actionType"] == "VIDEO" else 6
+        if training.current_round < required_rounds:
+            hint = "视频面试至少需要 2 段作答" if required_rounds == 2 else "计划训练至少需要完成 6 轮对话"
+            raise AppError(422, "TRAINING_ROUNDS_INSUFFICIENT", hint)
         if training.scene_id != target.get("sceneId"):
             raise AppError(422, "SCENE_MISMATCH", "请在计划指定的原场景完成训练")
         # 允许与计划创建同一秒开始的会话（时间戳只有秒精度）

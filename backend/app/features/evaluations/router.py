@@ -13,8 +13,11 @@ DbSession = Annotated[AsyncSession, Depends(get_session)]
 
 
 @router.post("/{session_id}", status_code=201)
-async def evaluate(session_id: str, user: CurrentUser, session: DbSession) -> dict:
-    result = await evaluate_session(session, user.id, session_id)
+async def evaluate(
+    session_id: str, user: CurrentUser, session: DbSession, force: bool = False
+) -> dict:
+    """生成评分；force=true 只对降级评分生效，用于模型恢复后重算。"""
+    result = await evaluate_session(session, user.id, session_id, force=force)
     return ok(result.model_dump(by_alias=True))
 
 

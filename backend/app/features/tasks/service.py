@@ -109,6 +109,10 @@ async def process_video_interview(task: AnalysisTask) -> None:
     await _update(task.id, progress=85, stage="生成评分报告")
     async with session_factory() as session:
         try:
+            # 视频会话建好后是 ACTIVE，先按正常流程结束，再走四维评分
+            from app.features.training.service import finish_session
+
+            await finish_session(session, task.user_id, session_id)
             await evaluate_session(session, task.user_id, session_id)
         except Exception as exc:  # noqa: BLE001 - 评分失败不影响回放
             logger.warning("task.evaluate_failed error_type=%s", type(exc).__name__)

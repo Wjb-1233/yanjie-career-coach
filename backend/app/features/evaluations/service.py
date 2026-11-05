@@ -4,7 +4,7 @@ import statistics
 import time
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -148,12 +148,18 @@ async def evaluate_session(
     user_id: str,
     session_id: str,
     create_plan: bool = True,
+    force: bool = False,
 ) -> EvaluationView:
     existing = await session.scalar(select(Evaluation).where(Evaluation.session_id == session_id))
     if existing:
         if existing.user_id != user_id:
             raise not_found("评分报告")
-        return await to_view(session, existing)
+        # 只有「降级评分」允许重算：网络抖动时用户不必重练一遍
+        if not (force and existing.degraded):
+            return await to_view(session, existing)
+        await session.execute(delete(EvaluationEvidence).where(EvaluationEvidence.evaluation_id == existing.id))
+        await session.delete(existing)
+        await session.commit()
     training = await session.get(TrainingSession, session_id)
     if training is None or training.user_id != user_id:
         raise not_found("训练会话")
@@ -268,7 +274,8 @@ async def evaluate_session(
     )
 
     # 每次新评分都生成一份带序号的新计划；未完成的旧计划继续保留（最多同时进行 3 份）
-    if create_plan and not degraded:
+    # 但由计划任务发起的训练不再另起一份计划，避免边做计划边生出新计划
+    if create_plan and not degraded and not training.plan_id:
         await create_training_plan(
             session, user_id, payload, training, user_messages, allow_generation=True
         )

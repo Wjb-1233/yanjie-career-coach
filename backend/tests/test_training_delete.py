@@ -85,7 +85,10 @@ def test_delete_training_session_removes_related_data_and_protects_other_users()
         messages, evaluations, baseline_plan, evidence_plan = asyncio.run(
             related_state(target_id, baseline_plan_id, evidence_plan_id)
         )
-        assert not messages and not evaluations and baseline_plan is None
+        assert not messages and not evaluations
+        # 计划保留，只把来源会话断开，避免删一条记录连带毁掉整份计划
+        assert baseline_plan is not None
+        assert all(task.get("sourceSessionId") in (None, "") for task in baseline_plan.tasks)
         assert evidence_plan is not None and evidence_plan.status == "ACTIVE"
         assert evidence_plan.tasks[0]["completed"] is True
         assert all(not task["completed"] and task["evidence"] is None for task in evidence_plan.tasks[1:])
