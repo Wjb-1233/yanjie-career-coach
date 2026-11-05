@@ -28,6 +28,7 @@ from app.features.evaluations.router import router as evaluations_router
 from app.features.health.router import router as health_router
 from app.features.plans.router import router as plans_router
 from app.features.scenes.router import router as scenes_router
+from app.features.share.router import router as share_router
 from app.features.scripts.router import router as scripts_router
 from app.features.training.router import router as training_router
 from app.features.stories.router import router as stories_router
@@ -183,6 +184,7 @@ for api_router in (
     video_router,
     tasks_router,
     stories_router,
+    share_router,
 ):
     app.include_router(api_router, prefix=settings.api_prefix)
 

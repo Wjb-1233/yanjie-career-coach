@@ -15,7 +15,12 @@ from app.core.responses import ok
 from app.core.security import CurrentUser, StreamingUser
 from app.db.base import get_session
 from app.db.models import Evaluation, Scene, TrainingSession
-from app.features.training.schemas import CreateSessionRequest, SelfReviewRequest, SendMessageRequest
+from app.features.training.schemas import (
+    CreateSessionRequest,
+    SelfReviewRequest,
+    SendMessageRequest,
+    TranscriptEditRequest,
+)
 from app.features.training.service import (
     create_training_session,
     delete_training_session,
@@ -285,3 +290,47 @@ async def save_self_review(
     flag_modified(training, "delivery")
     await session.commit()
     return ok({"selfReview": delivery["selfReview"]})
+
+
+@router.patch("/{session_id}/transcript/{round_no}")
+async def edit_transcript(
+    session_id: str,
+    round_no: int,
+    body: TranscriptEditRequest,
+    user: CurrentUser,
+    session: DbSession,
+) -> dict:
+    """A-02：人工修正某一轮转写，标记需重新评分。"""
+    from sqlalchemy.orm.attributes import flag_modified
+
+    training = await session.get(TrainingSession, session_id)
+    if training is None or training.user_id != user.id:
+        raise not_found("训练会话")
+    if training.status != "FINISHED":
+        raise AppError(422, "TRANSCRIPT_NOT_READY", "训练结束后才能修正转写")
+
+    delivery = dict(training.delivery or {})
+    transcript = [dict(item) for item in (delivery.get("transcript") or [])]
+    target = next((item for item in transcript if item.get("roundNo") == round_no), None)
+    if target is None:
+        raise not_found("该轮转写")
+
+    target["text"] = body.text.strip()
+    target["edited"] = True
+    delivery["transcript"] = transcript
+    delivery["rescoreRequired"] = True
+    training.delivery = delivery
+    flag_modified(training, "delivery")
+
+    message = await session.scalar(
+        select(Message).where(
+            Message.session_id == session_id,
+            Message.speaker == "USER",
+            Message.round_no == round_no,
+        )
+    )
+    if message is not None:
+        message.content = target["text"]
+
+    await session.commit()
+    return ok({"transcript": transcript, "rescoreRequired": True})

@@ -90,7 +90,36 @@ async def process_video_interview(task: AnalysisTask) -> None:
 
     if delivery:
         delivery.pop("words", None)
-    payload_out = {**(delivery or {}), "vision": vision, "engine": "video", "marks": questions}
+    from app.features.video.segments import split_segments
+
+    segments = await asyncio.to_thread(
+        split_segments,
+        path,
+        questions,
+        settings.recording_dir_path,
+        storage.signed_url,
+    )
+
+    transcript = [
+        {
+            "roundNo": index + 1,
+            "question": turn["question"],
+            "text": turn["answer"],
+            "startMs": turn.get("startMs"),
+            "endMs": turn.get("endMs"),
+            "confidence": turn.get("confidence"),
+            "edited": False,
+        }
+        for index, turn in enumerate(turns)
+    ]
+    payload_out = {
+        **(delivery or {}),
+        "vision": vision,
+        "engine": "video",
+        "marks": questions,
+        "transcript": transcript,
+        "segments": segments,
+    }
 
     await _update(task.id, progress=70, stage="生成训练记录")
     async with session_factory() as session:

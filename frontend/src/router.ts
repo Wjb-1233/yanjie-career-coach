@@ -6,6 +6,7 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { public: true } },
+    { path: '/share/:token', name: 'share', component: () => import('@/views/ShareView.vue'), meta: { public: true } },
     { path: '/', name: 'dashboard', component: () => import('@/views/DashboardView.vue') },
     { path: '/voice', name: 'voice', component: () => import('@/views/VoiceCallView.vue') },
     { path: '/video', name: 'video', component: () => import('@/views/VideoInterviewView.vue') },

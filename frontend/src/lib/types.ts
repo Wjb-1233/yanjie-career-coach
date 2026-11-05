@@ -62,6 +62,9 @@ export interface TrainingSession {
     vision?: { framing?: number; onCamera?: number; stability?: number; lighting?: number; tips?: string[] } | null
     marks?: Array<{ text: string; start: number; end?: number }>
     selfReview?: Array<{ roundNo: number; camera: boolean; structure: boolean; opening: boolean; note: string | null }>
+    transcript?: Array<{ roundNo: number; question: string; text: string; startMs: number | null; endMs: number | null; confidence: number | null; edited: boolean }>
+    rescoreRequired?: boolean
+    segments?: Array<{ roundNo: number; question: string; startMs: number; endMs: number; file: string; url: string | null }>
   } | null
   startedAt: string
   finishedAt: string | null

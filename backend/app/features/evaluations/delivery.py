@@ -55,12 +55,12 @@ def analyze(audio_path: str | Path) -> dict:
             vad_filter=True,
             beam_size=1,
         )
-        words: list[tuple[str, float, float]] = []
+        words: list[tuple[str, float, float, float]] = []
         for segment in segments:
             for word in segment.words or []:
                 text = (word.word or "").strip()
                 if text:
-                    words.append((text, float(word.start), float(word.end)))
+                    words.append((text, float(word.start), float(word.end), float(getattr(word, "probability", 0.0) or 0.0)))
     except Exception as exc:  # pragma: no cover - 模型或音频问题
         logger.warning("delivery.analyze_failed error_type=%s", type(exc).__name__)
         return {}
@@ -99,5 +99,8 @@ def analyze(audio_path: str | Path) -> dict:
             reverse=True,
         )[:3],
         "text": text[:600],
-        "words": [{"start": round(item[1], 2), "end": round(item[2], 2), "text": item[0]} for item in words][:400],
+        "words": [
+            {"start": round(item[1], 2), "end": round(item[2], 2), "text": item[0], "p": round(item[3], 2)}
+            for item in words
+        ][:400],
     }

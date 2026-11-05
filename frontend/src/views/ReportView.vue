@@ -160,6 +160,93 @@ function starHint(answer: string): string {
   return missing.length ? `缺${missing.join('、')}` : '四要素齐全'
 }
 
+// 教练查看链接（只读 + 时间点批注）
+const shareLink = shallowRef('')
+const shareBusy = shallowRef(false)
+
+async function createShareLink(): Promise<void> {
+  if (!session.value || shareBusy.value) return
+  shareBusy.value = true
+  try {
+    const response = await api.post<ApiEnvelope<{ url: string; expiresAt: number }>>(`/share/training-sessions/${session.value.id}`)
+    shareLink.value = `${location.origin}${response.data.data.url}`
+    await navigator.clipboard?.writeText(shareLink.value).catch(() => undefined)
+  } catch (reason) {
+    error.value = errorMessage(reason)
+  } finally {
+    shareBusy.value = false
+  }
+}
+
+// V-04：同场景两次录像并排对比
+const compareSession = shallowRef<TrainingSession | null>(null)
+const compareScore = shallowRef<number | null>(null)
+
+async function loadCompare(): Promise<void> {
+  const current = session.value
+  if (!current?.recordingUrl) return
+  try {
+    const response = await api.get<ApiEnvelope<{ items?: TrainingSession[] } | TrainingSession[]>>('/training-sessions', { params: { size: 40 } })
+    const payload = response.data.data
+    const list = Array.isArray(payload) ? payload : (payload.items ?? [])
+    const previous = list.find((item) => item.id !== current.id
+      && item.sceneId === current.sceneId
+      && item.channel === current.channel
+      && Boolean(item.recordingUrl))
+    if (!previous) return
+    compareSession.value = previous
+    const score = await api.get<ApiEnvelope<Evaluation>>(`/evaluations/${previous.id}`).catch(() => null)
+    compareScore.value = score ? score.data.data.overallScore : null
+  } catch {
+    // 对比是增强信息，取不到不影响报告
+  }
+}
+
+// V-03：按题分段的录像片段
+const segments = computed(() => session.value?.delivery?.segments ?? [])
+const activeSegment = shallowRef(0)
+
+function playSegment(index: number): void {
+  activeSegment.value = index
+  const player = document.querySelector<HTMLVideoElement>('.segment-player video')
+  if (player) {
+    player.load()
+    void player.play().catch(() => undefined)
+  }
+}
+
+// A-02：人工修正转写（视频/语音场次）
+const editingRound = shallowRef<number | null>(null)
+const editingText = shallowRef('')
+const transcriptSaving = shallowRef(false)
+const transcript = computed(() => session.value?.delivery?.transcript ?? [])
+const needsRescore = computed(() => Boolean(session.value?.delivery?.rescoreRequired))
+
+function startEdit(roundNo: number, text: string): void {
+  editingRound.value = roundNo
+  editingText.value = text
+}
+
+async function saveTranscript(roundNo: number): Promise<void> {
+  if (!session.value || transcriptSaving.value) return
+  transcriptSaving.value = true
+  try {
+    await api.patch(`/training-sessions/${session.value.id}/transcript/${roundNo}`, { text: editingText.value.trim() })
+    editingRound.value = null
+    await loadReport()
+  } catch (reason) {
+    error.value = errorMessage(reason)
+  } finally {
+    transcriptSaving.value = false
+  }
+}
+
+function confidenceLabel(value: number | null): string {
+  if (value === null || value === undefined) return '未提供置信度'
+  if (value < 0.7) return `置信度 ${Math.round(value * 100)}% · 建议核对`
+  return `置信度 ${Math.round(value * 100)}%`
+}
+
 // V-06：视频逐题自评（镜头位置 / 信息组织 / 开场收尾）
 interface SelfReviewEntry { roundNo: number; camera: boolean; structure: boolean; opening: boolean; note: string }
 const selfReview = shallowRef<SelfReviewEntry[]>([])
@@ -234,7 +321,10 @@ async function loadReport(): Promise<void> {
 }
 
 onMounted(async () => {
-  try { await loadReport() } catch (reason) { error.value = errorMessage(reason) }
+  try {
+    await loadReport()
+    await loadCompare()
+  } catch (reason) { error.value = errorMessage(reason) }
 })
 </script>
 
@@ -248,6 +338,9 @@ onMounted(async () => {
       </div>
       <div class="report-actions">
         <button type="button" class="button secondary" @click="exportPdf">打印 / 导出 PDF</button>
+        <button class="button secondary" type="button" :disabled="shareBusy" @click="createShareLink">
+          {{ shareBusy ? '生成中…' : shareLink ? '链接已复制' : '生成教练链接' }}
+        </button>
         <RouterLink class="button secondary" :to="{ name: 'stories', query: { sessionId: route.params.id } }">沉淀为故事</RouterLink>
         <RouterLink class="button secondary" to="/scenes">再练一个场景</RouterLink>
       </div>
@@ -319,6 +412,79 @@ onMounted(async () => {
             </div>
           </li>
         </ol>
+      </section>
+
+      <section v-if="shareLink" class="share-note panel">
+        <h2>教练查看链接</h2>
+        <p>链接 7 天内有效，只能查看这份报告、录像与转写，并可添加时间点批注；不能修改评分。</p>
+        <code>{{ shareLink }}</code>
+      </section>
+
+      <section v-if="session?.recordingUrl && compareSession?.recordingUrl" class="compare-video panel">
+        <header>
+          <h2>两次录像对比</h2>
+          <span>同一场景 · 左为最近一次，右为上一次</span>
+        </header>
+        <div class="compare-grid">
+          <figure>
+            <video :src="session.recordingUrl ?? undefined" controls playsinline preload="metadata" />
+            <figcaption>
+              <b>本次 {{ evaluation?.overallScore ?? '—' }}</b>
+              <span>{{ new Date(session.startedAt).toLocaleDateString('zh-CN') }}</span>
+            </figcaption>
+          </figure>
+          <figure>
+            <video :src="compareSession.recordingUrl ?? undefined" controls playsinline preload="metadata" />
+            <figcaption>
+              <b>上次 {{ compareScore ?? '—' }}</b>
+              <span>{{ new Date(compareSession.startedAt).toLocaleDateString('zh-CN') }}</span>
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section v-if="segments.length" class="segments panel">
+        <header><h2>按题回看</h2><span>每段只包含该题的回答，可逐题复盘</span></header>
+        <ol class="segment-tabs">
+          <li v-for="(segment, index) in segments" :key="segment.roundNo">
+            <button type="button" :class="{ active: index === activeSegment }" @click="playSegment(index)">
+              第 {{ segment.roundNo }} 题
+            </button>
+          </li>
+        </ol>
+        <div class="segment-player">
+          <video :src="segments[activeSegment]?.url ?? undefined" controls playsinline preload="metadata" />
+          <p>{{ segments[activeSegment]?.question }}</p>
+        </div>
+      </section>
+
+      <section v-if="transcript.length" class="transcript panel">
+        <header>
+          <h2>转写文本</h2>
+          <span>识别有误可以手动改，改完需要重新评分</span>
+        </header>
+        <p v-if="needsRescore" class="rescore-tip">
+          转写已修改，当前报告基于旧文本。
+          <button type="button" class="rescore" :disabled="rescoring" @click="rescore">{{ rescoring ? '重新评分中…' : '用新文本重新评分' }}</button>
+        </p>
+        <ul>
+          <li v-for="item in transcript" :key="item.roundNo">
+            <div class="tr-head">
+              <span class="num">第 {{ item.roundNo }} 轮</span>
+              <span class="tr-conf" :class="{ low: item.confidence !== null && item.confidence < 0.7 }">{{ confidenceLabel(item.confidence) }}</span>
+              <button v-if="editingRound !== item.roundNo" type="button" class="mini" @click="startEdit(item.roundNo, item.text)">修正</button>
+            </div>
+            <p class="tr-q">{{ item.question }}</p>
+            <template v-if="editingRound === item.roundNo">
+              <textarea v-model="editingText" class="field" rows="3" maxlength="2000" />
+              <div class="tr-actions">
+                <button class="button" type="button" :disabled="transcriptSaving" @click="saveTranscript(item.roundNo)">{{ transcriptSaving ? '保存中…' : '保存修正' }}</button>
+                <button class="button secondary" type="button" @click="editingRound = null">取消</button>
+              </div>
+            </template>
+            <p v-else class="tr-text">{{ item.text }}<span v-if="item.edited" class="tr-edited">已人工修正</span></p>
+          </li>
+        </ul>
       </section>
 
       <section v-if="session?.channel === 'VIDEO' && selfReview.length" class="self-review panel">
@@ -676,4 +842,40 @@ onMounted(async () => {
 .self-review li .num { color: var(--text-3); font-size: 11.5px; }
 .self-review label { display: inline-flex; align-items: center; gap: 5px; color: var(--text-2); font-size: 12px; }
 .self-review .note { margin-left: auto; min-width: 180px; max-width: 260px; }
+
+.transcript header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.transcript header span { color: var(--text-3); font-size: 11.5px; }
+.transcript ul { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }
+.transcript li { padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; }
+.tr-head { display: flex; align-items: center; gap: 10px; }
+.tr-head .num { color: var(--text-3); font-size: 11.5px; }
+.tr-conf { margin-left: auto; color: var(--text-3); font-size: 11px; }
+.tr-conf.low { color: var(--error, #b4553f); }
+.tr-q { margin: 8px 0 4px; color: var(--text-3); font-size: 12px; }
+.tr-text { margin: 0; color: var(--text-2); font-size: 13px; line-height: 1.8; }
+.tr-edited { margin-left: 8px; color: var(--accent-strong); font-size: 11px; }
+.tr-actions { display: flex; gap: 8px; margin-top: 8px; }
+.mini { padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text-2); font-size: 11px; cursor: pointer; }
+.rescore-tip { margin: 10px 0 0; color: var(--warning); font-size: 12px; }
+
+.segments header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.segments header span { color: var(--text-3); font-size: 11.5px; }
+.segment-tabs { list-style: none; margin: 12px 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.segment-tabs button { padding: 5px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); color: var(--text-2); font-size: 12px; cursor: pointer; }
+.segment-tabs button.active { border-color: var(--accent); color: var(--accent-strong); background: var(--accent-soft); }
+.segment-player video { width: 100%; max-height: 46vh; border-radius: 10px; background: #0b0b0e; }
+.segment-player p { margin: 8px 0 0; color: var(--text-3); font-size: 12px; }
+
+.compare-video header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.compare-video header span { color: var(--text-3); font-size: 11.5px; }
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; }
+.compare-grid figure { margin: 0; display: grid; gap: 6px; }
+.compare-grid video { width: 100%; max-height: 34vh; border-radius: 10px; background: #0b0b0e; }
+.compare-grid figcaption { display: flex; align-items: baseline; justify-content: space-between; color: var(--text-3); font-size: 11.5px; }
+.compare-grid figcaption b { color: var(--text); font-size: 13px; }
+@media (max-width: 720px) { .compare-grid { grid-template-columns: 1fr; } }
+
+.share-note h2 { margin: 0 0 6px; }
+.share-note p { margin: 0 0 8px; color: var(--text-3); font-size: 12.5px; line-height: 1.7; }
+.share-note code { padding: 6px 10px; border-radius: 6px; background: var(--bg-2); color: var(--text-2); font-size: 12px; word-break: break-all; }
 </style>

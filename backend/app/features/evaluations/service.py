@@ -154,8 +154,10 @@ async def evaluate_session(
     if existing:
         if existing.user_id != user_id:
             raise not_found("评分报告")
-        # 只有「降级评分」允许重算：网络抖动时用户不必重练一遍
-        if not (force and existing.degraded):
+        training_row = await session.get(TrainingSession, session_id)
+        needs_rescore = bool((training_row.delivery or {}).get("rescoreRequired")) if training_row else False
+        # 降级报告（模型抖动）或人工修正转写后允许重算
+        if not (force and (existing.degraded or needs_rescore)):
             return await to_view(session, existing)
         await session.execute(delete(EvaluationEvidence).where(EvaluationEvidence.evaluation_id == existing.id))
         await session.delete(existing)
@@ -272,6 +274,14 @@ async def evaluate_session(
         scene,
         {key: getattr(evaluation, f"{key}_score") for key in ("logic", "relevance", "correctness", "concision")},
     )
+
+    if (training.delivery or {}).get("rescoreRequired"):
+        from sqlalchemy.orm.attributes import flag_modified
+
+        delivery = dict(training.delivery or {})
+        delivery["rescoreRequired"] = False
+        training.delivery = delivery
+        flag_modified(training, "delivery")
 
     # 每次新评分都生成一份带序号的新计划；未完成的旧计划继续保留（最多同时进行 3 份）
     # 但由计划任务发起的训练不再另起一份计划，避免边做计划边生出新计划

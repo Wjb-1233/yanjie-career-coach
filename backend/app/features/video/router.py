@@ -37,11 +37,17 @@ def _split_turns(questions: list[dict], words: list[dict]) -> list[dict]:
         end = float(item.get("end") or 0)
         if not text or end <= start:
             continue
-        answer = "".join(
-            word["text"] for word in words if start <= float(word["start"]) < end
-        ).strip()
+        picked = [word for word in words if start <= float(word["start"]) < end]
+        answer = "".join(word["text"] for word in picked).strip()
         if answer:
-            turns.append({"question": text, "answer": answer})
+            probs = [float(word.get("p") or 0) for word in picked if word.get("p")]
+            turns.append({
+                "question": text,
+                "answer": answer,
+                "startMs": int(start * 1000),
+                "endMs": int(end * 1000),
+                "confidence": round(sum(probs) / len(probs), 2) if probs else None,
+            })
     return turns
 
 

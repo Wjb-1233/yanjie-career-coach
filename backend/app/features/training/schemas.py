@@ -100,3 +100,7 @@ class SelfReviewItem(ApiModel):
 
 class SelfReviewRequest(ApiModel):
     items: list[SelfReviewItem] = Field(default_factory=list, max_length=12)
+
+
+class TranscriptEditRequest(ApiModel):
+    text: str = Field(min_length=1, max_length=2000)
