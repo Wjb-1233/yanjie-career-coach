@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, shallowRef } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Mic, PhoneOff } from 'lucide-vue-next'
 
@@ -27,6 +27,9 @@ let lastQuestion = ''
 const saving = shallowRef(false)
 let startedAt = 0
 const micOn = shallowRef(false)
+// V-02 轻量实时视频房间：面试官语音对话 + 自己的摄像头画面
+const videoMode = computed(() => route.query.video === '1')
+const preview = ref<HTMLVideoElement | null>(null)
 
 let socket: WebSocket | null = null
 let audioContext: AudioContext | null = null
@@ -210,12 +213,22 @@ async function start(): Promise<void> {
 }
 
 async function startMic(): Promise<void> {
-  micStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } })
+  micStream = await navigator.mediaDevices.getUserMedia({
+    audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+    ...(videoMode.value ? { video: { width: 1280, height: 720, facingMode: 'user' } } : {}),
+  })
+  if (videoMode.value && preview.value) {
+    preview.value.srcObject = micStream
+    await preview.value.play().catch(() => undefined)
+  }
   audioContext = new AudioContext()
   source = audioContext.createMediaStreamSource(micStream)
   if (typeof MediaRecorder !== 'undefined') {
     recordedChunks.length = 0
-    recorder = new MediaRecorder(micStream)
+    const mime = videoMode.value && MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+      ? 'video/webm;codecs=vp8,opus'
+      : undefined
+    recorder = new MediaRecorder(micStream, mime ? { mimeType: mime } : undefined)
     recorder.ondataavailable = (event) => { if (event.data.size) recordedChunks.push(event.data) }
     recorder.start(1000)
   }
@@ -352,20 +365,31 @@ onBeforeUnmount(stop)
 
     <header class="page-heading">
       <div>
-        <p class="eyebrow">语音对练{{ scene ? ` · ${scene.category}` : '' }}</p>
+        <p class="eyebrow">{{ videoMode ? '实时视频房间' : '语音对练' }}{{ scene ? ` · ${scene.category}` : '' }}</p>
         <h1 class="page-title">{{ scene ? scene.title : '像打电话一样' }}</h1>
-        <p class="page-lead">直接说话，{{ scene ? scene.roleName : '面试官' }}会实时回应；打断他说话也没关系。</p>
+        <p class="page-lead">
+          {{ videoMode ? '打开摄像头，面试官用语音提问，你直接说；过程会录像并在结束后给出评分。' : `直接说话，${scene ? scene.roleName : '面试官'}会实时回应；打断他说话也没关系。` }}
+        </p>
       </div>
       <div class="engine-switch" role="group" aria-label="语音引擎">
         <button type="button" :class="{ active: engine === 'doubao' }" :disabled="status !== 'idle' && status !== 'error'" @click="engine = 'doubao'">标准引擎</button>
         <button type="button" :class="{ active: engine === 'pipeline' }" :disabled="status !== 'idle' && status !== 'error'" @click="engine = 'pipeline'">本地管线</button>
       </div>
+      <RouterLink v-if="videoMode" class="mode-link" :to="{ name: 'video', query: { sceneId, ...(planId ? { planId, taskKey } : {}) } }">切换到录答模式 →</RouterLink>
       <span class="status" :class="status">{{ status === 'live' ? '通话中' : status === 'connecting' ? '接通中' : '未开始' }}</span>
     </header>
 
     <p v-if="error" class="error-banner">{{ error }}</p>
 
-    <section class="call panel">
+    <section class="call panel" :class="{ 'video-room': videoMode }">
+      <div v-if="videoMode" class="room">
+        <video ref="preview" class="room-self" muted playsinline />
+        <div class="room-role">
+          <span class="role-badge">面试官</span>
+          <strong>{{ scene ? scene.roleName : 'AI 面试官' }}</strong>
+          <p>{{ status === 'live' ? '正在听你回答' : '等待开始' }}</p>
+        </div>
+      </div>
       <div class="wave" :class="{ active: status === 'live' }" aria-hidden="true">
         <i v-for="index in 24" :key="index" :style="{ animationDelay: `${index * 40}ms` }" />
       </div>
@@ -429,4 +453,16 @@ onBeforeUnmount(stop)
 .call-btn.end { background: var(--accent); border-color: var(--accent); }
 .hint { margin: 0; color: var(--text-3); font-size: 12px; display: flex; gap: 12px; }
 .privacy { margin-left: auto; color: var(--text-3); }
+
+.room { display: grid; grid-template-columns: minmax(0, 1fr) 180px; gap: 14px; margin-bottom: 14px; }
+.room-self { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 12px; background: #0b0b0e; transform: scaleX(-1); }
+.room-role { display: grid; align-content: center; gap: 6px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-2); }
+.role-badge { width: fit-content; padding: 3px 10px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent-strong); font-size: 11px; }
+.room-role strong { font-size: 15px; }
+.room-role p { margin: 0; color: var(--text-3); font-size: 12px; }
+@media (max-width: 720px) { .room { grid-template-columns: 1fr; } }
+
+.mode-link { color: var(--text-3); font-size: 12px; }
+
+.engine-switch button, .status, .mode-link { white-space: nowrap; }
 </style>

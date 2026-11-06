@@ -128,6 +128,7 @@ async def save_voice_session(
     durationSeconds: Annotated[int | None, Form()] = None,
     engine: Annotated[str, Form()] = "doubao",
     audio: Annotated[UploadFile | None, File()] = None,
+    video: Annotated[UploadFile | None, File()] = None,
 ) -> dict:
     """保存语音会话；若带音频，用本地模型分析语速与停顿。"""
     from app.features.evaluations.delivery import analyze
@@ -141,7 +142,26 @@ async def save_voice_session(
 
     delivery: dict | None = None
     recording_path: str | None = None
-    if audio is not None:
+    channel = "VOICE"
+    if video is not None:
+        # 实时视频房间：浏览器同时录音与录像，这里保存整段视频并做人脸技术指标
+        suffix = Path(video.filename or "room.webm").suffix or ".webm"
+        handle = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+        try:
+            shutil.copyfileobj(video.file, handle)
+            handle.close()
+            from app.features.video.metrics import analyze_video
+
+            delivery = await asyncio.to_thread(analyze, handle.name)
+            vision = await asyncio.to_thread(analyze_video, handle.name)
+            recording_path = storage.save_file(Path(handle.name), suffix)
+        finally:
+            Path(handle.name).unlink(missing_ok=True)
+        channel = "VIDEO"
+        if delivery is None:
+            delivery = {}
+        delivery = {**delivery, "vision": vision, "engine": engine}
+    elif audio is not None:
         suffix = Path(audio.filename or "voice.webm").suffix or ".webm"
         handle = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
         try:
@@ -160,6 +180,7 @@ async def save_voice_session(
         duration_seconds=durationSeconds,
         delivery=delivery or None,
         engine=engine if engine in {"doubao", "pipeline"} else "doubao",
+        channel=channel,
         recording_path=recording_path,
     )
     return ok({"id": session_id, "delivery": delivery or None, "recordingUrl": storage.url_of(recording_path)})

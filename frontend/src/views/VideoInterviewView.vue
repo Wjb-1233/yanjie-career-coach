@@ -266,6 +266,9 @@ onBeforeUnmount(closeCamera)
       <p class="kicker">视频面试 · {{ scene?.category ?? 'HR 初面' }}</p>
       <h1>{{ scene?.title ?? '视频面试' }}</h1>
       <p class="lead">摄像头对着自己回答，结束后会给出内容评分和镜头表现分析。</p>
+      <RouterLink class="live-link" :to="{ name: 'voice', query: { sceneId, video: '1', ...(planId ? { planId, taskKey } : {}) } }">
+        改用实时视频房间（面试官语音提问）→
+      </RouterLink>
     </header>
 
     <p v-if="error" class="error">{{ error }}</p>
@@ -371,4 +374,6 @@ onBeforeUnmount(closeCamera)
 .precheck li em { margin-left: auto; color: var(--text-2); font-style: normal; }
 .precheck .mini { margin-left: auto; padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text-2); font-size: 11px; cursor: pointer; }
 .voice-fallback { width: fit-content; margin: 0 0 12px; padding: 0; border: 0; background: none; color: var(--accent-strong); font-size: 12px; cursor: pointer; }
+
+.live-link { display: inline-block; margin-top: 8px; color: var(--accent-strong); font-size: 12.5px; }
 </style>
