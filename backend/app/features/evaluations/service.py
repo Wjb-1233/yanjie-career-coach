@@ -8,6 +8,7 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core import metrics
 from app.core.errors import AppError, not_found
 from app.db.models import (
     Course,
@@ -219,6 +220,7 @@ async def evaluate_session(
             logger.warning("evaluation.llm_degraded error_type=%s", type(exc).__name__)
 
     degraded = not payloads
+    metrics.incr_event("evaluation", "degraded" if degraded else "ok")
     stability: dict | None = None
     if payloads:
         payload = _median_payload(payloads)

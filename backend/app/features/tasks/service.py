@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 
+from app.core import metrics
 from app.core.config import settings
 from app.db.base import session_factory
 from app.db.models import AnalysisTask
@@ -178,6 +179,7 @@ async def _run_once() -> bool:
     except Exception as exc:  # noqa: BLE001
         logger.warning("task.failed kind=%s error_type=%s", task.kind, type(exc).__name__)
         stage = (task.stage or "处理").strip()
+        metrics.incr_event("analysis_task", "failed")
         await _update(task.id, status="FAILED", stage=f"{stage}失败", error=str(exc)[:300])
     return True
 

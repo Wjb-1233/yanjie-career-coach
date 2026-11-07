@@ -1,0 +1,60 @@
+# 告警规则示例：对应言阶的 /metrics 指标
+groups:
+  - name: yanjie-api
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m]))
+            /
+          clamp_min(sum(rate(http_requests_total[5m])), 0.001) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "5xx 比例超过 5%"
+          description: "过去 5 分钟 5xx 占比 {{ $value | humanizePercentage }}，检查 backend 日志中的 traceback"
+
+      - alert: SlowApiP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le)
+          ) > 3
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API P95 延迟超过 3 秒"
+          description: "当前 P95 {{ $value }}s；先看是否模型调用变慢或数据库锁等待"
+
+      - alert: NoTraffic
+        expr: sum(rate(http_requests_total[10m])) == 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "10 分钟没有请求"
+          description: "确认是否服务未启动、nginx 未转发或上游负载均衡摘除"
+
+  - name: yanjie-business
+    rules:
+      - alert: EvaluationDegradedSpike
+        expr: |
+          sum(rate(app_events_total{event="evaluation",outcome="degraded"}[15m]))
+            /
+          clamp_min(sum(rate(app_events_total{event="evaluation"}[15m])), 0.001) > 0.2
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "降级评分占比超过 20%"
+          description: "模型接口不稳定或 Key 失效；用户可在报告页重新评分，但需尽快排查"
+
+      - alert: AnalysisTaskFailures
+        expr: increase(app_events_total{event="analysis_task",outcome="failed"}[30m]) > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "30 分钟内视频分析任务失败超过 3 次"
+          description: "检查 ffmpeg/whisper 依赖、磁盘空间与上传文件格式"

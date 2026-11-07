@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import re
 
+from app.core import metrics
 from app.core.errors import AppError
 from app.infrastructure.llm import llm_gateway
 
@@ -151,6 +152,7 @@ async def draft_from_jd(
         )
     except Exception as exc:  # noqa: BLE001
         logger.warning("scene.draft_failed error_type=%s", type(exc).__name__)
+        metrics.incr_event("scene_draft", "degraded")
         return _fallback_draft(jd, position, category, difficulty)
 
     return _clean_draft(raw, position, category, difficulty, jd)

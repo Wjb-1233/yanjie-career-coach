@@ -3,11 +3,12 @@ import logging
 from time import perf_counter
 from uuid import uuid4
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from app.core import metrics
 from app.core.config import settings
 from app.core.errors import (
     AppError,
@@ -152,17 +153,28 @@ async def request_id_middleware(request: Request, call_next):
     response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
     if settings.environment == "production":
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    elapsed = perf_counter() - started
+    route = getattr(request.scope.get("route"), "path", None) or "unmatched"
+    if request.url.path != "/metrics":
+        metrics.observe_request(request.method, route, response.status_code, elapsed)
     logger.info(
         "request.completed",
         extra={
             "request_id": request.state.request_id,
             "method": request.method,
             "path": request.url.path,
+            "route": route,
             "status_code": response.status_code,
-            "duration_ms": round((perf_counter() - started) * 1000, 2),
+            "duration_ms": round(elapsed * 1000, 2),
         },
     )
     return response
+
+
+@app.get("/metrics", include_in_schema=False)
+async def prometheus_metrics() -> Response:
+    """Prometheus 抓取端点；只暴露聚合指标，不含用户数据。"""
+    return Response(content=metrics.render(), media_type="text/plain; version=0.0.4; charset=utf-8")
 
 
 app.add_exception_handler(AppError, app_error_handler)
