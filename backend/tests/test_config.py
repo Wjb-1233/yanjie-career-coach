@@ -1,4 +1,4 @@
-import pytest
+﻿import pytest
 from pydantic import ValidationError
 
 from app.core.config import Settings, settings
@@ -14,7 +14,6 @@ def production_settings(**overrides: object) -> dict[str, object]:
         "llm_api_key": "test-key",
         "redis_enabled": True,
         "redis_password": "a-strong-redis-password-32-characters",
-        "milvus_enabled": True,
         "_env_file": None,
     }
     values.update(overrides)
@@ -67,3 +66,4 @@ def test_test_suite_uses_disposable_database() -> None:
     assert settings.environment == "test"
     assert settings.database_url.startswith("sqlite+aiosqlite:///")
     assert "career-coach-pytest-" in settings.database_url
+

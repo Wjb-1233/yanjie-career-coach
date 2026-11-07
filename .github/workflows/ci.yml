@@ -54,3 +54,21 @@ jobs:
 
       - name: 构建
         run: npm run build
+
+  deploy-config:
+    name: 部署配置校验
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 校验生产 compose
+        run: docker compose -f docker-compose.prod.yml --env-file .env.production.example config -q
+
+      - name: 校验 nginx 配置
+        run: |
+          docker run --rm --add-host backend:127.0.0.1 \
+            -v "$PWD/frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
+            nginx:1.27-alpine nginx -t
+
+      - name: 校验冒烟脚本可执行
+        run: python3 -m py_compile scripts/smoke_test.py

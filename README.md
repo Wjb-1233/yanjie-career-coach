@@ -195,13 +195,32 @@ $env:LOAD_TEST_PASSWORD='Student123!'
 .venv\Scripts\python.exe scripts\load_test.py --users 20 --output reports\load-test.json
 ```
 
+## 八、上线部署
+
+生产环境用两个镜像 + 四个容器：`web`（nginx 托管前端并反代 API）、`backend`（uvicorn）、`mysql`、`redis`。
+
+```bash
+cp .env.production.example .env      # 填域名、密码、模型 Key
+docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml run --rm backend alembic upgrade head
+python3 scripts/smoke_test.py --base https://your-domain.com
+```
+
+- 完整步骤（TLS、备份、升级、回滚、排查）：[`docs/部署指南.md`](docs/部署指南.md)
+- 冒烟脚本：`scripts/smoke_test.py`，一条命令检查健康、就绪、登录、场景、训练、评分、报告
+- 备份脚本：`scripts/backup.sh`（数据库 + 录像/微课/TTS，默认保留 14 天）
+
 ## 目录说明
 
 - `backend/app/features/`：登录、场景、话术、训练、评分、计划和看板业务
 - `backend/app/infrastructure/`：大模型、Redis 和 Milvus 接入
 - `backend/migrations/`：MySQL 数据库迁移
 - `frontend/src/`：Vue 3 页面、组件和接口调用
-- `docker-compose.yml`：MySQL、Redis、Milvus 及其必要依赖
+- `docker-compose.yml`：开发环境 MySQL、Redis、Milvus 及其必要依赖
+- `docker-compose.prod.yml`：生产编排（mysql / redis / backend / web）
+- `backend/Dockerfile`、`frontend/Dockerfile`、`frontend/nginx.conf`：生产镜像与反向代理
+- `scripts/smoke_test.py`、`scripts/backup.sh`：上线冒烟与备份
 - `docs/architecture.md`：系统架构说明
 - [`docs/技术说明.md`](docs/技术说明.md)：用了哪些模型、分数怎么算、语音与视频怎么接（答辩用）
 - `资料_Python版/`：已转换为 Python 技术栈的开题和任务资料

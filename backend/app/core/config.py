@@ -108,7 +108,10 @@ class Settings(BaseSettings):
         if self.redis_password is None or len(self.redis_password.get_secret_value()) < 24:
             problems.append("REDIS_PASSWORD 必须至少包含 24 个字符")
         if not self.milvus_enabled:
-            problems.append("MILVUS_ENABLED 必须为 true")
+            # 向量库缺失只影响课程检索质量，不阻塞启动
+            import logging
+
+            logging.getLogger(__name__).warning("production.milvus_disabled 课程检索将降级为关键词匹配")
         if not self.cors_origins or any(not origin.startswith("https://") for origin in self.cors_origins):
             problems.append("CORS_ORIGINS 必须全部使用 https://")
         if self.cookie_samesite == "none" and self.environment != "production":

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 
@@ -18,6 +18,8 @@ from app.db.models import AnalysisTask
 logger = logging.getLogger(__name__)
 
 POLL_INTERVAL = 1.5
+# RUNNING 超过这个时间没更新，视为进程崩溃留下的任务
+STALE_RUNNING_MINUTES = 15
 _running: asyncio.Task | None = None
 _stop = asyncio.Event()
 
@@ -43,12 +45,18 @@ async def _update(task_id: str, **fields) -> None:
 
 
 async def _claim_next() -> AnalysisTask | None:
+    """原子领取一个待办任务。
+
+    多进程部署时，`SKIP LOCKED` 保证同一任务只会被一个 worker 拿到；
+    只在事务内锁定，commit 后即释放。
+    """
     async with session_factory() as session:
         task = await session.scalar(
             select(AnalysisTask)
             .where(AnalysisTask.status == "PENDING")
             .order_by(AnalysisTask.created_at)
             .limit(1)
+            .with_for_update(skip_locked=True)
         )
         if task is None:
             return None
@@ -224,17 +232,31 @@ async def queue_eta(task_id: str) -> dict:
     }
 
 
-async def _worker() -> None:
-    # 进程重启时把「运行中但没跑完」的任务放回队列
+async def requeue_stale(minutes: int = STALE_RUNNING_MINUTES) -> int:
+    """把「长时间没有心跳」的 RUNNING 任务放回队列。
+
+    只回收超过 minutes 没更新的任务：多实例部署时不能抢别人正在跑的任务。
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=minutes)
     async with session_factory() as session:
         stale = (
-            await session.scalars(select(AnalysisTask).where(AnalysisTask.status == "RUNNING"))
+            await session.scalars(
+                select(AnalysisTask).where(
+                    AnalysisTask.status == "RUNNING",
+                    AnalysisTask.updated_at < cutoff,
+                )
+            )
         ).all()
         for item in stale:
             item.status = "PENDING"
             item.stage = "重新排队"
         if stale:
             await session.commit()
+        return len(stale)
+
+
+async def _worker() -> None:
+    await requeue_stale()
 
     running: set[asyncio.Task] = set()
     concurrency = max(1, settings.task_worker_concurrency)
@@ -242,20 +264,10 @@ async def _worker() -> None:
         running = {item for item in running if not item.done()}
         worked = False
         while len(running) < concurrency:
-            async with session_factory() as session:
-                task = await session.scalar(
-                    select(AnalysisTask)
-                    .where(AnalysisTask.status == "PENDING")
-                    .order_by(AnalysisTask.created_at)
-                    .limit(1)
-                )
-                if task is None:
-                    break
-                task.status = "RUNNING"
-                task.updated_at = datetime.now(timezone.utc)
-                await session.commit()
-                task_id = task.id
-            running.add(asyncio.create_task(_execute(task_id)))
+            task = await _claim_next()
+            if task is None:
+                break
+            running.add(asyncio.create_task(_execute(task.id)))
             worked = True
         if not worked:
             try:
