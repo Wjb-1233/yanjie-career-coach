@@ -122,6 +122,26 @@ const pauseMarks = computed(() => {
     .map((item) => ({ ...item, percent: Math.min(100, (item.start / speechDuration.value) * 100) }))
 })
 
+// 同题横向对比：这道题以前怎么答的
+interface SameQuestionAttempt { sessionId: string; startedAt: string; isCurrent: boolean; question: string; answer: string; overallScore: number | null; channel: string }
+const attempts = shallowRef<Record<number, SameQuestionAttempt[]>>({})
+const attemptsLoading = shallowRef<number | null>(null)
+
+async function loadAttempts(roundNo: number): Promise<void> {
+  if (attemptsLoading.value !== null) return
+  attemptsLoading.value = roundNo
+  try {
+    const response = await api.get<ApiEnvelope<{ attempts: SameQuestionAttempt[] }>>(
+      `/training-sessions/${route.params.id}/same-question/${roundNo}`,
+    )
+    attempts.value = { ...attempts.value, [roundNo]: response.data.data.attempts }
+  } catch (reason) {
+    error.value = errorMessage(reason)
+  } finally {
+    attemptsLoading.value = null
+  }
+}
+
 // ① 行动计划：把报告里散落的建议压成三件事
 interface PlannedAction { title: string; detail: string; label: string; to: RouteLocationRaw }
 const weeklyActions = computed<PlannedAction[]>(() => {
@@ -504,6 +524,26 @@ onMounted(async () => {
                 <span class="star-hint">{{ starHint(round.answer) }}</span>
               </div>
               <p v-if="round.flags.length" class="replay-flags">表达提醒：{{ round.flags.join('、') }}</p>
+              <div class="attempt-row">
+                <button type="button" class="mini" :disabled="attemptsLoading === round.roundNo" @click="loadAttempts(round.roundNo)">
+                  {{ attemptsLoading === round.roundNo ? '查找中…' : attempts[round.roundNo] ? '重新对比' : '同题对比' }}
+                </button>
+                <span v-if="attempts[round.roundNo]" class="attempt-hint">
+                  {{ attempts[round.roundNo].length ? `共 ${attempts[round.roundNo].length} 次历史作答` : '还没有历史作答' }}
+                </span>
+              </div>
+              <div v-if="attempts[round.roundNo]" class="attempt-list">
+                <article v-for="attempt in attempts[round.roundNo]" :key="attempt.sessionId + attempt.startedAt" class="attempt-item" :class="{ current: attempt.isCurrent }">
+                  <header>
+                    <span>{{ new Date(attempt.startedAt).toLocaleDateString('zh-CN') }}</span>
+                    <span v-if="attempt.isCurrent" class="tag">本次</span>
+                    <strong v-if="attempt.overallScore !== null" class="num">{{ attempt.overallScore }} 分</strong>
+                    <span class="star-label">STAR {{ starScore(starOf(attempt.answer)) }}/4</span>
+                  </header>
+                  <p>{{ attempt.answer }}</p>
+                  <p class="attempt-missing">{{ starHint(attempt.answer) }} · {{ attempt.answer.length }} 字</p>
+                </article>
+              </div>
             </div>
           </li>
         </ol>
@@ -1008,4 +1048,15 @@ onMounted(async () => {
 .pause-mark { position: absolute; bottom: 2px; width: 3px; border-radius: 2px; background: var(--accent); cursor: pointer; transition: opacity .14s var(--ease); }
 .pause-mark:hover { opacity: .65; }
 .timeline-scale { display: flex; justify-content: space-between; color: var(--text-3); font-size: 10.5px; }
+
+.attempt-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.attempt-hint { color: var(--text-3); font-size: 11px; }
+.attempt-list { display: grid; gap: 8px; margin-top: 10px; }
+.attempt-item { padding: 10px 12px; border: 1px solid var(--border); border-left: 2px solid var(--border); border-radius: 0 8px 8px 0; background: var(--bg-2); }
+.attempt-item.current { border-left-color: var(--accent); }
+.attempt-item header { display: flex; align-items: baseline; gap: 10px; color: var(--text-3); font-size: 11px; }
+.attempt-item header .tag { padding: 1px 6px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent-strong); font-size: 10px; }
+.attempt-item header strong { margin-left: auto; color: var(--text); font-size: 12.5px; }
+.attempt-item p { margin: 6px 0 0; color: var(--text-2); font-size: 12.5px; line-height: 1.75; }
+.attempt-item .attempt-missing { color: var(--text-3); font-size: 11px; }
 </style>

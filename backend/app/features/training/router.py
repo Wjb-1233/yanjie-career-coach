@@ -334,3 +334,14 @@ async def edit_transcript(
 
     await session.commit()
     return ok({"transcript": transcript, "rescoreRequired": True})
+
+
+@router.get("/{session_id}/same-question/{round_no}")
+async def same_question(
+    session_id: str, round_no: int, user: CurrentUser, session: DbSession
+) -> dict:
+    """同一道题在不同场次的回答，用于横向对比结构差异。"""
+    from app.features.training.comparison import same_question_attempts
+
+    attempts = await same_question_attempts(session, user.id, session_id, round_no)
+    return ok({"attempts": attempts})
