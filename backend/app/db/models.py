@@ -31,6 +31,8 @@ class User(TimestampMixin, Base):
     role: Mapped[str] = mapped_column(String(20), default="STUDENT", index=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # 生产环境开启邮箱验证后，新注册用户先为 false
+    email_verified: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     avatar: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 

@@ -7,6 +7,7 @@ from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.infrastructure import mailer
 from app.core.errors import AppError
 from app.core.security import create_access_token, hash_password, verify_password
 from app.db.models import RefreshToken, User
@@ -24,10 +25,22 @@ async def register(
     exists = await session.scalar(select(User.id).where(User.email == normalized))
     if exists:
         raise AppError(409, "EMAIL_EXISTS", "该邮箱已注册")
-    user = User(email=normalized, password_hash=hash_password(password), display_name=display_name)
+    # 只有「要求验证」且邮件服务可用时才把账号标记为待验证，避免用户被永久锁死
+    needs_verify = settings.require_email_verification and mailer.smtp_configured()
+    user = User(
+        email=normalized,
+        password_hash=hash_password(password),
+        display_name=display_name,
+        email_verified=not needs_verify,
+    )
     session.add(user)
     await session.flush()
-    return await issue_tokens(session, user)
+    result = await issue_tokens(session, user)
+    if needs_verify:
+        from app.features.auth.email_verify import send_verification
+
+        await send_verification(user)
+    return result
 
 
 async def login(session: AsyncSession, email: str, password: str) -> tuple[AuthResponse, str]:

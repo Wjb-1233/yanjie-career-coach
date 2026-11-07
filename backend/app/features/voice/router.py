@@ -20,6 +20,7 @@ from app.core.config import settings
 from app.core.errors import AppError
 from app.core.responses import ok
 from app.core.security import CurrentUser
+from app.features.auth.email_verify import require_verified
 from app.db.base import get_session
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
@@ -172,6 +173,7 @@ async def save_voice_session(
         finally:
             Path(handle.name).unlink(missing_ok=True)
 
+    require_verified(user)
     session_id = await create_voice_session(
         session,
         user.id,

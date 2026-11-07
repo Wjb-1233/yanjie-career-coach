@@ -35,6 +35,19 @@ def _send_sync(to: str, subject: str, body: str) -> None:
         smtp.send_message(message)
 
 
+async def send_email(to: str, subject: str, body: str) -> bool:
+    """通用发信；未配置 SMTP 时返回 False，由调用方决定回退策略。"""
+    if not smtp_configured():
+        logger.info("mail.skipped reason=smtp_not_configured to=%s", to)
+        return False
+    try:
+        await asyncio.to_thread(_send_sync, to, subject, body)
+        return True
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("mail.send_failed error_type=%s", type(exc).__name__)
+        return False
+
+
 async def send_password_reset(to: str, link: str, minutes: int) -> bool:
     if not smtp_configured():
         logger.info("mail.skipped reason=smtp_not_configured to=%s", to)

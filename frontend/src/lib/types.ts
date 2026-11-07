@@ -11,6 +11,7 @@ export interface User {
   role: 'STUDENT' | 'ADMIN'
   bio: string | null
   avatar: string | null
+  emailVerified?: boolean
 }
 
 export interface Scene {

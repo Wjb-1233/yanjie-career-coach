@@ -32,6 +32,7 @@ class UserView(ApiModel):
     role: str
     bio: str | None
     avatar: str | None = None
+    email_verified: bool = True
     created_at: str | None = None
 
     @classmethod
@@ -43,6 +44,7 @@ class UserView(ApiModel):
             role=user.role,
             bio=user.bio,
             avatar=getattr(user, "avatar", None),
+            email_verified=getattr(user, "email_verified", True),
             created_at=user.created_at.isoformat() if getattr(user, "created_at", None) else None,
         )
 
@@ -78,3 +80,7 @@ class PasswordResetRequest(ApiModel):
 class PasswordResetConfirm(ApiModel):
     token: str = Field(min_length=10, max_length=200)
     password: str = Field(min_length=8, max_length=72)
+
+
+class VerifyEmailConfirm(ApiModel):
+    token: str = Field(min_length=10, max_length=2000)

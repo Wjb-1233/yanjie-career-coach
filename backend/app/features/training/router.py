@@ -21,6 +21,7 @@ from app.features.training.schemas import (
     SendMessageRequest,
     TranscriptEditRequest,
 )
+from app.features.auth.email_verify import require_verified
 from app.features.training.service import (
     create_training_session,
     delete_training_session,
@@ -82,6 +83,7 @@ async def update_mistake_state(body: MistakeStateRequest, user: CurrentUser, ses
 
 @router.post("", status_code=201)
 async def create(body: CreateSessionRequest, user: CurrentUser, session: DbSession) -> dict:
+    require_verified(user)
     result = await create_training_session(
         session, user.id, body.scene_id, mode=body.mode, plan_id=body.plan_id, task_key=body.task_key
     )
@@ -99,6 +101,7 @@ async def create_with_resume(
         content = await file.read(MAX_RESUME_BYTES + 1)
     finally:
         await file.close()
+    require_verified(user)
     filename, resume_text = parse_resume(file.filename or "", content)
     await limit_model_user(user.id)
     result = await create_training_session(session, user.id, scene_id, filename, resume_text)

@@ -14,6 +14,7 @@ from app.features.auth import service
 from app.features.auth.service import account_stats, change_password, set_avatar
 from app.features.auth.schemas import (
     PasswordResetConfirm,
+    VerifyEmailConfirm,
     PasswordResetRequest,
     AccountDeleteRequest,
     AvatarRequest,
@@ -121,6 +122,25 @@ async def logout(
 @router.get("/me")
 async def me(user: CurrentUser) -> dict:
     return ok(UserView.from_orm_user(user).model_dump(by_alias=True))
+
+
+@router.post("/verify-email/request")
+async def request_email_verification(user: CurrentUser) -> dict:
+    """重发验证邮件；已配置 SMTP 才真的发送。"""
+    from app.features.auth.email_verify import send_verification
+
+    if user.email_verified:
+        return ok({"sent": False, "verified": True})
+    sent = await send_verification(user)
+    return ok({"sent": sent, "verified": False})
+
+
+@router.post("/verify-email/confirm")
+async def confirm_email(body: VerifyEmailConfirm, session: DbSession) -> dict:
+    from app.features.auth.email_verify import confirm
+
+    await confirm(session, body.token)
+    return ok({"verified": True})
 
 
 @router.post("/password-reset/request", dependencies=[Depends(limit_login)])

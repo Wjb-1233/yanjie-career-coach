@@ -6,6 +6,7 @@ import DashboardAbilityPanel from '@/components/dashboard/DashboardAbilityPanel.
 import EmptyState from '@/components/ui/EmptyState.vue'
 import DashboardScoreFeature from '@/components/dashboard/DashboardScoreFeature.vue'
 import ScoreTrend from '@/components/report/ScoreTrend.vue'
+import { useAuth } from '@/composables/useAuth'
 import { api, errorMessage } from '@/lib/api'
 import { stepTitle, taskRoute } from '@/lib/planActions'
 import type { ApiEnvelope, Scores, TrainingPlan } from '@/lib/types'
@@ -18,6 +19,24 @@ interface DashboardData {
   styleTags: string[]
   trends: Array<{ date: string; score: number; dimensions: Scores }>
   weaknesses: Array<{ dimension: string; averageScore: number; sampleCount: number }>
+}
+
+const auth = useAuth()
+const verifyBanner = computed(() => auth.user.value?.emailVerified === false)
+const resendState = shallowRef('')
+const resendBusy = shallowRef(false)
+
+async function resendVerification() {
+  if (resendBusy.value) return
+  resendBusy.value = true
+  try {
+    const response = await api.post('/auth/verify-email/request')
+    resendState.value = response.data.data.sent ? '验证邮件已发送，请查收' : '邮件服务未配置，请联系管理员'
+  } catch (reason) {
+    resendState.value = errorMessage(reason)
+  } finally {
+    resendBusy.value = false
+  }
 }
 
 const data = shallowRef<DashboardData | null>(null)
@@ -100,6 +119,17 @@ const todayAction = computed<{ eyebrow: string; title: string; detail: string; l
     </div>
 
     <template v-else>
+      <section v-if="verifyBanner" class="verify-banner panel">
+        <div>
+          <strong>还差一步：验证邮箱</strong>
+          <p>验证后即可开始训练。没收到邮件可以重新发送。</p>
+        </div>
+        <button class="button secondary" type="button" :disabled="resendBusy" @click="resendVerification">
+          {{ resendBusy ? '发送中…' : '重发验证邮件' }}
+        </button>
+        <span v-if="resendState" class="verify-state">{{ resendState }}</span>
+      </section>
+
       <DashboardScoreFeature
         :training-count="data.trainingCount"
         :latest-score="data.latestScore"
@@ -192,4 +222,9 @@ const todayAction = computed<{ eyebrow: string; title: string; detail: string; l
 .today-copy h2 { margin: 0; font-size: 16px; font-weight: 600; }
 .today-copy p { margin: 6px 0 0; color: var(--text-2); font-size: 12.5px; line-height: 1.7; }
 @media (max-width: 720px) { .today-card { flex-direction: column; align-items: flex-start; } }
+
+.verify-banner { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; padding: 14px 18px; border: 1px solid var(--accent); background: var(--accent-soft); }
+.verify-banner strong { display: block; font-size: 13.5px; }
+.verify-banner p { margin: 4px 0 0; color: var(--text-2); font-size: 12px; }
+.verify-state { color: var(--text-3); font-size: 11.5px; }
 </style>

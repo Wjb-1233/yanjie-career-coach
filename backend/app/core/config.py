@@ -64,6 +64,9 @@ class Settings(BaseSettings):
     smtp_starttls: bool = True
     app_public_url: str = "http://localhost:5173"
     password_reset_minutes: int = Field(default=30, ge=5, le=120)
+    # 生产建议开启：未验证邮箱的账号不能开始训练
+    require_email_verification: bool = False
+    email_verification_hours: int = Field(default=48, ge=1, le=168)
     model_warmup_enabled: bool = True
     task_worker_concurrency: int = Field(default=2, ge=1, le=4)
     # 成本治理：每个学员每天允许的模型调用次数（评分、追问、起草各算一次）
