@@ -55,6 +55,15 @@ class Settings(BaseSettings):
     recording_retention_days: int = Field(default=30, ge=1, le=365)
     recording_janitor_enabled: bool = True
     recording_signing_secret: str = ""
+    # 邮件：配置后忘记密码走邮件链接；不配则回退为管理员工单
+    smtp_host: str = ""
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    smtp_user: str = ""
+    smtp_password: SecretStr | None = None
+    smtp_from: str = ""
+    smtp_starttls: bool = True
+    app_public_url: str = "http://localhost:5173"
+    password_reset_minutes: int = Field(default=30, ge=5, le=120)
     model_warmup_enabled: bool = True
     task_worker_concurrency: int = Field(default=2, ge=1, le=4)
     # 成本治理：每个学员每天允许的模型调用次数（评分、追问、起草各算一次）

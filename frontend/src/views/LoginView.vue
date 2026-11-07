@@ -65,8 +65,8 @@ async function submitPasswordRequest() {
   forgotBusy.value = true
   forgotNotice.value = ''
   try {
-    await api.post('/auth/password-request', { email })
-    forgotNotice.value = '已提交申请。管理员重置后会给你一个临时密码。'
+    await api.post('/auth/password-reset/request', { email })
+    forgotNotice.value = '如果这个邮箱已注册，重置链接会发送到邮箱；未开通邮件服务时会转交管理员处理。'
   } catch (reason) {
     forgotNotice.value = errorMessage(reason)
   } finally {

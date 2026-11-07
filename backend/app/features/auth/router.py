@@ -13,6 +13,8 @@ from app.db.base import get_session
 from app.features.auth import service
 from app.features.auth.service import account_stats, change_password, set_avatar
 from app.features.auth.schemas import (
+    PasswordResetConfirm,
+    PasswordResetRequest,
     AccountDeleteRequest,
     AvatarRequest,
     DemoLoginRequest,
@@ -119,6 +121,23 @@ async def logout(
 @router.get("/me")
 async def me(user: CurrentUser) -> dict:
     return ok(UserView.from_orm_user(user).model_dump(by_alias=True))
+
+
+@router.post("/password-reset/request", dependencies=[Depends(limit_login)])
+async def password_reset_request(body: PasswordResetRequest, session: DbSession) -> dict:
+    """忘记密码：有邮件服务就发链接，没有就转管理员工单；总是返回成功。"""
+    from app.features.auth.password_reset import request_reset
+
+    await request_reset(session, body.email)
+    return ok({"submitted": True})
+
+
+@router.post("/password-reset/confirm")
+async def password_reset_confirm(body: PasswordResetConfirm, session: DbSession) -> dict:
+    from app.features.auth.password_reset import confirm_reset
+
+    await confirm_reset(session, body.token, body.password)
+    return ok({"reset": True})
 
 
 @router.post("/password-request")

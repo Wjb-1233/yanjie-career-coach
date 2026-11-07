@@ -69,3 +69,12 @@ class AvatarRequest(ApiModel):
 class AccountDeleteRequest(ApiModel):
     password: str = Field(min_length=8, max_length=72)
     confirm: str = Field(max_length=10)
+
+
+class PasswordResetRequest(ApiModel):
+    email: str = Field(min_length=3, max_length=254)
+
+
+class PasswordResetConfirm(ApiModel):
+    token: str = Field(min_length=10, max_length=200)
+    password: str = Field(min_length=8, max_length=72)
