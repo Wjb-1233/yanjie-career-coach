@@ -51,6 +51,63 @@ function blank(): FormState {
 }
 
 const form = ref<FormState>(blank())
+
+// P1：粘贴 JD 起草
+const jdText = ref('')
+const jdPosition = ref('')
+const drafting = ref(false)
+const draftNote = ref('')
+
+async function draftFromJd(): Promise<void> {
+  if (drafting.value) return
+  if (jdText.value.trim().length < 80) {
+    error.value = 'JD 太短了，至少粘贴 80 字，否则生成的问题会很空'
+    return
+  }
+  drafting.value = true
+  error.value = ''
+  try {
+    const response = await api.post<ApiEnvelope<{
+      title: string
+      industry: string
+      position: string
+      roleName: string
+      category: string
+      difficulty: string
+      background: string
+      goal: string
+      openingLine: string
+      competency: string | null
+      questions: Array<{ text: string; dimension: string }>
+      degraded: boolean
+    }>>('/my-scenes/draft-from-jd', {
+      jd: jdText.value.trim(),
+      position: jdPosition.value.trim() || '目标岗位',
+    })
+    const data = response.data.data
+    form.value = {
+      title: data.title,
+      industry: data.industry,
+      position: data.position,
+      roleName: data.roleName,
+      category: data.category,
+      difficulty: data.difficulty,
+      background: data.background,
+      goal: data.goal,
+      openingLine: data.openingLine,
+      competency: data.competency ?? '',
+      questions: data.questions.map((item) => ({ text: item.text, dimension: item.dimension || '内容与逻辑' })),
+    }
+    draftNote.value = data.degraded
+      ? '模型暂不可用，已按 JD 条目生成草稿，请逐条改成你想要的问题。'
+      : 'AI 已按 JD 起草，请逐条确认后再保存；不符合的要求直接改掉。'
+    showForm.value = true
+  } catch (reason) {
+    error.value = errorMessage(reason)
+  } finally {
+    drafting.value = false
+  }
+}
 const count = computed(() => scenes.value.length)
 
 async function load(): Promise<void> {
@@ -182,6 +239,23 @@ onMounted(load)
       <button class="button" type="button" @click="openCreate">创建第一个场景</button>
     </section>
 
+    <section class="jd-draft panel" aria-label="从 JD 起草">
+      <header>
+        <div>
+          <h2>粘贴 JD，自动起草</h2>
+          <p>只根据 JD 里的要求出题，不编造公司信息；生成后仍可逐条修改。</p>
+        </div>
+        <button class="button" type="button" :disabled="drafting" @click="draftFromJd">
+          {{ drafting ? '正在起草…' : '生成草稿' }}
+        </button>
+      </header>
+      <div class="jd-row">
+        <input v-model="jdPosition" class="field" maxlength="40" placeholder="目标岗位（可选）" />
+        <textarea v-model="jdText" class="field" rows="4" maxlength="4000" placeholder="把岗位 JD 粘贴到这里（至少 80 字）" />
+      </div>
+      <p v-if="draftNote" class="draft-note">{{ draftNote }}</p>
+    </section>
+
     <section v-if="showForm" class="editor panel">
       <header>
         <h2>{{ editingId ? '编辑场景' : '新建场景' }}</h2>
@@ -278,4 +352,12 @@ label { display: grid; gap: 6px; color: var(--text-3); font-size: 11.5px; }
   .dim, .mini { grid-column: 2; }
   .scene-item { flex-direction: column; align-items: flex-start; }
 }
+
+.jd-draft { margin: 22px 0 0; display: grid; gap: 10px; border: 1px solid var(--border); border-radius: 12px; }
+.jd-draft header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.jd-draft h2 { margin: 0; font-size: 15px; }
+.jd-draft p { margin: 4px 0 0; color: var(--text-3); font-size: 12px; line-height: 1.7; }
+.jd-row { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 10px; }
+.draft-note { color: var(--accent-strong) !important; }
+@media (max-width: 880px) { .jd-row { grid-template-columns: 1fr; } }
 </style>

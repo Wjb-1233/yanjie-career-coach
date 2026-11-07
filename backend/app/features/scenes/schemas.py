@@ -41,3 +41,10 @@ class MyScenePayload(ApiModel):
     competency: str | None = Field(default=None, max_length=30)
     tags: list[str] = Field(default_factory=list, max_length=6)
     questions: list[dict] = Field(default_factory=list, min_length=1, max_length=8)
+
+
+class JdDraftRequest(ApiModel):
+    jd: str = Field(min_length=1, max_length=4000)
+    position: str = Field(default="", max_length=40)
+    category: str = Field(default="自定义", max_length=30)
+    difficulty: str = Field(default="中级", max_length=10)
