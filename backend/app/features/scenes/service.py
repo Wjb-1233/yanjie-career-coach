@@ -5,6 +5,28 @@ from app.core.errors import not_found
 from app.db.models import Favorite, Scene
 from app.features.scenes.schemas import SceneView
 
+# 分类 → 岗位能力（与迁移 20261105_0032 的映射保持一致）
+COMPETENCY_BY_CATEGORY = {
+    "HR 初面": "求职动机与稳定性",
+    "HRBP/HR 终面": "求职动机与稳定性",
+    "技术一面": "技术深度",
+    "技术二面/复面": "技术深度",
+    "交叉面/总监面": "协作与影响力",
+    "大老板/高管终面": "协作与影响力",
+    "基础能力提升": "表达基本功",
+}
+
+
+def competency_of(scene: Scene) -> str:
+    return scene.competency or COMPETENCY_BY_CATEGORY.get(scene.category, "沟通表达")
+
+
+def _with_competency(scene: Scene) -> Scene:
+    """老数据没有 competency 时按分类兜底，保证前端永远拿得到能力标签。"""
+    if not scene.competency:
+        scene.competency = competency_of(scene)
+    return scene
+
 
 async def get_scene(session: AsyncSession, scene_id: str) -> Scene:
     scene = await session.get(Scene, scene_id)
@@ -21,7 +43,7 @@ async def list_favorites(session: AsyncSession, user_id: str) -> list[SceneView]
             .order_by(Scene.created_at.desc())
         )
     ).all()
-    return [SceneView.model_validate(scene).model_copy(update={"favorite": True}) for scene in scenes]
+    return [SceneView.model_validate(_with_competency(scene)).model_copy(update={"favorite": True}) for scene in scenes]
 
 
 async def list_scenes(
@@ -66,7 +88,7 @@ async def list_scenes(
         )
     ).all()
     return [
-        SceneView.model_validate(scene).model_copy(update={"favorite": favorite})
+        SceneView.model_validate(_with_competency(scene)).model_copy(update={"favorite": favorite})
         for scene, favorite in rows
     ]
 

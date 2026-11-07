@@ -21,5 +21,6 @@ class SceneView(ApiModel):
     goal: str
     tags: list[str]
     opening_line: str
+    competency: str | None = None
     favorite: bool = False
 

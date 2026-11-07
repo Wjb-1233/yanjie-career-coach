@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, shallowRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import type { RouteLocationRaw } from 'vue-router'
 
 import AnimatedNumber from '@/components/report/AnimatedNumber.vue'
 import ScoreEvidencePanel from '@/components/report/ScoreEvidencePanel.vue'
@@ -106,6 +107,81 @@ const deliveryStats = computed(() => {
   if (!raw || !raw.speechRate) return null
   return raw
 })
+
+// ③ 表达指标时间轴：停顿点落在录音的哪一秒，点击可跳转
+const speechDuration = computed(() => {
+  const raw = session.value?.delivery
+  return Math.max(1, Math.round(session.value?.durationSeconds ?? raw?.durationSeconds ?? 0))
+})
+
+const pauseMarks = computed(() => {
+  const pauses = (session.value?.delivery as unknown as { pauses?: Array<{ start: number; end: number; seconds: number }> } | undefined)?.pauses ?? []
+  return pauses
+    .filter((item) => item.seconds >= 0.6)
+    .slice(0, 12)
+    .map((item) => ({ ...item, percent: Math.min(100, (item.start / speechDuration.value) * 100) }))
+})
+
+// ① 行动计划：把报告里散落的建议压成三件事
+interface PlannedAction { title: string; detail: string; label: string; to: RouteLocationRaw }
+const weeklyActions = computed<PlannedAction[]>(() => {
+  const current = evaluation.value
+  if (!current) return []
+  const actions: PlannedAction[] = []
+  const weakest = [...DIMS].sort((a, b) => (current.scores[a] ?? 0) - (current.scores[b] ?? 0))[0]
+  const evidence = current.evidence.find((item) => item.dimension === weakest)
+  if (evidence) {
+    actions.push({
+      title: `先把「${labels[weakest]}」这一维拉起来`,
+      detail: evidence.nextAction || evidence.reason || '按证据里的问题重写这一轮回答。',
+      label: '去改这句',
+      to: {
+        name: 'scripts',
+        query: {
+          sceneId: session.value?.sceneId ?? '',
+          original: evidence.quote,
+          dimension: labels[weakest],
+          objective: evidence.reason ?? '',
+        },
+      },
+    })
+  }
+  const filler = current.speechStats?.topFillers?.[0]
+  if (filler) {
+    actions.push({
+      title: `这次只砍一个口头禅：「${filler.word}」`,
+      detail: `本场出现 ${filler.count} 次。下一场刻意停顿 0.5 秒代替「${filler.word}」，比硬背稿有效。`,
+      label: '再练一场',
+      to: { name: 'scenes', query: { sceneId: session.value?.sceneId ?? '' } },
+    })
+  }
+  const upgrade = current.upgrades?.[0]
+  if (upgrade) {
+    actions.push({
+      title: '把一句空话换成一个具体结果',
+      detail: `${upgrade.problem.replace(/。$/, '')}：${upgrade.original} → ${upgrade.improved}`,
+      label: '看全部改写',
+      to: { name: 'scripts', query: { sceneId: session.value?.sceneId ?? '', original: upgrade.original } },
+    })
+  }
+  return actions.slice(0, 3)
+})
+
+// ② 逐题考察点：这一轮问的是什么维度、得分多少、证据里缺什么
+function roundRubric(roundNo: number): { dimension: string; score: number; note: string } | null {
+  const current = evaluation.value
+  if (!current) return null
+  const planned = session.value?.questionPlan?.[roundNo - 1]
+  const evidence = current.evidence.find((item) => item.roundNo === roundNo)
+  if (!planned && !evidence) return null
+  const key = (evidence?.dimension ?? planned?.dimension ?? '') as keyof Scores
+  const dimension = labels[key] ?? evidence?.dimension ?? planned?.dimension ?? '综合表达'
+  return {
+    dimension,
+    score: key in labels ? current.scores[key] : 0,
+    note: evidence?.reason ?? '',
+  }
+}
 
 const labels: Record<keyof Scores, string> = { logic: '内容与逻辑', relevance: '贴合问题', correctness: '信息完整', concision: '表达干净' }
 
@@ -383,6 +459,20 @@ onMounted(async () => {
         </ul>
       </section>
 
+      <section v-if="weeklyActions.length" class="actions-card panel">
+        <header><h2>接下来只做三件事</h2><span>按顺序做，别一次改所有问题</span></header>
+        <ol>
+          <li v-for="(action, index) in weeklyActions" :key="action.title">
+            <span class="action-no num">0{{ index + 1 }}</span>
+            <div>
+              <strong>{{ action.title }}</strong>
+              <p>{{ action.detail }}</p>
+            </div>
+            <RouterLink class="button secondary compact" :to="action.to">{{ action.label }}</RouterLink>
+          </li>
+        </ol>
+      </section>
+
       <section class="summary">
         <p class="label">教练总评</p>
         <p class="summary-text">{{ evaluation.summary }}</p>
@@ -401,6 +491,11 @@ onMounted(async () => {
             <div class="replay-body">
               <p class="replay-q">{{ round.question }}</p>
               <p class="replay-a">{{ round.answer }}</p>
+              <p v-if="roundRubric(round.roundNo)" class="rubric-line">
+                <span class="rubric-dim">考察 · {{ roundRubric(round.roundNo)?.dimension }}</span>
+                <span v-if="roundRubric(round.roundNo)?.score" class="rubric-score">{{ roundRubric(round.roundNo)?.score }} / 5</span>
+                <span v-if="roundRubric(round.roundNo)?.note" class="rubric-note">{{ roundRubric(round.roundNo)?.note }}</span>
+              </p>
               <div class="star-row" :class="`star-${starScore(starOf(round.answer))}`">
                 <span class="star-label">STAR {{ starScore(starOf(round.answer)) }}/4</span>
                 <span v-for="key in (['situation','task','action','result'] as const)" :key="key" class="star-dot" :class="{ on: starOf(round.answer)[key] }">
@@ -532,6 +627,23 @@ onMounted(async () => {
           <span class="tag">说话 {{ deliveryStats.charCount }} 字</span>
           <span v-if="deliveryStats.fillerTotal" class="tag">填充词 {{ deliveryStats.fillerTotal }} 次</span>
         </p>
+        <div v-if="pauseMarks.length && session?.recordingUrl" class="pause-timeline">
+          <div class="timeline-head">
+            <span>停顿分布</span>
+            <span>{{ pauseMarks.length }} 处 ≥ 0.6 秒 · 点击跳到录音位置</span>
+          </div>
+          <div class="timeline-track">
+            <i
+              v-for="(mark, index) in pauseMarks"
+              :key="index"
+              class="pause-mark"
+              :style="{ left: `${mark.percent}%`, height: `${Math.min(22, 8 + mark.seconds * 4)}px` }"
+              :title="`${mark.start.toFixed(1)}s 停顿 ${mark.seconds.toFixed(1)}s`"
+              @click="replaySeek(mark.start)"
+            />
+          </div>
+          <div class="timeline-scale"><span>0s</span><span>{{ speechDuration }}s</span></div>
+        </div>
       </section>
 
       <section v-if="session?.jobMatch" class="speech panel">
@@ -878,4 +990,22 @@ onMounted(async () => {
 .share-note h2 { margin: 0 0 6px; }
 .share-note p { margin: 0 0 8px; color: var(--text-3); font-size: 12.5px; line-height: 1.7; }
 .share-note code { padding: 6px 10px; border-radius: 6px; background: var(--bg-2); color: var(--text-2); font-size: 12px; word-break: break-all; }
+.actions-card header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.actions-card header span { color: var(--text-3); font-size: 11.5px; }
+.actions-card ol { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }
+.actions-card li { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding-top: 12px; border-top: 1px solid var(--divider); }
+.actions-card li:first-child { border-top: 0; padding-top: 0; }
+.action-no { color: var(--accent-strong); font-size: 12px; padding-top: 2px; }
+.actions-card strong { display: block; color: var(--text); font-size: 13.5px; font-weight: 600; }
+.actions-card p { margin: 4px 0 0; color: var(--text-2); font-size: 12.5px; line-height: 1.75; }
+.rubric-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin: 8px 0 0; font-size: 11.5px; }
+.rubric-dim { padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--text-2); }
+.rubric-score { color: var(--text); font-variant-numeric: tabular-nums; }
+.rubric-note { color: var(--text-3); }
+.pause-timeline { margin-top: 14px; }
+.timeline-head { display: flex; justify-content: space-between; color: var(--text-3); font-size: 11.5px; }
+.timeline-track { position: relative; height: 26px; margin: 6px 0 2px; border-radius: 4px; background: linear-gradient(90deg, var(--track), var(--track)); }
+.pause-mark { position: absolute; bottom: 2px; width: 3px; border-radius: 2px; background: var(--accent); cursor: pointer; transition: opacity .14s var(--ease); }
+.pause-mark:hover { opacity: .65; }
+.timeline-scale { display: flex; justify-content: space-between; color: var(--text-3); font-size: 10.5px; }
 </style>

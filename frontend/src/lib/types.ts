@@ -25,6 +25,7 @@ export interface Scene {
   goal: string
   tags: string[]
   openingLine: string
+  competency?: string | null
   favorite: boolean
 }
 

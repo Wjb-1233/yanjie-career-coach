@@ -8,6 +8,7 @@ from app.core.security import CurrentUser
 from app.db.base import get_session
 from app.features.scenes import service
 from app.features.scenes.schemas import SceneView
+from app.features.scenes.service import _with_competency
 
 router = APIRouter(prefix="/scenes", tags=["场景库"])
 DbSession = Annotated[AsyncSession, Depends(get_session)]
@@ -38,7 +39,7 @@ async def favorite_scenes(user: CurrentUser, session: DbSession) -> dict:
 @router.get("/{scene_id}")
 async def get_scene(scene_id: str, session: DbSession, user: CurrentUser) -> dict:
     scene = await service.get_scene(session, scene_id)
-    return ok(SceneView.model_validate(scene).model_dump(by_alias=True))
+    return ok(SceneView.model_validate(_with_competency(scene)).model_dump(by_alias=True))
 
 
 @router.post("/{scene_id}/favorite")

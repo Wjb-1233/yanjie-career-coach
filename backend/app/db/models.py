@@ -60,6 +60,8 @@ class Scene(TimestampMixin, Base):
     core_idea: Mapped[str | None] = mapped_column(Text, nullable=True)
     question_bank: Mapped[list[str] | None] = mapped_column(JSON, nullable=True, default=list)
     scene_fit: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # 岗位能力标签（技术深度 / 沟通表达 / 协作与影响力…），用于把题库挂到能力模型
+    competency: Mapped[str | None] = mapped_column(String(30), nullable=True, index=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     __table_args__ = (Index("idx_scenes_category_active", "category", "active"),)
 

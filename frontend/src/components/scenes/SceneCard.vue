@@ -10,6 +10,7 @@ const emit = defineEmits<{ start: [scene: Scene, mode: 'text' | 'voice' | 'video
   <article class="scene-card">
     <div class="scene-topline">
       <span class="category">{{ scene.category }}</span>
+      <span v-if="scene.competency" class="competency">{{ scene.competency }}</span>
       <button class="favorite" type="button" :aria-label="scene.favorite ? '取消收藏' : '收藏场景'" @click="emit('favorite', scene)">
         {{ scene.favorite ? '◆' : '◇' }}
       </button>
@@ -40,6 +41,7 @@ const emit = defineEmits<{ start: [scene: Scene, mode: 'text' | 'voice' | 'video
 .scene-card { min-height: 332px; padding: 25px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--line); border-radius:var(--radius); background:var(--card); box-shadow: 0 7px 22px rgba(16,37,43,.035); transition: transform .2s, box-shadow .2s, border-color .2s; }
 .scene-card:hover { transform: translateY(-3px); border-color: #a8cdc5; box-shadow: 0 19px 42px rgba(16,37,43,.1); }
 .scene-topline { display: flex; align-items: center; justify-content: space-between; }
+.competency { padding: 4px 9px; border: 1px solid var(--border); border-radius: 5px; color: var(--text-3); font-size: 11px; }
 .category { padding: 4px 9px; border-radius: 5px; background: var(--accent-soft); color: var(--accent-strong); font-size: 11px; font-weight: 600; letter-spacing: .02em; }
 .favorite { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 50%; background:var(--card); color: var(--signal); cursor: pointer; }
 .scene-main { flex: 1; }

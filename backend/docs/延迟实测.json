@@ -1,0 +1,57 @@
+{
+  "generatedAt": "2026-11-06 19:03",
+  "rounds": 5,
+  "warmupSession": "42ca27cb-79b4-4bf2-a5cc-b2007ce114fc",
+  "metrics": [
+    {
+      "name": "文字 · 首 token",
+      "count": 4,
+      "p50": 4282.7,
+      "p95": 4589.5,
+      "mean": 4187.6,
+      "max": 4589.5
+    },
+    {
+      "name": "文字 · 整轮回复",
+      "count": 4,
+      "p50": 4641.8,
+      "p95": 4819.4,
+      "mean": 4498.35,
+      "max": 4819.4
+    },
+    {
+      "name": "语音 · 说完到首个回应",
+      "count": 0
+    }
+  ],
+  "samples": {
+    "text": [
+      {
+        "round": 1,
+        "first_token_ms": 3763.5,
+        "total_ms": 4034.5
+      },
+      {
+        "round": 2,
+        "first_token_ms": 4589.5,
+        "total_ms": 4819.4
+      },
+      {
+        "round": 3,
+        "first_token_ms": 4127.2,
+        "total_ms": 4490.2
+      },
+      {
+        "round": 4,
+        "first_token_ms": 4282.7,
+        "total_ms": 4641.8
+      },
+      {
+        "round": 5,
+        "first_token_ms": 3751.0,
+        "total_ms": 4042.0
+      }
+    ],
+    "voice_error": "ConnectionClosedOK: received 1000 (OK); then sent 1000 (OK)"
+  }
+}
