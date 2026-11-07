@@ -43,7 +43,7 @@ async def list_favorites(session: AsyncSession, user_id: str) -> list[SceneView]
             .order_by(Scene.created_at.desc())
         )
     ).all()
-    return [SceneView.model_validate(_with_competency(scene)).model_copy(update={"favorite": True}) for scene in scenes]
+    return [SceneView.model_validate(_with_competency(scene)).model_copy(update={"favorite": True, "mine": scene.owner_id == user_id}) for scene in scenes]
 
 
 async def list_scenes(
@@ -61,7 +61,7 @@ async def list_scenes(
     statement = (
         select(Scene, Favorite.user_id.is_not(None).label("favorite"))
         .outerjoin(Favorite, favorite_match)
-        .where(Scene.active.is_(True))
+        .where(Scene.active.is_(True), or_(Scene.visibility == 'public', Scene.owner_id == user_id))
     )
     if category:
         statement = statement.where(Scene.category == category)
@@ -88,7 +88,7 @@ async def list_scenes(
         )
     ).all()
     return [
-        SceneView.model_validate(_with_competency(scene)).model_copy(update={"favorite": favorite})
+        SceneView.model_validate(_with_competency(scene)).model_copy(update={"favorite": favorite, "mine": scene.owner_id == user_id})
         for scene, favorite in rows
     ]
 

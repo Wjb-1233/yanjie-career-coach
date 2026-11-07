@@ -959,13 +959,13 @@ tbody tr:hover { background: var(--overlay-1); }
   box-shadow: 0 12px 32px -18px rgba(16, 16, 20, .28);
 }
 :root[data-theme='light'] .button {
-  background: var(--text);
-  border-color: var(--text);
-  color: var(--on-solid);
-}
-:root[data-theme='light'] .button:hover {
   background: var(--accent);
   border-color: var(--accent);
+  color: #fff;
+}
+:root[data-theme='light'] .button:hover {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
 }
 :root[data-theme='light'] .button.secondary {
   background: transparent;

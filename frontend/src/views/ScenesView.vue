@@ -123,6 +123,7 @@ async function confirmStart(file: File | null): Promise<void> {
       <div class="catalog-heading"><div><p class="eyebrow">练习库</p><h2>选择一场对练</h2></div><span>{{ visibleScenes.length }} 个匹配场景</span></div>
       <div v-if="recommendedSceneId" class="focus-notice">已打开指定训练场景。<RouterLink :to="foundationFocus ? '/practice' : '/scenes'">{{ foundationFocus ? '返回通用练习' : '查看全部场景' }} →</RouterLink></div>
       <div v-else class="filters">
+        <div class="my-scenes-link"><RouterLink to="/my-scenes">按自己的岗位建一个场景 →</RouterLink></div>
         <div class="metadata-filters">
           <SelectField
             :model-value="activeIndustry"
@@ -239,5 +240,8 @@ async function confirmStart(file: File | null): Promise<void> {
 :root[data-theme='dark'] .hero-aside { border-left-color: var(--border); }
 :root[data-theme='dark'] .hero-aside span { color: rgba(255, 255, 255, .55); }
 :root[data-theme='dark'] .hero-aside strong { color: #fff; }
+
+.my-scenes-link { margin: 10px 0 0; }
+.my-scenes-link a { color: var(--accent-strong); font-size: 12.5px; }
 </style>
 

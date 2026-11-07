@@ -27,6 +27,7 @@ from app.features.dashboard.router import router as dashboard_router
 from app.features.evaluations.router import router as evaluations_router
 from app.features.health.router import router as health_router
 from app.features.plans.router import router as plans_router
+from app.features.scenes.mine_router import router as mine_scenes_router
 from app.features.scenes.router import router as scenes_router
 from app.features.share.router import router as share_router
 from app.features.scripts.router import router as scripts_router
@@ -172,6 +173,7 @@ for api_router in (
     health_router,
     auth_router,
     scenes_router,
+    mine_scenes_router,
     scripts_router,
     training_router,
     evaluations_router,

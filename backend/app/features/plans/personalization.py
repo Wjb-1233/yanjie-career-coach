@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Evaluation, MistakeState, Scene, SkillState, TrainingSession
@@ -141,12 +141,26 @@ async def recommend_scenes(
             .limit(3)
         )
     ).all()
-    scenes = (await session.scalars(select(Scene).where(Scene.active.is_(True)))).all()
+    scenes = (
+        await session.scalars(
+            select(Scene).where(
+                Scene.active.is_(True),
+                or_(Scene.visibility == 'public', Scene.owner_id == user_id),
+            )
+        )
+    ).all()
     if scenes and all(scene.scene_fit is None for scene in scenes):
         from app.features.plans.scene_fit import refresh_scene_fit
 
         await refresh_scene_fit(session)
-        scenes = (await session.scalars(select(Scene).where(Scene.active.is_(True)))).all()
+        scenes = (
+            await session.scalars(
+                select(Scene).where(
+                    Scene.active.is_(True),
+                    or_(Scene.visibility == 'public', Scene.owner_id == user_id),
+                )
+            )
+        ).all()
     scored: list[tuple[float, Scene, str]] = []
     for scene in scenes:
         if scene.id in recent:
