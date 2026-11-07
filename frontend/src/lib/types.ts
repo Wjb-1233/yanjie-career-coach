@@ -26,6 +26,10 @@ export interface Scene {
   tags: string[]
   openingLine: string
   competency?: string | null
+  questionBank?: Array<{ text?: string; dimension?: string | null } | string>
+  mine?: boolean
+  source?: string
+  visibility?: string
   favorite: boolean
 }
 

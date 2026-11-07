@@ -11,6 +11,7 @@ from app.core.responses import ok
 from app.infrastructure.rate_limit import limit_model_user
 from app.core.security import CurrentUser
 from app.db.base import get_session
+from app.features.scenes import copy as scene_copy
 from app.features.scenes import mine
 from app.features.scenes import draft
 from app.features.scenes.schemas import JdDraftRequest, MyScenePayload
@@ -62,3 +63,10 @@ async def draft_scene(body: JdDraftRequest, user: CurrentUser) -> dict:
         body.difficulty or "中级",
     )
     return ok(result)
+
+
+@router.post("/from-scene/{scene_id}", status_code=201)
+async def copy_builtin_scene(scene_id: str, user: CurrentUser, session: DbSession) -> dict:
+    """把一个场景复制成我的场景，之后可以自由修改。"""
+    scene = await scene_copy.copy_scene(session, user.id, scene_id)
+    return ok(scene.model_copy(update={"mine": True}).model_dump(by_alias=True))

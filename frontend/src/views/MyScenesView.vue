@@ -131,7 +131,7 @@ function openCreate(): void {
 
 function openEdit(scene: Scene): void {
   editingId.value = scene.id
-  const bank = (scene as unknown as { questionBank?: Array<{ text?: string; dimension?: string } | string> }).questionBank ?? []
+  const bank = scene.questionBank ?? []
   form.value = {
     title: scene.title,
     industry: scene.industry,
@@ -213,7 +213,52 @@ async function practice(scene: Scene): Promise<void> {
   }
 }
 
-onMounted(load)
+// 从内置场景复制
+const publicScenes = shallowRef<Scene[]>([])
+const copyFrom = ref('')
+const copying = ref(false)
+
+async function loadPublicScenes(): Promise<void> {
+  try {
+    const response = await api.get<ApiEnvelope<Scene[]>>('/scenes', { params: { size: 100 } })
+    publicScenes.value = response.data.data.filter((item) => !item.mine)
+  } catch {
+    publicScenes.value = []
+  }
+}
+
+async function copyFromScene(): Promise<void> {
+  if (!copyFrom.value || copying.value) return
+  copying.value = true
+  try {
+    const response = await api.post<ApiEnvelope<Scene>>(`/my-scenes/from-scene/${copyFrom.value}`)
+    copyFrom.value = ''
+    await load()
+    openEdit(response.data.data)
+  } catch (reason) {
+    error.value = errorMessage(reason)
+  } finally {
+    copying.value = false
+  }
+}
+
+// 试练方式：文字 / 语音 / 视频
+async function practiceByMode(scene: Scene, mode: 'text' | 'voice' | 'video'): Promise<void> {
+  if (mode === 'voice') {
+    await router.push({ name: 'voice', query: { sceneId: scene.id } })
+    return
+  }
+  if (mode === 'video') {
+    await router.push({ name: 'video', query: { sceneId: scene.id } })
+    return
+  }
+  await practice(scene)
+}
+
+onMounted(async () => {
+  await load()
+  await loadPublicScenes()
+})
 </script>
 
 <template>
@@ -226,6 +271,13 @@ onMounted(load)
       </div>
       <div class="hero-actions">
         <span class="count">{{ count }} / 50</span>
+        <select v-model="copyFrom" class="field copy-select" aria-label="选择要复制的内置场景">
+          <option value="">从内置场景复制…</option>
+          <option v-for="item in publicScenes" :key="item.id" :value="item.id">{{ item.title }}</option>
+        </select>
+        <button class="button secondary" type="button" :disabled="!copyFrom || copying" @click="copyFromScene">
+          {{ copying ? '复制中…' : '复制' }}
+        </button>
         <button class="button" type="button" @click="openCreate">新建场景</button>
       </div>
     </header>
@@ -312,8 +364,10 @@ onMounted(load)
           <p class="goal">{{ scene.goal }}</p>
         </div>
         <div class="scene-actions">
-          <button class="button" type="button" @click="practice(scene)">试练</button>
-          <button class="button secondary" type="button" @click="openEdit(scene)">编辑</button>
+          <button class="button" type="button" @click="practiceByMode(scene, 'text')">文字</button>
+          <button class="button secondary" type="button" @click="practiceByMode(scene, 'voice')">语音</button>
+          <button class="button secondary" type="button" @click="practiceByMode(scene, 'video')">视频</button>
+          <button class="mini" type="button" @click="openEdit(scene)">编辑</button>
           <button class="mini danger" type="button" @click="remove(scene)">删除</button>
         </div>
       </article>
@@ -322,7 +376,8 @@ onMounted(load)
 </template>
 
 <style scoped>
-.my-scenes .hero-actions { display: flex; align-items: center; gap: 14px; }
+.my-scenes .hero-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.copy-select { width: 210px; min-height: 38px; }
 .count { color: var(--text-3); font-size: 12px; }
 .empty { display: grid; gap: 10px; justify-items: start; margin-top: 28px; }
 .empty h2 { margin: 0; font-size: 16px; }

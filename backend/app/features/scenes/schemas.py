@@ -22,6 +22,7 @@ class SceneView(ApiModel):
     tags: list[str]
     opening_line: str
     competency: str | None = None
+    question_bank: list = Field(default_factory=list)
     source: str = 'builtin'
     visibility: str = 'public'
     mine: bool = False
