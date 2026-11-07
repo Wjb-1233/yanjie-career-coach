@@ -8,6 +8,7 @@
     "build": "vue-tsc -b && vite build && node scripts/verify-pwa.mjs",
     "generate:pwa-icons": "py -3.11 scripts/generate_pwa_icons.py",
     "check:pwa": "node scripts/verify-pwa.mjs",
+    "e2e": "playwright test",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -20,6 +21,7 @@
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
     "@types/markdown-it": "^14.2.0",
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/tsconfig": "^0.7.0",

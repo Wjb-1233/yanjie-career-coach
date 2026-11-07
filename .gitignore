@@ -55,3 +55,7 @@ frontend/public/downloads/*.apk
 backend/static/lessons/*.json
 docs/evidence/
 video/public/narration-*.mp3
+# E2E 产物
+frontend/playwright-report/
+frontend/test-results/
+backend/e2e.db
