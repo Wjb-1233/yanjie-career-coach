@@ -35,6 +35,7 @@ from app.features.scripts.router import router as scripts_router
 from app.features.training.router import router as training_router
 from app.features.stories.router import router as stories_router
 from app.features.tasks.router import router as tasks_router
+from app.features.telemetry.router import router as telemetry_router
 from app.features.video.router import router as video_router
 from app.features.voice.router import router as voice_router
 from app.infrastructure.state_store import state_store
@@ -247,6 +248,7 @@ for api_router in (
     tasks_router,
     stories_router,
     share_router,
+    telemetry_router,
 ):
     app.include_router(api_router, prefix=settings.api_prefix)
 

@@ -64,3 +64,8 @@ class PasswordRequestInput(ApiModel):
 
 class AvatarRequest(ApiModel):
     data_url: str = Field(min_length=32, max_length=400000)
+
+
+class AccountDeleteRequest(ApiModel):
+    password: str = Field(min_length=8, max_length=72)
+    confirm: str = Field(max_length=10)

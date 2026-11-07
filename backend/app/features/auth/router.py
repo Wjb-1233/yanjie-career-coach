@@ -13,6 +13,7 @@ from app.db.base import get_session
 from app.features.auth import service
 from app.features.auth.service import account_stats, change_password, set_avatar
 from app.features.auth.schemas import (
+    AccountDeleteRequest,
     AvatarRequest,
     DemoLoginRequest,
     LoginRequest,
@@ -124,6 +125,17 @@ async def me(user: CurrentUser) -> dict:
 async def password_request(body: PasswordRequestInput, session: DbSession) -> dict:
     await service.create_password_request(session, body.email)
     return ok({"submitted": True})
+
+
+@router.delete("/me/delete")
+async def delete_me(body: AccountDeleteRequest, user: CurrentUser, session: DbSession) -> dict:
+    """注销账号：校验密码与确认词后删除个人数据与录像，不可恢复。"""
+    from app.features.account.deletion import delete_account
+
+    if body.confirm.strip() != "注销":
+        raise AppError(400, "CONFIRM_REQUIRED", "请输入「注销」两个字确认")
+    await delete_account(session, user, body.password)
+    return ok({"deleted": True})
 
 
 @router.patch("/me/password")

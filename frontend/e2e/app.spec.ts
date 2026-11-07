@@ -2,11 +2,11 @@ import { expect, test } from '@playwright/test'
 
 /**
  * 上线前的浏览器端到端冒烟：
- * 注册 → 看板 → 场景库 → 我的场景（创建/删除）→ 未登录跳转。
+ * 注册 → 看板 → 场景库 → 我的场景（创建/删除）→ 个人资料 → 未登录跳转。
  * 不依赖大模型：模型相关链路由 scripts/smoke_test.py 覆盖。
  */
 
-test('注册后可以走完场景库与我的场景', async ({ page }) => {
+test('注册后可以走完场景库、我的场景与个人资料', async ({ page }) => {
   const stamp = Date.now()
   const email = `e2e-${stamp}@example.com`
   const password = 'E2eTest12345!'
@@ -44,6 +44,11 @@ test('注册后可以走完场景库与我的场景', async ({ page }) => {
   page.on('dialog', (dialog) => void dialog.accept())
   await page.getByRole('button', { name: '删除' }).first().click()
   await expect(page.getByText(title)).toHaveCount(0)
+
+  // 个人资料：数据导出与注销入口都在
+  await page.goto('/profile')
+  await expect(page.getByRole('heading', { name: '我的数据' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '注销账号' })).toBeVisible()
 })
 
 test('未登录访问受保护页面会回到登录', async ({ page }) => {

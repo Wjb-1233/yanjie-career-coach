@@ -1,0 +1,14 @@
+[Unit]
+Description=Yanjie daily backup (MySQL + media)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/yanjie
+ExecStart=/srv/yanjie/scripts/backup.sh /backup/yanjie
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+# 失败时记入 journal，可用 journalctl -u yanjie-backup 查看

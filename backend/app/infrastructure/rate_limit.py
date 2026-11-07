@@ -120,3 +120,8 @@ async def limit_register(request: Request) -> None:
 
 async def limit_model_user(user_id: str) -> None:
     await rate_limiter.check(f"model:{user_id}", 30, 60)
+
+
+async def limit_client_error(request: Request) -> None:
+    # 前端错误上报：单 IP 每分钟 20 条，防止被当成写入接口刷
+    await rate_limiter.check(f"client-error:{client_identifier(request)}", 20, 60)

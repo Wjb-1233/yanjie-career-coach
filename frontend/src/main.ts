@@ -3,8 +3,16 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import './assets/main.css'
+import { installErrorReporting, reportClientError } from './lib/errorReporting'
 
-createApp(App).use(router).mount('#app')
+installErrorReporting()
+
+const app = createApp(App)
+app.config.errorHandler = (error, _instance, info) => {
+  reportClientError(error, `vue.${info}: `)
+  console.error(error)
+}
+app.use(router).mount('#app')
 
 // 刷新令牌失效时统一回到登录页，避免每个页面各自弹「缺少刷新令牌」
 window.addEventListener('auth:expired', () => {
@@ -19,4 +27,3 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
     })
   })
 }
-

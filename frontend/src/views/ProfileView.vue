@@ -132,6 +132,30 @@ async function exportData() {
   }
 }
 
+const deletePassword = shallowRef('')
+const deleteConfirm = shallowRef('')
+const deleteBusy = shallowRef(false)
+const deleteError = shallowRef('')
+
+async function deleteAccount() {
+  if (deleteBusy.value) return
+  if (deleteConfirm.value.trim() !== '注销') {
+    deleteError.value = '请输入「注销」两个字确认'
+    return
+  }
+  deleteError.value = ''
+  deleteBusy.value = true
+  try {
+    await api.delete('/auth/me/delete', { data: { password: deletePassword.value, confirm: deleteConfirm.value.trim() } })
+    auth.logout?.()
+    await router.replace({ name: 'login' })
+  } catch (reason) {
+    deleteError.value = errorMessage(reason)
+  } finally {
+    deleteBusy.value = false
+  }
+}
+
 async function changePassword() {
   passwordError.value = ''
   passwordNotice.value = ''
@@ -279,6 +303,29 @@ async function changePassword() {
         <footer class="card-foot">
           <button class="button secondary" type="button" :disabled="exportBusy" @click="exportData">
             {{ exportBusy ? '导出中…' : '导出我的数据' }}
+          </button>
+        </footer>
+      </section>
+
+      <section v-if="!isAdmin" class="card danger-card">
+        <header class="card-head">
+          <div>
+            <h3>注销账号</h3>
+            <p>删除账号、训练记录、评分与录像，操作不可恢复。建议先导出数据。</p>
+          </div>
+        </header>
+        <label class="field-row">
+          <span>当前密码</span>
+          <input v-model="deletePassword" class="input" type="password" autocomplete="current-password" />
+        </label>
+        <label class="field-row">
+          <span>输入「注销」确认</span>
+          <input v-model="deleteConfirm" class="input" maxlength="10" />
+        </label>
+        <p v-if="deleteError" class="form-error">{{ deleteError }}</p>
+        <footer class="card-foot">
+          <button class="button danger" type="button" :disabled="deleteBusy || !deletePassword || deleteConfirm.trim() !== '注销'" @click="deleteAccount">
+            {{ deleteBusy ? '正在注销…' : '确认注销账号' }}
           </button>
         </footer>
       </section>
@@ -443,4 +490,7 @@ textarea.input { resize: vertical; line-height: 1.8; }
   .metrics dt { letter-spacing: 0; }
   .card { padding: 20px 18px 22px; }
 }
+.danger-card { border-color: color-mix(in srgb, #b4553f 35%, var(--border)); }
+.button.danger { background: #b4553f; border-color: #b4553f; color: #fff; }
+.button.danger:hover { background: #9c4635; border-color: #9c4635; }
 </style>
