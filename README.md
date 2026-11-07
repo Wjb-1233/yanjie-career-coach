@@ -208,6 +208,7 @@ python3 scripts/smoke_test.py --base https://your-domain.com
 ```
 
 - 完整步骤（TLS、备份、升级、回滚、排查）：[`docs/部署指南.md`](docs/部署指南.md)
+- 发布前逐项检查：[`docs/上线检查清单.md`](docs/上线检查清单.md)
 - 冒烟脚本：`scripts/smoke_test.py`，一条命令检查健康、就绪、登录、场景、训练、评分、报告
 - 备份脚本：`scripts/backup.sh`（数据库 + 录像/微课/TTS，默认保留 14 天）
 
