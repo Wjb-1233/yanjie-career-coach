@@ -57,6 +57,8 @@ class Settings(BaseSettings):
     recording_signing_secret: str = ""
     model_warmup_enabled: bool = True
     task_worker_concurrency: int = Field(default=2, ge=1, le=4)
+    # 成本治理：每个学员每天允许的模型调用次数（评分、追问、起草各算一次）
+    model_daily_quota: int = Field(default=400, ge=10, le=100000)
     lesson_video_engine: str = "remotion"
     evaluation_samples: int = Field(default=3, ge=1, le=3)
     doubao_realtime_app_id: str = ""

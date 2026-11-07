@@ -119,7 +119,55 @@ async def limit_register(request: Request) -> None:
 
 
 async def limit_model_user(user_id: str) -> None:
+    """模型调用限流 + 每日配额 + 用量计数，一道口子管住成本。"""
+    from app.core import metrics
+    from app.core.errors import AppError
+
     await rate_limiter.check(f"model:{user_id}", 30, 60)
+
+    if await _daily_calls(user_id) >= settings.model_daily_quota:
+        metrics.incr_event("model_quota", "rejected")
+        raise AppError(
+            429,
+            "MODEL_QUOTA_EXCEEDED",
+            f"今天的模型调用额度（{settings.model_daily_quota} 次）已用完，明天再来或联系管理员",
+        )
+
+    await _record_usage(user_id)
+    metrics.incr_event("model_quota", "allowed")
+
+
+def _today() -> str:
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).date().isoformat()
+
+
+async def _daily_calls(user_id: str) -> int:
+    from sqlalchemy import select
+
+    from app.db.base import session_factory
+    from app.db.models import ModelUsageDaily
+
+    async with session_factory() as session:
+        row = await session.get(ModelUsageDaily, {"user_id": user_id, "day": _today()})
+        return int(row.calls) if row else 0
+
+
+async def _record_usage(user_id: str) -> None:
+    from sqlalchemy import select
+
+    from app.db.base import session_factory
+    from app.db.models import ModelUsageDaily
+
+    day = _today()
+    async with session_factory() as session:
+        row = await session.get(ModelUsageDaily, {"user_id": user_id, "day": day})
+        if row is None:
+            session.add(ModelUsageDaily(user_id=user_id, day=day, calls=1))
+        else:
+            row.calls = int(row.calls) + 1
+        await session.commit()
 
 
 async def limit_client_error(request: Request) -> None:

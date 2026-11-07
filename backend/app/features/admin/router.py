@@ -1,5 +1,5 @@
 import csv
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from io import StringIO
 from typing import Annotated
 from uuid import uuid4
@@ -16,6 +16,7 @@ from app.core.security import AdminUser, hash_password
 from app.db.base import get_session
 from app.db.models import (
     AuditLog,
+    ModelUsageDaily,
     PasswordResetRequest,
     Course,
     Evaluation,
@@ -718,5 +719,55 @@ async def audit_logs(
             "total": total,
             "page": page,
             "size": size,
+        }
+    )
+
+
+@router.get("/model-usage")
+async def model_usage(
+    _: AdminUser,
+    session: DbSession,
+    days: int = Query(7, ge=1, le=90),
+    limit: int = Query(20, ge=1, le=100),
+) -> dict:
+    """按学员汇总最近 N 天的模型调用次数，用于成本治理。"""
+    from datetime import datetime, timezone
+
+    today = datetime.now(timezone.utc).date()
+    since = (today - timedelta(days=days - 1)).isoformat()
+
+    rows = (
+        await session.execute(
+            select(ModelUsageDaily.user_id, func.sum(ModelUsageDaily.calls).label("calls"))
+            .where(ModelUsageDaily.day >= since)
+            .group_by(ModelUsageDaily.user_id)
+            .order_by(func.sum(ModelUsageDaily.calls).desc())
+            .limit(limit)
+        )
+    ).all()
+    user_ids = [row[0] for row in rows]
+    users = {}
+    if user_ids:
+        user_rows = (await session.scalars(select(User).where(User.id.in_(user_ids)))).all()
+        users = {user.id: user for user in user_rows}
+
+    total = int((await session.scalar(
+        select(func.coalesce(func.sum(ModelUsageDaily.calls), 0)).where(ModelUsageDaily.day >= since)
+    )) or 0)
+
+    return ok(
+        {
+            "days": days,
+            "since": since,
+            "totalCalls": total,
+            "items": [
+                {
+                    "userId": user_id,
+                    "email": users[user_id].email if user_id in users else None,
+                    "displayName": users[user_id].display_name if user_id in users else None,
+                    "calls": int(calls),
+                }
+                for user_id, calls in rows
+            ],
         }
     )
