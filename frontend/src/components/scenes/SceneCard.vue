@@ -61,9 +61,9 @@ h3 { margin: 18px 0 8px; font-size: 20px; font-weight: 600; letter-spacing: -.02
 .script { min-height: 35px; width: fit-content; padding: 0 5px; color: var(--mint-dark); }
 .script:hover { border-color: var(--mint-dark); color: var(--mint-dark); }
 .start { display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--ink); color: white; }
-.start.voice { background: var(--mint-dark); }
-.start.video { background: var(--accent-strong); }
-.start.drill { background: #6b4fa0; }
+.start.voice { background: var(--mint-dark); color: #fff; }
+.start.video { background: var(--accent-strong); color: #fff; }
+.start.drill { background: #6b4fa0; color: #fff; }
 .start span { color: var(--signal); font-size: 18px; transition: transform .18s; }
 .start:hover span { transform: translateX(4px); }
 .scene-card { border-color: var(--border); border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); animation: rise-in .28s ease both; transition: border-color var(--ease),box-shadow var(--ease); }

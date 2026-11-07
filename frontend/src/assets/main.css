@@ -482,7 +482,7 @@ tbody tr:hover { background: var(--overlay-1); }
   --overlay-1: rgba(16, 16, 20, .04);
   --overlay-2: rgba(16, 16, 20, .07);
   --overlay-3: rgba(16, 16, 20, .1);
-  --success: #3f7a52;
+  --success: #2f6542;
   --warning: #a56a20;
   --danger: #b3261e;
 }
@@ -683,7 +683,7 @@ tbody tr:hover { background: var(--overlay-1); }
 
   --text: #15151a;
   --text-2: #4f5057;
-  --text-3: #787a83;
+  --text-3: #6b6d76;
   --on-solid: #fafafa;
 
   --accent: #a4461f;
@@ -726,7 +726,7 @@ tbody tr:hover { background: var(--overlay-1); }
 
   --text: #f3f3f5;
   --text-2: #a6a7b0;
-  --text-3: #74757e;
+  --text-3: #8a8b95;
   --on-solid: #0b0b0e;
 
   --accent: #d08a5e;

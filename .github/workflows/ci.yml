@@ -180,3 +180,29 @@ jobs:
       - name: 前端依赖漏洞扫描
         working-directory: frontend
         run: npm audit --omit=dev --audit-level=high || true
+
+  scan:
+    name: 镜像与依赖扫描（建议性）
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy 配置与 Dockerfile 扫描
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          exit-code: "0"
+          format: table
+
+      - name: Trivy 依赖扫描
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          exit-code: "0"
+          format: table
