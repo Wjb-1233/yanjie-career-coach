@@ -108,6 +108,30 @@ async function removeAvatar() {
   finally { avatarBusy.value = false }
 }
 
+const exportBusy = shallowRef(false)
+const exportNotice = shallowRef('')
+
+async function exportData() {
+  if (exportBusy.value) return
+  exportBusy.value = true
+  exportNotice.value = ''
+  try {
+    const response = await api.get('/auth/me/export')
+    const blob = new Blob([JSON.stringify(response.data.data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `yanjie-export-${new Date().toISOString().slice(0, 10)}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+    exportNotice.value = '已导出'
+  } catch (reason) {
+    exportNotice.value = errorMessage(reason)
+  } finally {
+    exportBusy.value = false
+  }
+}
+
 async function changePassword() {
   passwordError.value = ''
   passwordNotice.value = ''
@@ -243,6 +267,21 @@ async function changePassword() {
           </button>
         </footer>
       </form>
+
+      <section class="card">
+        <header class="card-head">
+          <div>
+            <h3>我的数据</h3>
+            <p>导出账号资料、训练记录、评分、计划与话术，JSON 格式。</p>
+          </div>
+          <span class="card-state"><template v-if="exportNotice">✓ {{ exportNotice }}</template></span>
+        </header>
+        <footer class="card-foot">
+          <button class="button secondary" type="button" :disabled="exportBusy" @click="exportData">
+            {{ exportBusy ? '导出中…' : '导出我的数据' }}
+          </button>
+        </footer>
+      </section>
     </div>
   </div>
 </template>

@@ -8,7 +8,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.core import metrics
+from app.core import audit, metrics
 from app.core.config import settings
 from app.core.errors import (
     AppError,
@@ -140,6 +140,39 @@ app.add_middleware(
 )
 
 
+
+
+def _token_subject(request: Request) -> str | None:
+    """从 Bearer Token 里取用户 ID，仅用于留痕；无效 token 返回 None。"""
+    header = request.headers.get("authorization") or ""
+    if not header.lower().startswith("bearer "):
+        return None
+    token = header[7:].strip()
+    try:
+        import jwt as pyjwt
+
+        payload = pyjwt.decode(
+            token,
+            settings.jwt_secret,
+            algorithms=[settings.jwt_algorithm],
+            audience=settings.jwt_audience,
+            issuer=settings.jwt_issuer,
+            options={"require": ["sub", "exp", "iss", "aud", "iat"]},
+        )
+        subject = payload.get("sub")
+        return subject if isinstance(subject, str) else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _first_path_param(request: Request) -> str | None:
+    params = request.scope.get("path_params") or {}
+    for key in ("scene_id", "user_id", "course_id", "task_id", "request_id", "session_id"):
+        value = params.get(key)
+        if value:
+            return str(value)
+    return None
+
 @app.middleware("http")
 async def request_id_middleware(request: Request, call_next):
     request.state.request_id = request.headers.get("X-Request-Id") or str(uuid4())
@@ -157,6 +190,21 @@ async def request_id_middleware(request: Request, call_next):
     route = getattr(request.scope.get("route"), "path", None) or "unmatched"
     if request.url.path != "/metrics":
         metrics.observe_request(request.method, route, response.status_code, elapsed)
+    if (
+        request.url.path.startswith(f"{settings.api_prefix}/admin")
+        and request.method in audit.MUTATING
+        and response.status_code < 400
+    ):
+        await audit.record(
+            actor_id=_token_subject(request),
+            actor_email=None,
+            method=request.method,
+            route=route,
+            status=response.status_code,
+            target_id=_first_path_param(request),
+            ip=(request.client.host if request.client else None),
+            request_id=request.state.request_id,
+        )
     logger.info(
         "request.completed",
         extra={

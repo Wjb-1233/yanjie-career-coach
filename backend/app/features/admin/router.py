@@ -15,6 +15,7 @@ from app.core.responses import ok
 from app.core.security import AdminUser, hash_password
 from app.db.base import get_session
 from app.db.models import (
+    AuditLog,
     PasswordResetRequest,
     Course,
     Evaluation,
@@ -669,5 +670,53 @@ async def runtime_metrics(_: AdminUser, session: DbSession) -> dict:
                 "failedRatio": round(task_stats.get("FAILED", 0) / max(1, sum(task_stats.values())), 3),
             },
             "daily": daily,
+        }
+    )
+
+
+@router.get("/audit-logs")
+async def audit_logs(
+    _: AdminUser,
+    session: DbSession,
+    page: int = Query(0, ge=0),
+    size: int = Query(50, ge=1, le=200),
+    route: str | None = Query(None, max_length=160),
+    actor: str | None = Query(None, max_length=36),
+) -> dict:
+    """管理台操作留痕，按时间倒序。"""
+    statement = select(AuditLog)
+    count_statement = select(func.count()).select_from(AuditLog)
+    if route:
+        statement = statement.where(AuditLog.route.like(f"%{route}%"))
+        count_statement = count_statement.where(AuditLog.route.like(f"%{route}%"))
+    if actor:
+        statement = statement.where(AuditLog.actor_id == actor)
+        count_statement = count_statement.where(AuditLog.actor_id == actor)
+
+    total = int((await session.scalar(count_statement)) or 0)
+    rows = (
+        await session.scalars(
+            statement.order_by(AuditLog.created_at.desc()).offset(page * size).limit(size)
+        )
+    ).all()
+    return ok(
+        {
+            "items": [
+                {
+                    "id": item.id,
+                    "actorId": item.actor_id,
+                    "method": item.method,
+                    "route": item.route,
+                    "status": item.status,
+                    "targetId": item.target_id,
+                    "ip": item.ip,
+                    "requestId": item.request_id,
+                    "createdAt": item.created_at.isoformat(),
+                }
+                for item in rows
+            ],
+            "total": total,
+            "page": page,
+            "size": size,
         }
     )

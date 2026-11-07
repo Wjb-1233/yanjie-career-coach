@@ -296,3 +296,19 @@ class TrainingPlan(Base):
     sequence: Mapped[int] = mapped_column(Integer, default=1, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
+
+class AuditLog(Base):
+    """管理台操作留痕：谁、在什么时候、对什么资源做了什么。"""
+
+    __tablename__ = "audit_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    actor_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    actor_email: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    method: Mapped[str] = mapped_column(String(10))
+    route: Mapped[str] = mapped_column(String(160), index=True)
+    status: Mapped[int] = mapped_column(Integer)
+    target_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    ip: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)

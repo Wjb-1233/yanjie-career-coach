@@ -157,3 +157,26 @@ jobs:
             frontend/playwright-report
             frontend/test-results
           retention-days: 7
+  security:
+    name: 依赖安全扫描（建议性）
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 后端依赖漏洞扫描
+        run: |
+          python -m pip install --upgrade pip pip-audit
+          pip-audit -r backend/requirements.txt --desc on || true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 前端依赖漏洞扫描
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high || true

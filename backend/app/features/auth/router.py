@@ -138,6 +138,14 @@ async def update_avatar(body: AvatarRequest, user: CurrentUser, session: DbSessi
     return ok({"avatar": avatar})
 
 
+@router.get("/me/export")
+async def export_me(user: CurrentUser, session: DbSession) -> dict:
+    """个人数据导出：账号、训练记录、评分、计划、话术、故事。"""
+    from app.features.account.export import export_user_data
+
+    return ok(await export_user_data(session, user))
+
+
 @router.get("/me/stats")
 async def my_stats(user: CurrentUser, session: DbSession) -> dict:
     return ok(await account_stats(session, user.id))
