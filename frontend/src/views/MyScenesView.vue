@@ -288,7 +288,6 @@ onMounted(async () => {
     <section v-if="!loading && !scenes.length && !showForm" class="empty panel">
       <h2>还没有自建场景</h2>
       <p>把要面的岗位、JD 要求、想问的问题填进去，就能按自己的情况练。</p>
-      <button class="button" type="button" @click="openCreate">创建第一个场景</button>
     </section>
 
     <section class="jd-draft panel" aria-label="从 JD 起草">
@@ -303,7 +302,7 @@ onMounted(async () => {
       </header>
       <div class="jd-row">
         <input v-model="jdPosition" class="field" maxlength="40" placeholder="目标岗位（可选）" />
-        <textarea v-model="jdText" class="field" rows="4" maxlength="4000" placeholder="把岗位 JD 粘贴到这里（至少 80 字）" />
+        <textarea v-model="jdText" class="field" rows="5" maxlength="4000" placeholder="把岗位 JD 粘贴到这里（至少 80 字）" />
       </div>
       <p v-if="draftNote" class="draft-note">{{ draftNote }}</p>
     </section>
@@ -415,4 +414,24 @@ label { display: grid; gap: 6px; color: var(--text-3); font-size: 11.5px; }
 .jd-row { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 10px; }
 .draft-note { color: var(--accent-strong) !important; }
 @media (max-width: 880px) { .jd-row { grid-template-columns: 1fr; } }
+</style>
+<style scoped>
+.my-scenes { max-width: 860px; }
+.page-title { font-size: clamp(28px, 3vw, 36px); line-height: 1.25; }
+.page-lead { margin-top: 10px; font-size: 14px; }
+.hero-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.hero-actions .count { color: var(--text-3); font-size: 12.5px; margin-right: 4px; }
+.copy-select { width: 190px; }
+.empty { margin-top: 24px; padding: 32px; }
+.empty h2 { margin: 0; font-size: 19px; }
+.empty p { margin: 8px 0 0; color: var(--text-3); font-size: 14px; line-height: 1.8; }
+.jd-draft { margin-top: 24px; padding: 20px; }
+.jd-draft header h2 { margin: 0; font-size: 18px; }
+.jd-draft header p { margin: 6px 0 0; color: var(--text-3); font-size: 13px; line-height: 1.7; }
+.jd-row { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 14px; }
+.jd-row input { width: 100%; }
+.editor { margin-top: 24px; }
+.editor header h2 { font-size: 18px; }
+.editor label { font-size: 12.5px; color: var(--text-3); }
+@media (max-width: 720px) { .hero-actions { justify-content: flex-start; } }
 </style>

@@ -153,8 +153,8 @@ async function exportReports(): Promise<void> {
 <template>
   <div class="page history-page">
     <header class="page-heading">
-      <div><p class="eyebrow">训练档案</p><h1 class="page-title">每次练习，<br>都有迹可循。</h1><p class="page-lead">回看历史对话和评分报告，也可以导出训练记录。</p></div>
-      <button class="button signal" type="button" :disabled="!items.length" @click="exportReports">导出训练报告</button>
+      <div><p class="eyebrow">训练档案</p><h1 class="page-title">训练记录</h1><p class="page-lead">回看历史对话和评分报告。</p></div>
+      <button class="button secondary" type="button" :disabled="!items.length" @click="exportReports">导出报告</button>
     </header>
     <div v-if="error" class="error-banner">{{ error }}</div>
     <section class="history-tools">
@@ -165,7 +165,7 @@ async function exportReports(): Promise<void> {
         aria-label="筛选训练状态"
         @update:model-value="status = $event"
       />
-      <button class="button secondary" type="button" @click="load">刷新</button>
+      <button class="text-refresh" type="button" @click="load">刷新</button>
       <label class="archive-toggle"><input v-model="archivedMode" type="checkbox" @change="load"> 查看归档记录</label>
     </section>
     <div v-if="loading" class="panel skeleton history-loading" />
@@ -182,7 +182,7 @@ async function exportReports(): Promise<void> {
         </div>
         <strong v-if="item.overallScore !== null" class="score">{{ item.overallScore }}<small> / 100</small></strong>
         <div class="history-actions">
-          <button v-if="item.recordingUrl" class="button ghost" type="button" @click="openReplay(item)">回放</button>
+          <button v-if="item.recordingUrl" class="replay-link" type="button" @click="openReplay(item)">回放录音</button>
           <RouterLink v-if="item.overallScore !== null" class="button" :to="`/report/${item.id}`">查看评分报告 →</RouterLink>
           <button
             v-else-if="item.status === 'FINISHED'"
@@ -193,7 +193,6 @@ async function exportReports(): Promise<void> {
             @click="generateScore(item)"
           >{{ scoringId === item.id ? '正在评分…' : '生成评分 →' }}</button>
           <RouterLink v-else class="button" :to="`/training/${item.id}`">继续训练 →</RouterLink>
-          <RouterLink v-if="item.status === 'FINISHED'" class="replay-link" :to="`/training/${item.id}`">回放对话</RouterLink>
           <button v-if="item.status === 'FINISHED'" class="archive-button" type="button" @click="toggleArchive(item)">{{ item.archivedAt ? '恢复记录' : '归档' }}</button>
           <button class="delete-button" type="button" :aria-label="`彻底删除${item.sceneTitle}训练记录`" @click="askDelete(item)">彻底删除</button>
         </div>
@@ -275,4 +274,22 @@ async function exportReports(): Promise<void> {
 .marks button:hover { border-color: var(--accent); color: var(--accent-strong); }
 .replay-hint { margin: 10px 0 0; color: var(--text-3); font-size: 12px; }
 .replay-error { margin: 10px 0 0; color: #a4342a; font-size: 12px; }
+</style>
+<style scoped>
+.history-page { max-width: 860px; }
+.page-title { font-size: clamp(28px, 3vw, 36px); letter-spacing: -.02em; }
+.page-lead { margin-top: 10px; font-size: 14px; }
+.history-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 20px 0 22px; }
+.history-tools input { flex: 1 1 240px; }
+.history-tools :deep(.select-trigger) { width: auto; min-width: 130px; }
+.text-refresh { border: 0; background: transparent; color: var(--text-3); font-size: 13px; cursor: pointer; }
+.history-item { padding: 18px 22px; border-radius: 14px; }
+.history-meta { font-size: 12.5px; color: var(--text-3); gap: 10px; }
+.history-item h2 { margin: 8px 0 4px; font-size: 18px; }
+.history-item .history-copy p { margin: 0; color: var(--text-3); font-size: 13px; }
+.history-item .score { font-size: 30px; font-weight: 500; }
+.history-item .score small { font-size: 12px; color: var(--text-3); }
+.history-actions { gap: 12px; }
+.history-actions .button { padding: 8px 14px; font-size: 13px; }
+.replay-link, .archive-button, .delete-button { font-size: 12.5px; color: var(--text-3); }
 </style>
