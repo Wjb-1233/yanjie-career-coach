@@ -24,6 +24,12 @@ function setDepth(value: 'STANDARD' | 'THREE_LAYER' | 'PRESSURE'): void {
   depth.value = value
   localStorage.setItem(DEPTH_KEY, value)
 }
+const LANGUAGE_KEY = 'yanjie-interview-language'
+const language = shallowRef<'zh' | 'en'>((localStorage.getItem(LANGUAGE_KEY) as 'zh' | 'en') || 'zh')
+function setLanguage(value: 'zh' | 'en'): void {
+  language.value = value
+  localStorage.setItem(LANGUAGE_KEY, value)
+}
 const starting = shallowRef(false)
 const startError = shallowRef('')
 const {
@@ -69,7 +75,7 @@ function start(scene: Scene, mode: 'text' | 'voice' | 'video' | 'drill') {
   }
   startError.value = ''
   if (mode === 'video') {
-    void router.push({ name: 'video', query: { sceneId: scene.id, depth: depth.value } })
+    void router.push({ name: 'video', query: { sceneId: scene.id, depth: depth.value, lang: language.value } })
     return
   }
   if (mode === 'voice') {
@@ -78,6 +84,7 @@ function start(scene: Scene, mode: 'text' | 'voice' | 'video' | 'drill') {
       query: {
         sceneId: scene.id,
         depth: depth.value,
+        lang: language.value,
         ...(planId.value && taskKey.value ? { planId: planId.value, taskKey: taskKey.value } : {}),
       },
     })
@@ -96,6 +103,7 @@ async function confirmStart(file: File | null): Promise<void> {
     if (file) {
       form.append('sceneId', scene.id)
       form.append('depth', depth.value)
+      form.append('language', language.value)
       form.append('file', file)
     }
     const response = file
@@ -103,6 +111,7 @@ async function confirmStart(file: File | null): Promise<void> {
       : await api.post<ApiEnvelope<{ id: string }>>('/training-sessions', {
         sceneId: scene.id,
         depth: depth.value,
+        language: language.value,
         ...(planId.value && taskKey.value ? { planId: planId.value, taskKey: taskKey.value } : {}),
       })
     startSelection.value = null
@@ -157,6 +166,11 @@ async function confirmStart(file: File | null): Promise<void> {
         </div>
         <div class="category-tabs" aria-label="面试阶段"><button v-for="category in categories" :key="category" type="button" :class="{ active: activeCategory === category }" @click="activeCategory = category">{{ category }}</button></div>
         <div class="difficulty-guide" aria-label="难度说明"><span v-for="level in DIFFICULTY_LEVELS" :key="level.name" :class="level.tone"><i aria-hidden="true" />{{ level.name }}<small>{{ level.cue }}</small></span></div>
+        <div class="depth-picker" role="group" aria-label="面试语言">
+          <span>面试语言</span>
+          <button type="button" :class="{ active: language === 'zh' }" @click="setLanguage('zh')">中文</button>
+          <button type="button" :class="{ active: language === 'en' }" @click="setLanguage('en')">English</button>
+        </div>
         <div class="depth-picker" role="group" aria-label="追问强度">
           <span>追问强度</span>
           <button type="button" :class="{ active: depth === 'STANDARD' }" @click="setDepth('STANDARD')">标准</button>

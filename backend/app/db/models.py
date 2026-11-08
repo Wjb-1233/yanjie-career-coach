@@ -179,6 +179,8 @@ class TrainingSession(Base):
     mode: Mapped[str] = mapped_column(String(12), default="STANDARD")
     # 追问强度：STANDARD / THREE_LAYER / PRESSURE
     depth: Mapped[str] = mapped_column(String(16), default="STANDARD", server_default="STANDARD")
+    # 面试语言：zh / en
+    language: Mapped[str] = mapped_column(String(8), default="zh", server_default="zh")
     duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     delivery: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     recording_path: Mapped[str | None] = mapped_column(String(255), nullable=True)

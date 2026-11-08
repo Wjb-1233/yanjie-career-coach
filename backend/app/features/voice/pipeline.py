@@ -30,7 +30,7 @@ def ffmpeg_binary() -> str:
     return found
 
 
-def _synth_wav(text: str, out_wav: Path) -> None:
+def _synth_wav(text: str, out_wav: Path, voice: str = "Microsoft Huihui Desktop") -> None:
     work = Path(tempfile.mkdtemp())
     txt = work / "t.txt"
     ps = work / "t.ps1"
@@ -38,7 +38,7 @@ def _synth_wav(text: str, out_wav: Path) -> None:
     ps.write_text(
         "Add-Type -AssemblyName System.Speech\n"
         "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer\n"
-        "$s.SelectVoice('Microsoft Huihui Desktop')\n"
+        f"$s.SelectVoice('{voice}')\n"
         f"$s.SetOutputToWaveFile('{out_wav.as_posix()}')\n"
         f"$text = Get-Content -Raw -Encoding UTF8 '{txt.as_posix()}'\n"
         "$s.Speak($text)\n$s.Dispose()\n",
@@ -121,7 +121,7 @@ def _make_transcript_tap(websocket: WebSocket, role: str):
     return TranscriptTap()
 
 
-def build_pipeline(websocket: WebSocket, instructions: str, opening: str = ""):
+def build_pipeline(websocket: WebSocket, instructions: str, opening: str = "", lang: str = "zh"):
     """构造 pipecat 管线；导入放在函数内，避免未安装时影响其他功能。"""
     from pipecat.audio.vad.silero import SileroVADAnalyzer
     from pipecat.processors.audio.vad_processor import VADProcessor
@@ -151,7 +151,7 @@ def build_pipeline(websocket: WebSocket, instructions: str, opening: str = ""):
             yield TTSStartedFrame()
             wav = Path(tempfile.mkdtemp()) / "out.wav"
             try:
-                await asyncio.to_thread(_synth_wav, text, wav)
+                await asyncio.to_thread(_synth_wav, text, wav, "Microsoft Zira Desktop" if lang == "en" else "Microsoft Huihui Desktop")
                 raw = await asyncio.to_thread(
                     subprocess.run,
                     [
@@ -183,7 +183,7 @@ def build_pipeline(websocket: WebSocket, instructions: str, opening: str = ""):
         ),
     )
 
-    stt = WhisperSTTService(model="small", device="cpu", compute_type="int8", language="zh")
+    stt = WhisperSTTService(model="small", device="cpu", compute_type="int8", language="en" if lang == "en" else "zh")
     llm = OpenAILLMService(
         api_key=settings.llm_api_key,
         base_url=f"{settings.llm_base_url.rstrip('/')}/v1",

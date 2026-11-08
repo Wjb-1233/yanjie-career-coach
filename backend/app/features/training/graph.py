@@ -22,6 +22,7 @@ class ConversationState(TypedDict):
     finish_after_reply: bool
     mode: str
     depth: str
+    language: str
     planned_question: str
     prompt: str
 
@@ -123,7 +124,12 @@ def prompt_node(state: ConversationState) -> dict:
             "所有追问都要服务于这个核心，换角度但不要跑题。\n"
         )
     plan_note = ""
-    if state.get("planned_question"):
+    if state.get("language") == "en":
+        plan_note = (
+            "Ask one new interview question in English based on the scene and the candidate's last answer; "
+            "do not repeat a previous question and do not give the answer.\n"
+        )
+    elif state.get("planned_question"):
         plan_note = (
             "本轮必须问下面这个必问题，可以结合上一轮回答调整措辞，但不要换成别的话题：\n"
             f"<planned>{state['planned_question']}</planned>\n"
@@ -151,7 +157,14 @@ def prompt_node(state: ConversationState) -> dict:
             "\n这是深挖模式：像严格但专业的教练，只围绕候选人上一轮回答里最薄弱的一点连续追问，"
             "每次只问一个问题、不超过 40 字；不给答案、不换话题、不评价，直到对方说清楚依据为止。\n"
         )
-    prompt = f"""{drill_note}你正在进行中文{'基础能力场景对练' if is_foundation else '求职面试模拟'}。
+    language_note = ""
+    if state.get("language") == "en":
+        language_note = (
+            "\nIMPORTANT: This interview is conducted in English. Ask and reply in English only, "
+            "one question per turn, no more than 40 words. Feedback is collected separately; "
+            "do not switch to Chinese.\n"
+        )
+    prompt = f"""{language_note}{drill_note}你正在进行中文{'基础能力场景对练' if is_foundation else '求职面试模拟'}。
 场景：{state['scene_title']}
 你的角色：{state['role_name']}
 背景：{state['scene_background']}

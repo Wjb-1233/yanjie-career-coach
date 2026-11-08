@@ -9,6 +9,7 @@ class CreateSessionRequest(ApiModel):
     scene_id: str
     mode: str = Field(default="STANDARD", pattern="^(STANDARD|DRILL)$")
     depth: str = Field(default="STANDARD", pattern="^(STANDARD|THREE_LAYER|PRESSURE)$")
+    language: str = Field(default="zh", pattern="^(zh|en)$")
     plan_id: str | None = None
     task_key: str | None = None
 
@@ -58,6 +59,7 @@ class SessionView(ApiModel):
     channel: str = "TEXT"
     mode: str = "STANDARD"
     depth: str = "STANDARD"
+    language: str = "zh"
     duration_seconds: int | None = None
     delivery: dict | None = None
     recording_url: str | None = None

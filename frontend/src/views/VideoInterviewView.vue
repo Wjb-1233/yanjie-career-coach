@@ -17,6 +17,7 @@ const scene = shallowRef<Scene | null>(null)
 const started = shallowRef(false)
 const duration = shallowRef(30)
 const initialDepth = (useRoute().query.depth as 'STANDARD' | 'THREE_LAYER' | 'PRESSURE') || 'STANDARD'
+const language = (useRoute().query.lang as 'zh' | 'en') || 'zh'
 const engine = shallowRef<'doubao' | 'pipeline'>('doubao')
 const depth = shallowRef<'STANDARD' | 'THREE_LAYER' | 'PRESSURE'>(initialDepth)
 const advanced = shallowRef(false)
@@ -268,6 +269,7 @@ void errorMessage
       :engine="engine"
       :duration-minutes="duration"
         :depth="depth"
+        :language="language"
       @ended="onEnded"
     />
   </div>

@@ -14,6 +14,7 @@ const props = defineProps<{
   engine: Engine
   durationMinutes: number
   depth?: 'STANDARD' | 'THREE_LAYER' | 'PRESSURE'
+  language?: 'zh' | 'en'
 }>()
 
 const emit = defineEmits<{ ended: [sessionId: string]; failed: [message: string] }>()
@@ -74,7 +75,9 @@ const statusLabel = computed(() => {
 
 function instructions(): string {
   const current = props.scene
-  let base = '你是一名中文面试官，正在模拟真实面试。候选人说话后，你先简短回应，再追问一个具体问题，每次不超过 60 字。不要自问自答，不要长时间独白。'
+  let base = props.language === 'en'
+    ? 'You are an English-speaking interviewer. Ask one question at a time in English, briefly acknowledge the answer, then ask one specific follow-up. Keep every reply under 40 words. Do not answer for the candidate.'
+    : '你是一名中文面试官，正在模拟真实面试。候选人说话后，你先简短回应，再追问一个具体问题，每次不超过 60 字。不要自问自答，不要长时间独白。'
   if (props.depth === 'THREE_LAYER') {
     base += ' 本场启用三层追问：先确认基础知识与事实，再让候选人比较方案优劣，最后给出复杂或异常场景；每轮只推进一层。'
   } else if (props.depth === 'PRESSURE') {
@@ -86,7 +89,8 @@ function instructions(): string {
 
 function openingLine(): string {
   const current = props.scene
-  if (!current) return '你好，我是今天的面试官，请先做个自我介绍。'
+  if (!current) return props.language === 'en' ? "Hello, I'm your interviewer today. Please start with a brief self-introduction." : '你好，我是今天的面试官，请先做个自我介绍。'
+  if (props.language === 'en') return "Hello, I'm your interviewer today. Please start with a brief self-introduction." 
   return `你好，我是${current.roleName}，今天这场是${current.category}。${current.openingLine || '请先简单介绍一下自己。'}`
 }
 
@@ -94,7 +98,7 @@ function wsUrl(): string {
   const base = import.meta.env.VITE_API_BASE ?? '/api/v1'
   const scheme = location.protocol === 'https:' ? 'wss' : 'ws'
   if (effectiveEngine.value === 'pipeline') {
-    const query = new URLSearchParams({ depth: props.depth ?? 'STANDARD' })
+    const query = new URLSearchParams({ depth: props.depth ?? 'STANDARD', lang: props.language ?? 'zh' })
     if (props.scene?.id) query.set('sceneId', props.scene.id)
     return `${scheme}://${location.host}${base}/voice/ws/pipeline?${query.toString()}`
   }

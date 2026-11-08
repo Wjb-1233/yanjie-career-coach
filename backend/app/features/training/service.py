@@ -40,6 +40,7 @@ async def create_training_session(
     plan_id: str | None = None,
     task_key: str | None = None,
     depth: str = "STANDARD",
+    language: str = "zh",
 ) -> SessionView:
     scene = await get_scene(session, scene_id)
     if mode == "DRILL" and scene.difficulty != "进阶":
@@ -48,7 +49,10 @@ async def create_training_session(
         raise AppError(422, "RESUME_NOT_APPLICABLE", "四维基础练习不需要上传简历，请直接开始训练")
     opening_line = (scene.opening_line or "").strip()
     opening_degraded = False
-    if resume_filename and resume_text:
+    if language == "en":
+        opening_line = "Hello, I'm your interviewer today. Please start with a brief self-introduction."
+        opening_degraded = False
+    elif resume_filename and resume_text:
         opening_line, opening_degraded = await opening_question(scene, resume_text)
     elif not opening_line:
         # 场景没有预设开场白时用确定性文案，不再请求模型，创建会话保持毫秒级
@@ -70,6 +74,7 @@ async def create_training_session(
         task_key=task_key,
         mode=mode if mode in {"STANDARD", "DRILL"} else "STANDARD",
         depth=depth if depth in {"STANDARD", "THREE_LAYER", "PRESSURE"} else "STANDARD",
+        language=language if language in {"zh", "en"} else "zh",
         max_rounds=settings.max_training_rounds,
     )
     session.add(training)
@@ -104,6 +109,7 @@ async def create_training_session(
         channel=training.channel,
         mode=training.mode or "STANDARD",
         depth=training.depth or "STANDARD",
+        language=training.language or "zh",
         duration_seconds=training.duration_seconds,
         delivery=training.delivery,
         recording_url=storage.url_of(training.recording_path),
@@ -146,6 +152,7 @@ async def get_training_session(
         channel=training.channel,
         mode=training.mode or "STANDARD",
         depth=training.depth or "STANDARD",
+        language=training.language or "zh",
         duration_seconds=training.duration_seconds,
         delivery=training.delivery,
         recording_url=storage.url_of(training.recording_path),
@@ -345,6 +352,7 @@ async def stream_reply(session_id: str, user_id: str, user_text: str, finish_aft
                 "scene_difficulty": scene.difficulty,
                 "mode": training.mode or "STANDARD",
                 "depth": training.depth or "STANDARD",
+                "language": training.language or "zh",
                 "role_name": scene.role_name,
                 "scene_background": scene.background,
                 "scene_goal": scene.goal,
