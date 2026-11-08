@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { Moon, Sun, Bookmark, BookOpen, History, LayoutDashboard, MessageSquareText, MessagesSquare, Repeat2, Settings, TrendingUp, UserRound } from 'lucide-vue-next'
+import { Moon, Sun, Bookmark, BookOpen, History, LayoutDashboard, Library, MessageSquareText, MessagesSquare, Repeat2, Settings, TrendingUp, UserRound } from 'lucide-vue-next'
 
 import AtmosphereBackdrop from '@/components/layout/AtmosphereBackdrop.vue'
 import { useAuth } from '@/composables/useAuth'
@@ -15,6 +15,7 @@ const auth = useAuth()
 const studentNavItems = [
   { to: '/', label: '成长看板', icon: LayoutDashboard },
   { to: '/scenes', label: '场景训练', icon: MessagesSquare },
+  { to: '/question-bank', label: '题库', icon: Library },
   { to: '/practice', label: '通用练习', icon: Repeat2 },
   { to: '/plans', label: '能力提升', icon: TrendingUp },
   { to: '/stories', label: '故事库', icon: BookOpen },

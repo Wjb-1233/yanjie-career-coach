@@ -13,6 +13,7 @@ const router = createRouter({
     { path: '/voice', name: 'voice', component: () => import('@/views/VoiceCallView.vue') },
     { path: '/video', name: 'video', component: () => import('@/views/VideoInterviewView.vue') },
     { path: '/scenes', name: 'scenes', component: () => import('@/views/ScenesView.vue') },
+    { path: '/question-bank', name: 'question-bank', component: () => import('@/views/QuestionBankView.vue') },
     { path: '/my-scenes', name: 'my-scenes', component: () => import('@/views/MyScenesView.vue') },
     { path: '/stories', name: 'stories', component: () => import('@/views/StoriesView.vue') },
     { path: '/scripts', name: 'scripts', component: () => import('@/views/ScriptStudioView.vue') },

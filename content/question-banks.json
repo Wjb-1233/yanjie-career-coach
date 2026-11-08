@@ -1,0 +1,771 @@
+{
+  "a5c289ba-81fb-4aea-a555-5c6967b7258c": [
+    {
+      "text": "介绍一下你做过的最复杂的接口设计",
+      "dimension": "内容与逻辑",
+      "difficulty": null
+    },
+    {
+      "text": "线上接口超时你会怎么排查",
+      "dimension": "信息完整",
+      "difficulty": null
+    },
+    {
+      "text": "如果让你重做一次，你会改哪里",
+      "dimension": "表达干净",
+      "difficulty": null
+    },
+    {
+      "text": "订单和库存服务之间怎么保证数据一致？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "c14d6649-3365-432c-85d6-98e05b3dcf9f": [
+    {
+      "text": "先简单做个自我介绍，说说你为什么想投这个岗位吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你期望的薪资大概是多少，能说说这个数是怎么考虑的吗？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "如果薪酬和预期有一点差距，你会优先考虑哪些因素再决定？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "你什么时候能到岗，毕业前实习和论文时间怎么安排？",
+      "dimension": "信息完整"
+    }
+  ],
+  "scene-foundation-appropriateness": [
+    {
+      "text": "先简单介绍一下你自己，再说说为什么想应聘这个岗位吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "如果主管安排的任务时间你觉得不合理，你会怎么开口跟他说？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你打算用哪些具体事实向主管说明时间安排不合理？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "如果主管坚持原安排，你会怎样回应并守住自己的边界？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-foundation-concision": [
+    {
+      "text": "先简单介绍一下你自己，说说为什么想应聘这个岗位吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "如果只给你30秒讲一个项目结果，你会怎么组织内容，让面试官一下抓住重点？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你刚才那段回答里，哪些话可以删掉？说说删的理由。",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "30秒讲结论时，你会先说结果还是先说背景？为什么？",
+      "dimension": "表达干净"
+    }
+  ],
+  "scene-foundation-impact": [
+    {
+      "text": "先简单介绍一下你自己，再说说为什么对这个岗位感兴趣吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你推荐过一个方案但别人担心成本和结果不确定，你会怎么用真实例子和可查的依据来说服对方？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "简历里这个数字是怎么统计出来的？能说说具体口径吗？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "如果这个数字记不清了，你会怎么核实再回答我？",
+      "dimension": "信息完整"
+    }
+  ],
+  "scene-foundation-logic": [
+    {
+      "text": "先简单介绍一下你自己，再聊聊为什么想投这个岗位吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你刚才讲的那个项目，能先一句话说结论，再讲讲你是怎么判断的吗？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你刚才说项目结果不错，这个“不错”具体指什么？说个数字。",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "如果重来一次，你当时哪一步判断会改？为什么？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-foundation-relevance": [
+    {
+      "text": "先简单介绍一下你自己，再说说为什么想应聘这个岗位吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "当别人追问你项目里的贡献时，你会怎么开口回答，才能让对方马上听明白？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "面试官追问你贡献时，你一般先说结论还是先讲背景？为什么？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "如果面试官打断你说“直接讲你做了什么”，你会怎么调整回答？",
+      "dimension": "贴合问题"
+    }
+  ],
+  "scene-general-motivation": [
+    {
+      "text": "先简单介绍一下你自己，也说说为什么想来我们公司投这个岗位？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你了解我们公司和这个岗位的哪些情况，这些跟你自己的兴趣和能做的事是怎么对上的？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "除了我们公司，你还投了哪些同类型公司？最后是怎么比较、做选择的？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "如果入职后发现岗位内容和你想的不太一样，你会怎么判断要不要留下来？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-general-overtime": [
+    {
+      "text": "先简单做个自我介绍，说说你为什么想投这个岗位吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "如果这个岗位经常加班还没补贴，你会先问清楚哪些情况，又怎么说出自己的接受范围？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "如果加班是常态，你会用什么标准判断这份工作还值不值得继续做？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "假设我告诉你加班没补贴但能快速成长，你会怎么回应我这句话？",
+      "dimension": "贴合问题"
+    }
+  ],
+  "scene-general-start-date": [
+    {
+      "text": "先简单介绍一下你自己，重点说说和这个岗位相关的经历吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你最早能什么时候到岗？还有哪些事得先处理完，时间上有没有协调余地？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "毕业手续大概几月能办完，中间有没有必须你本人到场的环节？",
+      "dimension": "信息完整"
+    },
+    {
+      "text": "如果公司希望提前，你能把哪些事并行处理或请人代办？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-interview-01": [
+    {
+      "text": "先简单介绍一下你自己，重点说说为什么想做产品经理这份工作？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "挑一次跨团队合作没达到预期的项目，按情境、任务、行动、结果讲讲你具体做了什么？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "那个项目里，你和其他团队最大的分歧是什么？你当时怎么推动解决的？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "如果重来一次，你会在哪个节点做不同决策？为什么？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-interview-02": [
+    {
+      "text": "先简单介绍一下自己，重点说说你对产品运营这个岗位的兴趣是怎么来的？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "挑一个你参与过的项目，说说你个人具体负责了哪块、做了什么、最后有什么能看得见的结果？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你刚说的项目里，和队友意见不一致时你是怎么处理的？最后怎么推进的？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "这个项目做完后，你复盘过哪些做得不够好的地方？后来有改进吗？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-interview-03": [
+    {
+      "text": "先简单介绍一下你自己，重点说说跟Python后端开发相关的经历吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "如果线上接口突然变慢，你会怎么一步步定位问题？结合你做过的项目说说？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你项目里为什么选这个数据库或缓存方案？对比过哪些替代方案，取舍依据是什么？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "说一个你上线后出过的故障，怎么发现、怎么止损、事后改了什么？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-interview-04": [
+    {
+      "text": "先简单做个自我介绍，说说你为什么想投这个岗位吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你期望的薪资大概是多少，能说说这个数是怎么考虑的吗？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "如果录用你，最快什么时候能到岗？学校那边还有什么事要处理吗？",
+      "dimension": "信息完整"
+    },
+    {
+      "text": "除了薪资，你还想了解岗位的哪些情况？比如发展空间或培训安排。",
+      "dimension": "贴合问题"
+    }
+  ],
+  "scene-interview-05": [
+    {
+      "text": "先简单介绍一下你自己，重点说说和软件开发实习相关的经历吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "在实习项目里你和同事对实现方式有不同看法时，你是怎么沟通处理的？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "那次分歧最后按谁的想法落地了？你后来怎么判断这个结果好不好？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "如果同事坚持他的方案且态度强硬，你会怎么推进这次沟通？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-interview-06": [
+    {
+      "text": "先简单介绍一下你自己，重点说说在校期间让你印象最深的一段经历吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "讲一次你没达到目标的事，当时差在哪、你自己做了什么补救，后来又学到什么？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "那次没达标，你觉得主要是自己哪方面没做好？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "如果让你重来一次，你会从哪一步开始改？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-interview-07": [
+    {
+      "text": "先简单介绍一下你自己，重点说说跟Python后端开发相关的经历吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你刚说的这个团队项目里，哪些部分是你亲手写的？能说点具体的代码或排查细节吗？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你刚说的优化效果，有对比数据吗？谁测的、怎么测的？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "如果把你从团队里拿掉，这个项目哪些功能会直接跑不起来？",
+      "dimension": "信息完整"
+    }
+  ],
+  "scene-interview-08": [
+    {
+      "text": "先简单介绍一下自己，说说你为什么想应聘这个岗位吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "如果我说你没什么正式工作经验、怕你上手慢，你会怎么回应我？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你做过哪些课程项目或实践，能说明你具备岗位需要的能力？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "入职头三个月，你打算按什么步骤让自己尽快独立上手？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-interview-09": [
+    {
+      "text": "先简单介绍一下自己，重点说说你为什么想做产品经理？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "项目快上线了，需求、质量和时间撞在一起，你当场怎么定优先级、怎么跟各方同步风险？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "如果老板坚持全都要，你拿什么数据说服他砍需求？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "上线后出问题，你准备怎么向总监汇报并补救？",
+      "dimension": "信息完整"
+    }
+  ],
+  "scene-interview-10": [
+    {
+      "text": "先简单介绍一下你自己，重点说说跟 Python 后端开发相关的经历吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "接口上线后响应明显变慢，你会按什么顺序去查，又怎么验证每一步的判断？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "如果监控显示只有部分请求超时，你怎么区分是特定参数、用户还是机器导致的？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "排查时指标、日志、数据库、依赖服务，你优先看哪个，为什么这么排？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-interview-11": [
+    {
+      "text": "先简单介绍下你自己，重点说说做前端开发相关的经历吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "如果有个页面加载很慢，你会怎么确认到底慢在哪、又怎么验证改动真的有效？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你刚才说的加载慢，是用户反馈还是你测出来的？具体看了哪些指标？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "如果优化后首屏时间只降了一点，你怎么判断是方向错了还是没做到位？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-interview-12": [
+    {
+      "text": "先简单介绍一下你自己，重点说说跟数据分析相关的经历吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你这份报告里数据是怎么来的、异常值怎么处理的，结论能说到什么程度？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你说的异常值处理，具体用了什么判断标准？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "报告结论有没有反过来验证过？怎么确认不是巧合？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-interview-13": [
+    {
+      "text": "先简单介绍一下你自己，重点说说跟软件开发相关的经历吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "关于期望薪资，你是怎么考虑的？能说说你的依据和可接受的范围吗？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你了解我们公司这个岗位大概的薪资范围吗？这个信息对你提期望有什么影响？",
+      "dimension": "信息完整"
+    },
+    {
+      "text": "如果我们的预算暂时达不到你的期望，你通常会怎么权衡和取舍？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-interview-14": [
+    {
+      "text": "先简单介绍一下你自己，还有你为什么想应聘这个岗位？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "刚才提到的薪酬，固定工资、绩效和试用期这些能一项项帮我讲清楚吗？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "绩效这部分大概占工资多少比例，考核周期和发放时间是怎样的？",
+      "dimension": "信息完整"
+    },
+    {
+      "text": "试用期工资按转正的几成发，社保和公积金从什么时候开始缴？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-interview-15": [
+    {
+      "text": "先简单介绍一下自己，也说说你为什么对我们这个机会更心动吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你手上还有别的机会，你会怎么跟我们聊薪资和成长条件，又不把话说得太虚？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "如果薪资暂时达不到你期望，你会优先争取哪些成长条件？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "另一份机会你最看重哪点？我们这边怎么补上或做得更好？",
+      "dimension": "贴合问题"
+    }
+  ],
+  "scene-jd-data-analyst": [
+    {
+      "text": "电商经营看板你会放哪些核心指标？为什么？",
+      "dimension": "内容与逻辑",
+      "difficulty": null
+    },
+    {
+      "text": "GMV 下降 15%，你会怎么拆解归因？",
+      "dimension": "贴合问题",
+      "difficulty": null
+    },
+    {
+      "text": "一条慢 SQL 你会怎么优化？",
+      "dimension": "信息完整",
+      "difficulty": null
+    },
+    {
+      "text": "两个部门对同一个指标口径不一致，你怎么推进统一？",
+      "dimension": "贴合问题",
+      "difficulty": null
+    },
+    {
+      "text": "库存周转你会怎么分析，给业务什么建议？",
+      "dimension": "内容与逻辑",
+      "difficulty": null
+    },
+    {
+      "text": "AI 指标预警你会怎么落地，怎么避免误报？",
+      "dimension": "表达干净",
+      "difficulty": null
+    }
+  ],
+  "scene-jd-frontend": [
+    {
+      "text": "React 里状态更新后页面是怎么重新渲染的？",
+      "dimension": "内容与逻辑",
+      "difficulty": null
+    },
+    {
+      "text": "一个复杂表单你会怎么拆组件、怎么管理状态？",
+      "dimension": "贴合问题",
+      "difficulty": null
+    },
+    {
+      "text": "首屏加载慢你会从哪些方面优化？",
+      "dimension": "信息完整",
+      "difficulty": null
+    },
+    {
+      "text": "Webpack 或 Vite 的构建流程你了解多少？",
+      "dimension": "信息完整",
+      "difficulty": null
+    },
+    {
+      "text": "前后端联调时接口字段对不上，你怎么处理？",
+      "dimension": "贴合问题",
+      "difficulty": null
+    },
+    {
+      "text": "线上出现白屏，你怎么定位？",
+      "dimension": "表达干净",
+      "difficulty": null
+    }
+  ],
+  "scene-jd-java-backend": [
+    {
+      "text": "你最近负责的一个核心模块，接口和数据结构是怎么设计的？",
+      "dimension": "内容与逻辑",
+      "difficulty": null
+    },
+    {
+      "text": "Spring Boot 项目里事务失效你遇到过哪些情况？",
+      "dimension": "信息完整",
+      "difficulty": null
+    },
+    {
+      "text": "MySQL 慢查询你会怎么定位和优化？举一个具体例子。",
+      "dimension": "贴合问题",
+      "difficulty": null
+    },
+    {
+      "text": "缓存和数据库不一致怎么处理？你们用的是什么策略？",
+      "dimension": "信息完整",
+      "difficulty": null
+    },
+    {
+      "text": "消息队列重复消费怎么保证幂等？",
+      "dimension": "内容与逻辑",
+      "difficulty": null
+    },
+    {
+      "text": "线上接口突然变慢，你的排查顺序是什么？",
+      "dimension": "贴合问题",
+      "difficulty": null
+    }
+  ],
+  "scene-jd-product": [
+    {
+      "text": "你怎么判断一个需求值不值得做？",
+      "dimension": "内容与逻辑",
+      "difficulty": null
+    },
+    {
+      "text": "你负责的产品核心指标是什么，怎么拆解的？",
+      "dimension": "信息完整",
+      "difficulty": null
+    },
+    {
+      "text": "某天核心转化率掉了 20%，你会怎么排查？",
+      "dimension": "贴合问题",
+      "difficulty": null
+    },
+    {
+      "text": "增长和留存冲突时你怎么取舍？",
+      "dimension": "内容与逻辑",
+      "difficulty": null
+    },
+    {
+      "text": "技术团队说排期不够，你怎么推动？",
+      "dimension": "贴合问题",
+      "difficulty": null
+    },
+    {
+      "text": "讲一个没做成的产品，你复盘出了什么？",
+      "dimension": "表达干净",
+      "difficulty": null
+    }
+  ],
+  "scene-stage-algorithm-basics": [
+    {
+      "text": "先简单介绍一下自己，重点说说你做过哪些 Python 后端相关的开发工作？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "拿到一个业务问题，你会怎么先讲清思路和复杂度，再用具体输入说明边界情况？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "实际项目里你选过哪种数据结构？说说为什么选它、复杂度如何？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "如果接口返回很慢，你怎样判断是算法复杂度问题还是IO瓶颈？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-stage-backend-basics": [
+    {
+      "text": "先做个简短自我介绍吧，重点说说你跟Python后端开发相关的经历？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "挑一个你自己写过的HTTP接口，讲讲你是怎么一步步实现并验证它能正常工作的？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "说说Python里列表和字典的区别，你平时写接口时分别在什么场景下用？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "你写接口时怎么连数据库查数据？简单说说从建立连接到返回结果的步骤。",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-stage-data-deep": [
+    {
+      "text": "先简单介绍一下自己，重点说说你做数据分析相关的经历吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "挑一个你负责过的分析项目，讲讲你为什么选那个方法、怎么控制偏差，以及结论能用到什么范围？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "如果业务方坚持用另一个指标口径，你如何用数据证明你选的更合理？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "你那个分析结论上线后，实际业务效果和预期差多少？你怎么归因？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-stage-executive-backend": [
+    {
+      "text": "先简单介绍一下自己，重点说说你跟Python后端开发相关的经历吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "讲一个你负责过的项目，当时技术方案是怎么定的，为什么这么选？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "项目上线前发现性能瓶颈，但工期很紧，你当时怎么权衡和处理的？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "讲一次你和产品、前端意见不一致的经历，你怎么推动达成一致？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-stage-executive-product": [
+    {
+      "text": "先简单介绍一下你自己，重点说说你为什么想做产品经理？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "讲一个你做过的产品决策，你是怎么从业务价值、资源和风险三方面权衡取舍的？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "如果业务目标与团队现有能力不匹配，你会怎么推动调整？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "你觉得自己成长最快的一段经历是什么？具体收获了什么？",
+      "dimension": "贴合问题"
+    }
+  ],
+  "scene-stage-hr-values": [
+    {
+      "text": "先简单介绍一下自己，重点说说你当初为什么选这个方向的工作吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "回想一次你实际做过的选择，当时你最看重什么，什么情况下你可能会重新考虑？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "你期待团队用哪种方式协作和反馈？能举个你亲身经历的例子吗？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "如果入职后岗位职责有较大调整，你会怎么判断要不要继续留下？",
+      "dimension": "内容与逻辑"
+    }
+  ],
+  "scene-stage-system-design": [
+    {
+      "text": "先简单介绍一下自己，重点说说你做Python后端开发的相关经历吧？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "如果这个接口流量突然涨了好几倍，你会先问清楚哪些情况，再怎么一步步设计方案？",
+      "dimension": null,
+      "difficulty": null
+    },
+    {
+      "text": "按你刚才的估算，哪个环节最先撑不住？你怎么定位并验证它？",
+      "dimension": "内容与逻辑"
+    },
+    {
+      "text": "流量涨上来后，读写一致性和响应时间你怎么取舍？降级先砍哪块？",
+      "dimension": "内容与逻辑"
+    }
+  ]
+}

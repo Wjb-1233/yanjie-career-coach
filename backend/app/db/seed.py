@@ -7,6 +7,16 @@ from app.features.scenes.taxonomy import LEGACY_CATEGORIES
 from app.infrastructure.knowledge import KnowledgeDocument, knowledge_store
 
 
+import json
+from pathlib import Path
+
+from app.features.scenes.taxonomy import normalize_bank
+
+_BANK_FILE = Path(__file__).resolve().parents[3] / "content" / "question-banks.json"
+QUESTION_BANKS: dict[str, list[dict]] = (
+    json.loads(_BANK_FILE.read_text(encoding="utf-8")) if _BANK_FILE.is_file() else {}
+)
+
 SCENES = [
     {
         "id": "scene-interview-01",
@@ -507,10 +517,15 @@ async def seed_database(session: AsyncSession, include_demo_users: bool = True) 
     for item in SCENES:
         scene = await session.get(Scene, item["id"])
         if scene is None:
-            session.add(Scene(**item))
+            payload = dict(item)
+            if payload["id"] in QUESTION_BANKS and not payload.get("question_bank"):
+                payload["question_bank"] = QUESTION_BANKS[payload["id"]]
+            session.add(Scene(**payload))
         else:
             for field, value in item.items():
                 setattr(scene, field, value)
+            if item["id"] in QUESTION_BANKS and not normalize_bank(scene.question_bank):
+                scene.question_bank = QUESTION_BANKS[item["id"]]
             scene.active = True
     for scene_id in RETIRED_SCENE_IDS:
         old_scene = await session.get(Scene, scene_id)
