@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     db_pool_size: int = Field(default=10, ge=1, le=50)
     db_max_overflow: int = Field(default=20, ge=0, le=100)
     db_pool_recycle_seconds: int = Field(default=1800, ge=60, le=86400)
-    redis_url: str = "redis://localhost:6379/0"
+    redis_url: str = "redis://127.0.0.1:6379/0"
     redis_enabled: bool = False
     redis_password: SecretStr | None = None
 

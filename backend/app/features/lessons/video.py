@@ -155,6 +155,32 @@ def _ffmpeg() -> str:
     raise RuntimeError("找不到 ffmpeg")
 
 
+def _media_duration(path: Path) -> float:
+    """读取媒体时长（秒）：优先 ffprobe，没有就用 ffmpeg -i 解析，失败返回 0。"""
+    import re
+
+    try:
+        ffmpeg = _ffmpeg()
+        probe = Path(ffmpeg).with_name("ffprobe.exe" if ffmpeg.endswith(".exe") else "ffprobe")
+        if probe.exists() or shutil.which("ffprobe"):
+            binary = str(probe) if probe.exists() else "ffprobe"
+            result = subprocess.run(
+                [binary, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            return float(result.stdout.strip() or 0)
+        result = subprocess.run([ffmpeg, "-i", str(path)], capture_output=True, text=True)
+        match = re.search(r"Duration: (\d+):(\d+):(\d+(?:\.\d+)?)", result.stderr)
+        if match:
+            hours, minutes, seconds = match.groups()
+            return int(hours) * 3600 + int(minutes) * 60 + float(seconds)
+    except Exception:  # noqa: BLE001
+        pass
+    return 0.0
+
+
 def build_video(lesson: dict, out_path: Path) -> Path:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     workdir = Path(tempfile.mkdtemp())
@@ -211,6 +237,17 @@ def build_video(lesson: dict, out_path: Path) -> Path:
         [ffmpeg, "-y", "-f", "concat", "-safe", "0", "-i", str(listing), "-c", "copy", str(out_path)],
         check=True,
         capture_output=True,
+    )
+    chapters = []
+    cursor = 0.0
+    for index, segment in enumerate(segments):
+        duration = _media_duration(segment)
+        title = lesson.get("title", "微课") if index == 0 else lesson.get("steps", [{}])[index - 1].get("title", "")
+        chapters.append({"title": title, "start": round(cursor, 2), "duration": round(duration, 2)})
+        cursor += duration
+    out_path.with_suffix(".json").write_text(
+        json.dumps({"chapters": chapters, "duration": round(cursor, 2)}, ensure_ascii=False),
+        encoding="utf-8",
     )
     shutil.rmtree(workdir, ignore_errors=True)
     return out_path
