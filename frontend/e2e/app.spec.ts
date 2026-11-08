@@ -23,7 +23,7 @@ test('注册后可以走完场景库、我的场景与个人资料', async ({ pa
 
   // 登录态：侧边栏出现，看板标题可见
   await expect(page.getByRole('link', { name: '场景训练' })).toBeVisible()
-  await expect(page.locator('main .label').filter({ hasText: '成长看板' }).first()).toBeVisible()
+  await expect(page.getByRole('heading', { name: '成长看板' })).toBeVisible()
 
   // 场景库至少有一张场景卡
   await page.goto('/scenes')

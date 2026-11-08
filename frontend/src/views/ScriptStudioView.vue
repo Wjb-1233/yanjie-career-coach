@@ -267,7 +267,7 @@ async function favorite(version: ScriptVersion): Promise<void> {
       </EmptyState>
 
       <template v-else>
-        <article v-for="item in pagedPending" :key="keyOf(item)" class="mistake panel" :class="{ resolved: item.status === 'RESOLVED' }">
+        <article v-for="item in pagedPending" :key="keyOf(item)" class="mistake" :class="{ resolved: item.status === 'RESOLVED' }">
           <header class="mistake-head">
             <span class="dim">{{ item.dimension }}</span>
             <span class="score num">{{ item.score }} / 5</span>
