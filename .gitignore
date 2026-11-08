@@ -13,10 +13,6 @@ frontend/*.tsbuildinfo
 data/
 backups/
 .tools/
-android-app/.gradle/
-android-app/build/
-android-app/app/build/
-android-app/local.properties
 
 
 # 本地截图/设计预览/工具产物
@@ -26,8 +22,6 @@ android-app/local.properties
 *.db
 资料_Python版/
 
-# 安卓端打包产物过大，仅保留源码
-android-app/
 
 # Remotion 渲染产物与依赖
 video/node_modules/
@@ -49,7 +43,6 @@ backend/static/tts/*.wav
 video/public/narration-*.wav
 backend/static/tts/samples/*.mp3
 backend/static/lessons/*.mp3
-frontend/public/downloads/*.apk
 
 # 运行期缓存与本地草稿
 backend/static/lessons/*.json

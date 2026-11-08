@@ -65,7 +65,7 @@ function submit(): void {
       </button>
     </div>
     <p class="voice-status" role="status">{{ status }}</p>
-    <p v-if="!speech.available.value" class="voice-error">当前浏览器不支持网页语音识别。请用最新版安卓 Chrome，或切换上方“文字模式”。</p>
+    <p v-if="!speech.available.value" class="voice-error">当前浏览器不支持网页语音识别。请用最新版 Chrome / Edge，或切换上方“文字模式”。</p>
     <p v-else-if="!speech.secureContext.value" class="voice-hint">局域网 HTTP 地址可能无法获取麦克风权限；如录音失败，请用提供的 HTTPS 测试地址。</p>
     <p v-if="speech.error.value" class="voice-error" role="alert">{{ speech.error.value }}</p>
     <label class="transcript-label" for="voice-transcript">识别文字 · 发送前可以修改</label>

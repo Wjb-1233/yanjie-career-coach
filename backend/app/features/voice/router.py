@@ -109,7 +109,8 @@ async def voice_ws(client: WebSocket) -> None:
         logger.info("voice.upstream_closed code=%s", exc.code)
         await client.close(code=4003, reason="语音上游已断开")
     except Exception as exc:  # noqa: BLE001
-        logger.warning("voice.upstream_failed error_type=%s", type(exc).__name__)
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+        logger.warning("voice.upstream_failed error_type=%s status=%s detail=%s", type(exc).__name__, status, str(exc)[:200])
         await client.close(code=4004, reason="语音上游不可用")
     finally:
         VOICE_SLOTS.release()
