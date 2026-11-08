@@ -1,3 +1,4 @@
+import re
 import asyncio
 import json
 import logging
@@ -28,6 +29,21 @@ from app.infrastructure.llm import llm_gateway
 from app.infrastructure.state_store import state_store
 
 logger = logging.getLogger(__name__)
+
+
+REPEAT_PATTERN = re.compile(
+    r"(再说(一遍|一次)|没听清|没听懂|重复(一下|一遍)?|能再说|pardon|repeat|say that again|didn'?t catch)",
+    re.IGNORECASE,
+)
+NERVOUS_PATTERN = re.compile(r"(紧张|有点慌|害怕|焦虑|nervous|anxious|panic)", re.IGNORECASE)
+
+
+def is_repeat_request(text: str) -> bool:
+    return bool(REPEAT_PATTERN.search(text or ""))
+
+
+def is_nervous(text: str) -> bool:
+    return bool(NERVOUS_PATTERN.search(text or ""))
 
 
 async def create_training_session(
@@ -328,6 +344,40 @@ async def stream_reply(session_id: str, user_id: str, user_text: str, finish_aft
             return
         scene = await db.get(Scene, training.scene_id)
         resume = await db.get(ResumeContext, training.id)
+        if is_repeat_request(user_text):
+            last_ai = await db.scalar(
+                select(Message.content)
+                .where(Message.session_id == session_id, Message.speaker == "AI")
+                .order_by(Message.created_at.desc())
+                .limit(1)
+            )
+            question = (last_ai or "").strip()
+            if training.language == "en":
+                reply = f"Sure, let me repeat the question: {question}" if question else "Please start with a brief self-introduction."
+            else:
+                reply = f"当然，我再说一遍：{question}" if question else "请先做个自我介绍。"
+            db.add(Message(session_id=session_id, round_no=training.current_round, speaker="USER", content=user_text))
+            assistant = Message(
+                session_id=session_id,
+                round_no=training.current_round,
+                speaker="AI",
+                content=reply,
+            )
+            db.add(assistant)
+            await db.commit()
+            yield sse(
+                "meta",
+                {
+                    "roundNo": training.current_round,
+                    "maxRounds": training.max_rounds,
+                    "stage": training.stage,
+                    "flags": [],
+                "nervous": is_nervous(user_text),
+                },
+            )
+            yield sse("token", {"content": reply})
+            yield sse("done", {"messageId": assistant.id, "finished": False, "degraded": False})
+            return
         history_rows = (
             await db.scalars(
                 select(Message)

@@ -23,6 +23,7 @@ class ConversationState(TypedDict):
     mode: str
     depth: str
     language: str
+    nervous: bool
     planned_question: str
     prompt: str
 
@@ -157,6 +158,13 @@ def prompt_node(state: ConversationState) -> dict:
             "\n这是深挖模式：像严格但专业的教练，只围绕候选人上一轮回答里最薄弱的一点连续追问，"
             "每次只问一个问题、不超过 40 字；不给答案、不换话题、不评价，直到对方说清楚依据为止。\n"
         )
+    nervous_note = ""
+    if state.get("nervous"):
+        nervous_note = (
+            "\nThe candidate sounds nervous. Start with one short, specific reassuring sentence, then ask your question.\n"
+            if state.get("language") == "en"
+            else "\n候选人有些紧张。先用一句简短、具体的安抚，再提出本轮问题。\n"
+        )
     language_note = ""
     if state.get("language") == "en":
         language_note = (
@@ -164,7 +172,7 @@ def prompt_node(state: ConversationState) -> dict:
             "one question per turn, no more than 40 words. Feedback is collected separately; "
             "do not switch to Chinese.\n"
         )
-    prompt = f"""{language_note}{drill_note}你正在进行中文{'基础能力场景对练' if is_foundation else '求职面试模拟'}。
+    prompt = f"""{nervous_note}{language_note}{drill_note}你正在进行中文{'基础能力场景对练' if is_foundation else '求职面试模拟'}。
 场景：{state['scene_title']}
 你的角色：{state['role_name']}
 背景：{state['scene_background']}

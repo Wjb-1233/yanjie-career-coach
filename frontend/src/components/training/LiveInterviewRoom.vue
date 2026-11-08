@@ -419,6 +419,16 @@ async function stopAndReport(timeUp = false): Promise<void> {
   }
 }
 
+function replayQuestion(): void {
+  const text = (reply.value || openingLine()).trim()
+  if (!text || !('speechSynthesis' in window)) return
+  window.speechSynthesis.cancel()
+  const utterance = new SpeechSynthesisUtterance(text)
+  utterance.lang = props.language === 'en' ? 'en-US' : 'zh-CN'
+  utterance.rate = 0.92
+  window.speechSynthesis.speak(utterance)
+}
+
 function interrupt(): void {
   if (effectiveEngine.value === 'pipeline') {
     socket?.send(new ArrayBuffer(0))
@@ -492,6 +502,7 @@ onBeforeUnmount(stop)
     <p v-if="error" class="room-error">{{ error }}</p>
 
     <div class="room-controls">
+      <button class="button secondary" type="button" :disabled="status !== 'live'" @click="replayQuestion">重听问题</button>
       <button class="button secondary" type="button" :disabled="status !== 'live' || !reply" @click="interrupt">打断</button>
       <button class="button end" type="button" :disabled="status === 'saving' || status === 'connecting'" @click="stopAndReport(false)">
         <PhoneOff :size="15" :stroke-width="1.8" aria-hidden="true" />
