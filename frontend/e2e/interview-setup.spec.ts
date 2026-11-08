@@ -55,10 +55,12 @@ test('语音入口可切换追问强度并记住选择', async ({ page, request 
 test('场景页可切换面试语言并记住', async ({ page, request }) => {
   const sceneId = await login(page, request)
   await page.goto(`/scenes?focus=${sceneId}`)
+  await page.getByRole('button', { name: '更多设置' }).click()
   const english = page.getByRole('button', { name: 'English' })
   await expect(english).toBeVisible()
   await english.click()
   await expect(page.evaluate(() => localStorage.getItem('yanjie-interview-language'))).resolves.toBe('en')
   await page.reload()
+  await page.getByRole('button', { name: '更多设置' }).click()
   await expect(page.getByRole('button', { name: 'English' })).toHaveClass(/active/)
 })

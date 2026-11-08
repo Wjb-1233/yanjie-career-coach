@@ -8,7 +8,6 @@ import { useSceneFilters } from '@/composables/useSceneFilters'
 import { api, errorMessage, MODEL_REQUEST_TIMEOUT_MS } from '@/lib/api'
 import type { ApiEnvelope, Scene } from '@/lib/types'
 import { DIFFICULTY_LEVELS } from '@/lib/sceneTaxonomy'
-import AtmosphereBackdrop from '@/components/layout/AtmosphereBackdrop.vue'
 import SelectField from '@/components/ui/SelectField.vue'
 
 const router = useRouter()
@@ -16,6 +15,7 @@ const scenes = shallowRef<Scene[]>([])
 const loading = shallowRef(true)
 const error = shallowRef('')
 const startSelection = shallowRef<{ scene: Scene; mode: 'text' | 'voice' } | null>(null)
+const advanced = shallowRef(false)
 const DEPTH_KEY = 'yanjie-interview-depth'
 const depth = shallowRef<'STANDARD' | 'THREE_LAYER' | 'PRESSURE'>(
   (localStorage.getItem(DEPTH_KEY) as 'STANDARD' | 'THREE_LAYER' | 'PRESSURE') || 'STANDARD',
@@ -129,10 +129,16 @@ async function confirmStart(file: File | null): Promise<void> {
 
 <template>
   <div class="page">
-    <header class="page-heading scene-hero">
-      <AtmosphereBackdrop variant="panel" />
-      <div class="hero-copy"><p class="eyebrow">{{ foundationFocus ? '四维基础练习' : '场景训练' }}</p><h1 class="page-title">把难回答的问题，<br /><span>先在这里练一遍。</span></h1><p class="page-lead">{{ foundationFocus ? '围绕一个表达维度进行连续对练，完成后查看四维反馈。' : '先选行业与岗位，再按真实招聘阶段选择面试。不同岗位只展示适用的阶段；难度越高，追问越深入。' }}</p></div>
-      <div class="hero-aside" aria-label="场景概览"><span>训练场景</span><strong>{{ catalogScenes.length.toString().padStart(2, '0') }}</strong><small>从模拟对话到四维复盘</small></div>
+    <header class="scene-head">
+      <div class="head-copy">
+        <p class="eyebrow">{{ foundationFocus ? '基础练习' : '场景训练' }}</p>
+        <h1>{{ foundationFocus ? '围绕一个维度，连续练几轮。' : '选择一场面试，直接开始。' }}</h1>
+        <p class="lead">{{ foundationFocus ? '完成后查看四维反馈。' : '按行业、岗位和面试阶段筛选；难度越高，追问越深入。' }}</p>
+      </div>
+      <div class="head-side">
+        <span>{{ catalogScenes.length }} 场</span>
+        <RouterLink to="/my-scenes">自建场景 →</RouterLink>
+      </div>
     </header>
 
     <div v-if="planId" class="plan-notice">
@@ -140,50 +146,37 @@ async function confirmStart(file: File | null): Promise<void> {
     </div>
 
     <div v-if="error" class="error-banner">{{ error }}</div>
+
     <section class="scene-catalog" aria-label="选择面试场景">
-      <div class="catalog-heading"><div><p class="eyebrow">练习库</p><h2>选择一场对练</h2></div><span>{{ visibleScenes.length }} 个匹配场景</span></div>
+      <div class="catalog-heading"><h2>场景</h2><span>{{ visibleScenes.length }} 个</span></div>
       <div v-if="recommendedSceneId" class="focus-notice">已打开指定训练场景。<RouterLink to="/scenes">查看全部场景 →</RouterLink></div>
-      <div v-else class="filters">
-        <div class="my-scenes-link"><RouterLink to="/my-scenes">按自己的岗位建一个场景 →</RouterLink></div>
-        <div class="metadata-filters">
-          <SelectField
-            :model-value="activeIndustry"
-            :options="industries.map((item) => ({ value: item, label: item }))"
-            aria-label="按行业筛选"
-            @update:model-value="activeIndustry = $event"
-          />
-          <SelectField
-            :model-value="activePosition"
-            :options="positions.map((item) => ({ value: item, label: item }))"
-            aria-label="按岗位筛选"
-            @update:model-value="activePosition = $event"
-          />
-          <SelectField
-            :model-value="activeDifficulty"
-            :options="difficulties.map((item) => ({ value: item, label: item }))"
-            aria-label="按难度筛选"
-            @update:model-value="activeDifficulty = $event"
-          />
+      <div v-else class="filters panel">
+        <div class="filter-row">
+          <SelectField :model-value="activeIndustry" :options="industries.map((item) => ({ value: item, label: item }))" aria-label="按行业筛选" @update:model-value="activeIndustry = $event" />
+          <SelectField :model-value="activePosition" :options="positions.map((item) => ({ value: item, label: item }))" aria-label="按岗位筛选" @update:model-value="activePosition = $event" />
+          <SelectField :model-value="activeDifficulty" :options="difficulties.map((item) => ({ value: item, label: item }))" aria-label="按难度筛选" @update:model-value="activeDifficulty = $event" />
+          <input v-model="query" class="field search" aria-label="搜索场景、角色或关键词" placeholder="搜索场景、角色或关键词" />
         </div>
         <div class="stage-filter">
-          <span class="stage-label">面试阶段</span>
           <div class="category-tabs" role="tablist" aria-label="面试阶段">
             <button v-for="category in categories" :key="category" type="button" role="tab" :aria-selected="activeCategory === category" :class="{ active: activeCategory === category }" @click="activeCategory = category">{{ category }}</button>
           </div>
         </div>
-        <div class="difficulty-guide" aria-label="难度说明"><span v-for="level in DIFFICULTY_LEVELS" :key="level.name" :class="level.tone"><i aria-hidden="true" />{{ level.name }}<small>{{ level.cue }}</small></span></div>
-        <div class="depth-picker" role="group" aria-label="面试语言">
-          <span>面试语言</span>
-          <button type="button" :class="{ active: language === 'zh' }" @click="setLanguage('zh')">中文</button>
-          <button type="button" :class="{ active: language === 'en' }" @click="setLanguage('en')">English</button>
+        <button class="more-toggle" type="button" @click="advanced = !advanced">{{ advanced ? '收起设置' : '更多设置' }}</button>
+        <div v-if="advanced" class="extra-settings">
+          <div class="depth-picker" role="group" aria-label="面试语言">
+            <span>面试语言</span>
+            <button type="button" :class="{ active: language === 'zh' }" @click="setLanguage('zh')">中文</button>
+            <button type="button" :class="{ active: language === 'en' }" @click="setLanguage('en')">English</button>
+          </div>
+          <div class="depth-picker" role="group" aria-label="追问强度">
+            <span>追问强度</span>
+            <button type="button" :class="{ active: depth === 'STANDARD' }" @click="setDepth('STANDARD')">标准</button>
+            <button type="button" :class="{ active: depth === 'THREE_LAYER' }" @click="setDepth('THREE_LAYER')">三层深挖</button>
+            <button type="button" :class="{ active: depth === 'PRESSURE' }" @click="setDepth('PRESSURE')">压力面</button>
+          </div>
+          <div class="difficulty-guide" aria-label="难度说明"><span v-for="level in DIFFICULTY_LEVELS" :key="level.name" :class="level.tone"><i aria-hidden="true" />{{ level.name }}<small>{{ level.cue }}</small></span></div>
         </div>
-        <div class="depth-picker" role="group" aria-label="追问强度">
-          <span>追问强度</span>
-          <button type="button" :class="{ active: depth === 'STANDARD' }" @click="setDepth('STANDARD')">标准</button>
-          <button type="button" :class="{ active: depth === 'THREE_LAYER' }" @click="setDepth('THREE_LAYER')">三层深挖</button>
-          <button type="button" :class="{ active: depth === 'PRESSURE' }" @click="setDepth('PRESSURE')">压力面</button>
-        </div>
-        <input v-model="query" class="field search" aria-label="搜索场景、角色或关键词" placeholder="搜索场景、角色或关键词" />
       </div>
     </section>
     <section v-if="loading" class="scene-grid"><div v-for="n in 4" :key="n" class="skeleton scene-loading" /></section>
@@ -288,4 +281,23 @@ async function confirmStart(file: File | null): Promise<void> {
 .my-scenes-link { margin: 10px 0 0; }
 .my-scenes-link a { color: var(--accent-strong); font-size: 12.5px; }
 </style>
-
+<style scoped>
+.scene-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 30px; }
+.scene-head h1 { margin: 10px 0 0; font-size: clamp(28px, 3.2vw, 38px); font-weight: 650; letter-spacing: -.02em; line-height: 1.25; }
+.scene-head .lead { margin: 12px 0 0; color: var(--text-3); font-size: 14px; line-height: 1.8; }
+.head-side { display: flex; align-items: center; gap: 16px; flex: none; padding-bottom: 4px; font-size: 13px; color: var(--text-3); }
+.head-side a { color: var(--text-2); }
+.catalog-heading { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 12px; }
+.catalog-heading h2 { margin: 0; font-size: 20px; font-weight: 600; }
+.catalog-heading span { color: var(--text-3); font-size: 12.5px; }
+.filters { display: grid; gap: 12px; padding: 16px; }
+.filter-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.filter-row :deep(.select-trigger) { width: auto; min-width: 130px; }
+.search { flex: 1 1 240px; min-width: 200px; }
+.stage-filter { min-width: 0; }
+.extra-settings { display: grid; gap: 12px; padding-top: 4px; }
+.more-toggle { justify-self: start; border: 0; background: transparent; color: var(--text-3); font-size: 12.5px; cursor: pointer; padding: 0; }
+.more-toggle:hover { color: var(--text); }
+.scene-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; }
+@media (max-width: 720px) { .scene-head { flex-direction: column; align-items: flex-start; } .head-side { padding: 0; } }
+</style>
