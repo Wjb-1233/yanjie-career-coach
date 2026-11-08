@@ -23,6 +23,7 @@ from app.features.training.schemas import (
 )
 from app.features.auth.email_verify import require_verified
 from app.features.training.service import (
+    session_hint,
     create_training_session,
     delete_training_session,
     delete_resume_context,
@@ -206,6 +207,12 @@ async def send_message_complete(
     await limit_model_user(user.id)
     result = await complete_reply(session_id, user.id, body.content, body.finish_after_reply)
     return ok(result.model_dump(by_alias=True))
+
+
+@router.post("/{session_id}/hint")
+async def hint(session_id: str, user: CurrentUser, session: DbSession) -> dict:
+    """提示卡：回答结构 + 关键词，不给整段答案。"""
+    return ok(await session_hint(session, user.id, session_id))
 
 
 @router.post("/{session_id}/finish")

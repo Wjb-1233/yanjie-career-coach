@@ -31,6 +31,25 @@ let clock: ReturnType<typeof setInterval> | null = null
 let answerTick: ReturnType<typeof setInterval> | null = null
 const rewrites = shallowRef<Record<number, MessageRewrite>>({})
 const rewriting = shallowRef<number | null>(null)
+interface Hint { question: string; dimension: string | null; structure: string[]; keywords: string[]; tips: string[] }
+const hint = shallowRef<Hint | null>(null)
+const hintOpen = shallowRef(false)
+const hintLoading = shallowRef(false)
+
+async function toggleHint(): Promise<void> {
+  if (hintOpen.value) { hintOpen.value = false; return }
+  if (hint.value) { hintOpen.value = true; return }
+  hintLoading.value = true
+  try {
+    const response = await api.post<ApiEnvelope<Hint>>(`/training-sessions/${props.sessionId}/hint`)
+    hint.value = response.data.data
+    hintOpen.value = true
+  } catch {
+    // 提示卡失败不打断对话
+  } finally {
+    hintLoading.value = false
+  }
+}
 
 async function loadRewrite(roundNo: number): Promise<void> {
   if (rewriting.value !== null) return
@@ -189,12 +208,27 @@ function submit() {
       <span>{{ finishAfterNext ? '回答当前问题后将结束并生成报告' : `至少回答 ${minimumRounds ?? 2} 轮后，可选择回答下一题即结束` }}</span>
       <button class="button secondary" type="button" :disabled="sending || currentRound < (minimumRounds ?? 0)" @click="emit('finish')">{{ finishAfterNext ? '取消提前结束' : currentRound < (minimumRounds ?? 0) ? `还需 ${(minimumRounds ?? 0) - currentRound} 轮` : '答完下一题结束' }}</button>
     </div>
+    <section v-if="mode === 'text' && hintOpen && hint" class="hint-card" aria-live="polite">
+      <div class="hint-head">
+        <strong>提示卡</strong>
+        <span>{{ hint.dimension || '回答结构' }}</span>
+        <button type="button" class="hint-close" aria-label="收起提示卡" @click="hintOpen = false">收起</button>
+      </div>
+      <p class="hint-question">当前问题：{{ hint.question }}</p>
+      <ol class="hint-steps"><li v-for="step in hint.structure" :key="step">{{ step }}</li></ol>
+      <p class="hint-keywords"><span v-for="word in hint.keywords" :key="word">{{ word }}</span></p>
+      <ul class="hint-tips"><li v-for="tip in hint.tips" :key="tip">{{ tip }}</li></ul>
+    </section>
+
     <form v-if="!finished && mode === 'text'" class="composer" @submit.prevent="submit">
       <textarea ref="composerInput" v-model="input" class="field" :class="{ 'at-risk': draftWarnings.length }" rows="3" maxlength="2000" aria-label="输入面试回答" placeholder="像真实面试一样回答。清楚说出经历、行动和结果…" @keydown.ctrl.enter.prevent="submit" />
       <ExpressionPreview v-if="draftWarnings.length" :text="input" :warnings="draftWarnings" />
       <div class="composer-actions">
         <span>{{ input.length }} / 2000 <span class="keyboard-hint">· Ctrl + Enter 发送</span></span>
         <div>
+          <button class="button secondary hint-button" type="button" :disabled="sending" @click="toggleHint">
+            {{ hintLoading ? '生成提示…' : hintOpen ? '收起提示' : '提示卡' }}
+          </button>
           <button
             class="button secondary"
             type="button"
@@ -215,6 +249,15 @@ function submit() {
 </template>
 
 <style scoped>
+.hint-card { margin: 12px 0; padding: 12px 14px; border: 1px solid var(--accent); border-radius: 12px; background: var(--accent-soft); display: grid; gap: 8px; }
+.hint-head { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--accent-strong); }
+.hint-head span { color: var(--text-2); }
+.hint-close { margin-left: auto; border: 0; background: transparent; color: var(--text-3); font-size: 11.5px; cursor: pointer; }
+.hint-question { margin: 0; font-size: 12.5px; color: var(--text); }
+.hint-steps { margin: 0; padding-left: 18px; font-size: 12.5px; color: var(--text-2); display: grid; gap: 3px; }
+.hint-keywords { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.hint-keywords span { padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; font-size: 11.5px; color: var(--text-2); background: var(--surface); }
+.hint-tips { margin: 0; padding-left: 16px; color: var(--text-3); font-size: 11.5px; display: grid; gap: 2px; }
 .dialogue { overflow: hidden; box-shadow: 0 13px 40px rgba(16,37,43,.07); }
 .dialogue.voice-mode { display: flex; flex-direction: column; }
 .voice-mode .dialogue-header { order: 0; }

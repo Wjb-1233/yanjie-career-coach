@@ -718,3 +718,80 @@ async def clear_job_description(session: AsyncSession, user_id: str, session_id:
     training.covered_count = 0
     await session.commit()
     return await get_training_session(session, user_id, session_id)
+
+
+async def session_hint(session: AsyncSession, user_id: str, session_id: str) -> dict:
+    """提示卡：给出回答结构、关键词和提醒，不给整段答案。"""
+    training = await session.get(TrainingSession, session_id)
+    if training is None or training.user_id != user_id:
+        raise not_found("训练会话")
+    scene = await session.get(Scene, training.scene_id)
+    if scene is None:
+        raise not_found("训练场景")
+
+    bank = normalize_bank(training.question_plan) or normalize_bank(scene.question_bank)
+    if training.covered_count < len(bank):
+        question = bank[training.covered_count]["text"]
+        dimension = bank[training.covered_count].get("dimension") or ""
+    else:
+        last_ai = await session.scalar(
+            select(Message.content)
+            .where(Message.session_id == session_id, Message.speaker == "AI")
+            .order_by(Message.created_at.desc())
+            .limit(1)
+        )
+        question = (last_ai or "请先做个自我介绍。").strip()
+        dimension = ""
+
+    structures = {
+        "贴合问题": [
+            "先复述问题里的关键词，直接回答对方问的那一点",
+            "补一个具体经历：背景 + 你的动作",
+            "最后说明结果，并回到对方的问题",
+        ],
+        "内容与逻辑": [
+            "先给结论：你的判断是什么",
+            "再给依据：一个具体经历或数据",
+            "最后说取舍：为什么不是另一个方案",
+        ],
+        "信息完整": [
+            "背景：一句话交代场景和目标",
+            "行动：你个人做了什么、怎么做的",
+            "结果：可验证的数字或变化",
+            "复盘：学到了什么、下次怎么改",
+        ],
+        "表达干净": [
+            "第一句就说结论，不超过 20 字",
+            "只保留一个例子，删掉重复铺垫",
+            "结尾用一句话收束，不拖尾",
+        ],
+    }
+    structure = structures.get(dimension) or [
+        "先结论：一句话回答对方的问题",
+        "再举例：一个真实经历，说清你的动作",
+        "补结果：数字或可验证的变化",
+        "回岗位：这件事和应聘岗位的关系",
+    ]
+
+    keywords = [scene.position, scene.category]
+    keywords.extend(tag for tag in (scene.tags or []) if tag)
+    words = re.findall(r"[A-Za-z]{3,}|[\u4e00-\u9fa5]{2,6}", question)
+    for word in words:
+        if word in {"什么", "怎么", "为什么", "一下", "介绍", "说说"}:
+            continue
+        if word not in keywords:
+            keywords.append(word)
+        if len(keywords) >= 6:
+            break
+
+    return {
+        "question": question,
+        "dimension": dimension or None,
+        "structure": structure,
+        "keywords": keywords[:6],
+        "tips": [
+            "用自己的真实经历说，不要背答案",
+            "控制在 30–60 秒，先结论后例子",
+            "不确定的细节就说不确定，不要编造",
+        ],
+    }
