@@ -91,6 +91,7 @@ def _make_transcript_tap(websocket: WebSocket, role: str):
     from pipecat.frames.frames import (
         Frame,
         LLMFullResponseEndFrame,
+        TTSSpeakFrame,
         TextFrame,
         TranscriptionFrame,
     )
@@ -101,7 +102,10 @@ def _make_transcript_tap(websocket: WebSocket, role: str):
             await super().process_frame(frame, direction)
             payload = None
             if role == "assistant":
-                if isinstance(frame, TextFrame):
+                if isinstance(frame, TTSSpeakFrame):
+                    # 开场白直接走 TTS，不会变成 TextFrame，这里补上字幕
+                    payload = {"type": "assistant_delta", "text": frame.text}
+                elif isinstance(frame, TextFrame):
                     payload = {"type": "assistant_delta", "text": frame.text}
                 elif isinstance(frame, LLMFullResponseEndFrame):
                     payload = {"type": "assistant_end"}
@@ -117,9 +121,10 @@ def _make_transcript_tap(websocket: WebSocket, role: str):
     return TranscriptTap()
 
 
-def build_pipeline(websocket: WebSocket, instructions: str):
+def build_pipeline(websocket: WebSocket, instructions: str, opening: str = ""):
     """构造 pipecat 管线；导入放在函数内，避免未安装时影响其他功能。"""
     from pipecat.audio.vad.silero import SileroVADAnalyzer
+    from pipecat.processors.audio.vad_processor import VADProcessor
     from pipecat.frames.frames import TTSAudioRawFrame, TTSStartedFrame, TTSStoppedFrame
     from pipecat.pipeline.pipeline import Pipeline
     from pipecat.pipeline.task import PipelineParams, PipelineTask
@@ -174,7 +179,6 @@ def build_pipeline(websocket: WebSocket, instructions: str):
             audio_out_enabled=True,
             audio_in_sample_rate=SAMPLE_RATE_IN,
             audio_out_sample_rate=SAMPLE_RATE_OUT,
-            vad_analyzer=SileroVADAnalyzer(),
             serializer=_make_serializer(),
         ),
     )
@@ -196,6 +200,7 @@ def build_pipeline(websocket: WebSocket, instructions: str):
     pipeline = Pipeline(
         [
             transport.input(),
+            VADProcessor(vad_analyzer=SileroVADAnalyzer()),
             stt,
             _make_transcript_tap(websocket, "user"),
             context_aggregator.user(),
@@ -211,13 +216,12 @@ def build_pipeline(websocket: WebSocket, instructions: str):
 
     @transport.event_handler("on_client_connected")
     async def _on_connected(_transport, _client) -> None:
-        # 开场：让面试官先说一句
-        from pipecat.frames.frames import LLMRunFrame
+        # 开场白直接走 TTS，不依赖 LLM：模型慢或超时也能保证面试官先开口
+        from pipecat.frames.frames import TTSSpeakFrame
 
-        context.add_message(
-            {"role": "user", "content": "（面试开始，请先简短问候并提出第一个问题）"}
-        )
-        await task.queue_frames([LLMRunFrame()])
+        text = opening or "你好，我是今天的面试官，请先做个自我介绍。"
+        context.add_message({"role": "assistant", "content": text})
+        await task.queue_frames([TTSSpeakFrame(text)])
 
     @transport.event_handler("on_client_disconnected")
     async def _on_disconnected(_transport, _client) -> None:

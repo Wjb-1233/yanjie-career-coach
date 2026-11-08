@@ -81,6 +81,16 @@ async def voice_ws(client: WebSocket) -> None:
         "X-Api-Connect-Id": str(uuid4()),
     }
 
+    opening = "你好，我是今天的面试官，请先做个自我介绍。"
+    if scene_id:
+        from app.db.base import session_factory
+        from app.db.models import Scene
+
+        async with session_factory() as session:
+            scene = await session.get(Scene, scene_id)
+            if scene is not None:
+                opening = scene.opening_line or f"你好，我是{scene.role_name}，我们先简单聊一聊。"
+
     await VOICE_SLOTS.acquire()
     try:
         async with websockets.connect(REALTIME_URL, additional_headers=headers, max_size=None, open_timeout=20) as upstream:
@@ -203,6 +213,7 @@ async def voice_pipeline_ws(client: WebSocket, sceneId: str | None = None) -> No
         "你是一名中文面试官，正在做模拟面试。候选人说完后，先用一句话回应，再追问一个具体问题，"
         "每次不超过 60 字，不要自问自答，不要长篇独白。"
     )
+    opening = "你好，我是今天的面试官，请先做个自我介绍。"
     if sceneId:
         from app.db.base import session_factory
         from app.db.models import Scene
@@ -214,10 +225,11 @@ async def voice_pipeline_ws(client: WebSocket, sceneId: str | None = None) -> No
                     f"{instructions}\n本场场景：{scene.title}（{scene.category}）。"
                     f"你的角色：{scene.role_name}。背景：{scene.background}。目标：{scene.goal}。"
                 )
+                opening = scene.opening_line or f"你好，我是{scene.role_name}，我们先简单聊一聊。"
 
     await VOICE_SLOTS.acquire()
     try:
-        task = build_pipeline(client, instructions)
+        task = build_pipeline(client, instructions, opening=opening)
         runner = PipelineRunner(handle_sigint=False, check_dangling_tasks=False)
         await runner.run(task)
     except WebSocketDisconnect:

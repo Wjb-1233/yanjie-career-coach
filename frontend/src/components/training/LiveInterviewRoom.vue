@@ -121,6 +121,7 @@ function handleEvent(raw: string): void {
   if (props.engine === 'pipeline') {
     if (type === 'user' && event.text) {
       heard.value = String(event.text)
+      reply.value = ''
       lastAnswer = String(event.text)
     } else if (type === 'assistant_delta' && event.text) {
       reply.value = `${reply.value}${event.text}`
@@ -143,6 +144,7 @@ function handleEvent(raw: string): void {
   } else if (type.endsWith('transcription.completed')) {
     lastAnswer = String(event.transcript ?? heard.value)
     heard.value = lastAnswer
+    reply.value = ''
   } else if (type === 'response.output_text.done') {
     reply.value = String(event.text ?? '')
     lastQuestion = reply.value
