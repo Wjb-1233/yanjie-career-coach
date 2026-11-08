@@ -16,11 +16,10 @@ test('侧边栏保留自建场景并移除已删模块', async ({ page }) => {
   await expect(page.getByRole('link', { name: '场景训练' })).toBeVisible()
 
   await expect(page.getByRole('link', { name: '我的场景' })).toBeVisible()
-  await expect(page.getByRole('link', { name: '刷题' })).toBeVisible()
   await expect(page.getByRole('link', { name: '群面' })).toBeVisible()
   await expect(page.getByRole('link', { name: '话术优化' })).toBeVisible()
 
-  for (const removed of ['通用练习', '故事库', '编程笔试', '简历诊断']) {
+  for (const removed of ['通用练习', '故事库', '编程笔试', '简历诊断', '刷题']) {
     await expect(page.getByRole('link', { name: removed })).toHaveCount(0)
   }
 })
