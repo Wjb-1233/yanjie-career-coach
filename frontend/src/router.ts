@@ -14,6 +14,7 @@ const router = createRouter({
     { path: '/video', name: 'video', component: () => import('@/views/VideoInterviewView.vue') },
     { path: '/scenes', name: 'scenes', component: () => import('@/views/ScenesView.vue') },
     { path: '/question-bank', name: 'question-bank', component: () => import('@/views/QuestionBankView.vue') },
+    { path: '/resume-diagnosis', name: 'resume-diagnosis', component: () => import('@/views/ResumeDiagnosisView.vue') },
     { path: '/my-scenes', name: 'my-scenes', component: () => import('@/views/MyScenesView.vue') },
     { path: '/stories', name: 'stories', component: () => import('@/views/StoriesView.vue') },
     { path: '/scripts', name: 'scripts', component: () => import('@/views/ScriptStudioView.vue') },

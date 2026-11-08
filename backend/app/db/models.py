@@ -356,3 +356,18 @@ class QuestionBankState(Base):
     favorite: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     mastered: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, onupdate=now)
+
+
+class ResumeDiagnosis(Base):
+    """简历诊断结果（关键词覆盖 + 结构分 + 建议）。"""
+
+    __tablename__ = "resume_diagnoses"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    filename: Mapped[str] = mapped_column(String(180), default="")
+    score: Mapped[int] = mapped_column(Integer, default=0)
+    coverage: Mapped[float] = mapped_column(Float, default=0.0)
+    jd_excerpt: Mapped[str] = mapped_column(Text, default="")
+    result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
