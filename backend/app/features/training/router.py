@@ -85,7 +85,8 @@ async def update_mistake_state(body: MistakeStateRequest, user: CurrentUser, ses
 async def create(body: CreateSessionRequest, user: CurrentUser, session: DbSession) -> dict:
     require_verified(user)
     result = await create_training_session(
-        session, user.id, body.scene_id, mode=body.mode, plan_id=body.plan_id, task_key=body.task_key
+        session, user.id, body.scene_id, mode=body.mode, plan_id=body.plan_id, task_key=body.task_key,
+        depth=body.depth,
     )
     return ok(result.model_dump(by_alias=True))
 
@@ -96,6 +97,7 @@ async def create_with_resume(
     session: DbSession,
     scene_id: Annotated[str, Form(alias="sceneId")],
     file: Annotated[UploadFile, File()],
+    depth: Annotated[str, Form()] = "STANDARD",
 ) -> dict:
     try:
         content = await file.read(MAX_RESUME_BYTES + 1)
@@ -104,7 +106,10 @@ async def create_with_resume(
     require_verified(user)
     filename, resume_text = parse_resume(file.filename or "", content)
     await limit_model_user(user.id)
-    result = await create_training_session(session, user.id, scene_id, filename, resume_text)
+    result = await create_training_session(
+        session, user.id, scene_id, filename, resume_text,
+        depth=depth if depth in {"STANDARD", "THREE_LAYER", "PRESSURE"} else "STANDARD",
+    )
     return ok(result.model_dump(by_alias=True))
 
 

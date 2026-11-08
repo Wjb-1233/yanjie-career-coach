@@ -41,3 +41,13 @@ test('视频面试：设备预检、时长挡位，无“开始录制”', async
   await expect(page.getByRole('button', { name: '60 分钟' })).toBeVisible()
   await expect(page.getByText(/开始录制|录答模式/)).toHaveCount(0)
 })
+
+
+test('语音入口可切换追问强度并记住选择', async ({ page, request }) => {
+  const sceneId = await login(page, request)
+  await page.goto(`/voice?sceneId=${sceneId}&depth=THREE_LAYER`)
+  const deep = page.getByRole('button', { name: '三层深挖' })
+  await expect(deep).toHaveClass(/active/)
+  await page.getByRole('button', { name: '压力面' }).click()
+  await expect(page.getByRole('button', { name: '压力面' })).toHaveClass(/active/)
+})

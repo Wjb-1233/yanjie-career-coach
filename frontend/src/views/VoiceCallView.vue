@@ -16,6 +16,8 @@ const taskKey = computed(() => (typeof route.query.taskKey === 'string' ? route.
 
 const started = shallowRef(false)
 const duration = shallowRef(30)
+const initialDepth = (useRoute().query.depth as 'STANDARD' | 'THREE_LAYER' | 'PRESSURE') || 'STANDARD'
+const depth = shallowRef<'STANDARD' | 'THREE_LAYER' | 'PRESSURE'>(initialDepth)
 const engine = shallowRef<'doubao' | 'pipeline'>('doubao')
 const advanced = shallowRef(false)
 const serviceError = shallowRef('')
@@ -91,6 +93,15 @@ function onEnded(sessionId: string): void {
           </div>
         </div>
 
+        <div class="setup-block">
+          <span class="block-label">追问强度</span>
+          <div class="chip-group" role="group" aria-label="追问强度">
+            <button type="button" class="chip" :class="{ active: depth === 'STANDARD' }" @click="depth = 'STANDARD'">标准</button>
+            <button type="button" class="chip" :class="{ active: depth === 'THREE_LAYER' }" @click="depth = 'THREE_LAYER'">三层深挖</button>
+            <button type="button" class="chip" :class="{ active: depth === 'PRESSURE' }" @click="depth = 'PRESSURE'">压力面</button>
+          </div>
+        </div>
+
         <footer class="setup-actions">
           <button class="button start" type="button" :disabled="Boolean(serviceError)" @click="started = true">
             <span class="dot" aria-hidden="true" />
@@ -107,12 +118,14 @@ function onEnded(sessionId: string): void {
       :scene="scene"
       :engine="engine"
       :duration-minutes="duration"
+        :depth="depth"
       @ended="onEnded"
     />
   </div>
 </template>
 
 <style scoped>
+.block-label { display: block; margin-bottom: 8px; color: var(--text-3); font-size: 12px; }
 .voice-page { max-width: 880px; }
 .back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 18px; color: var(--text-3); font-size: 12px; }
 .setup { margin-top: 10px; padding: 26px; display: grid; gap: 22px; }

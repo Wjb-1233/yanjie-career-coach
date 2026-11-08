@@ -177,6 +177,8 @@ class TrainingSession(Base):
     covered_count: Mapped[int] = mapped_column(Integer, default=0)
     channel: Mapped[str] = mapped_column(String(10), default="TEXT", index=True)
     mode: Mapped[str] = mapped_column(String(12), default="STANDARD")
+    # 追问强度：STANDARD / THREE_LAYER / PRESSURE
+    depth: Mapped[str] = mapped_column(String(16), default="STANDARD", server_default="STANDARD")
     duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     delivery: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     recording_path: Mapped[str | None] = mapped_column(String(255), nullable=True)

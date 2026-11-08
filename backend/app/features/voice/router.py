@@ -218,7 +218,7 @@ async def save_voice_session(
 
 
 @router.websocket("/ws/pipeline")
-async def voice_pipeline_ws(client: WebSocket, sceneId: str | None = None) -> None:
+async def voice_pipeline_ws(client: WebSocket, sceneId: str | None = None, depth: str = "STANDARD") -> None:
     """pipecat 引擎：本地 Whisper + DeepSeek + 系统语音。"""
     from pipecat.pipeline.runner import PipelineRunner
 
@@ -232,6 +232,10 @@ async def voice_pipeline_ws(client: WebSocket, sceneId: str | None = None) -> No
         "你是一名中文面试官，正在做模拟面试。候选人说完后，先用一句话回应，再追问一个具体问题，"
         "每次不超过 60 字，不要自问自答，不要长篇独白。"
     )
+    if depth == "THREE_LAYER":
+        instructions += " 本场启用三层追问：先确认基础知识与事实，再让候选人比较方案优劣，最后给出复杂或异常场景；每轮只推进一层。"
+    elif depth == "PRESSURE":
+        instructions += " 本场是压力面：节奏快、连续追问证据和数字，不接客套，但保持专业尊重。"
     opening = "你好，我是今天的面试官，请先做个自我介绍。"
     if sceneId:
         from app.db.base import session_factory

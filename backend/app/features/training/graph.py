@@ -21,6 +21,7 @@ class ConversationState(TypedDict):
     should_finish: bool
     finish_after_reply: bool
     mode: str
+    depth: str
     planned_question: str
     prompt: str
 
@@ -132,6 +133,18 @@ def prompt_node(state: ConversationState) -> dict:
             "本轮没有固定的必问题。结合核心思想、岗位 JD 与简历，"
             "针对候选人上一轮回答继续追问一个具体问题，不要重复已经问过的内容。\n"
         )
+    depth_note = ""
+    if not is_foundation:
+        depth_note = {
+            "THREE_LAYER": (
+                "\n本场启用三层追问：第一层确认基础知识与事实，第二层让候选人比较方案优劣与取舍，"
+                "第三层给出复杂或异常场景看其应对。每轮只推进一层，不跳层、不重复已问内容。\n"
+            ),
+            "PRESSURE": (
+                "\n本场是压力面：节奏快、连续追问，简短回应后立刻追问证据、数字和反例；"
+                "不接客套、不轻易放过模糊表述，但保持专业尊重，不人身攻击、不辱骂。\n"
+            ),
+        }.get(state.get("depth", "STANDARD"), "")
     drill_note = ""
     if state.get("mode") == "DRILL":
         drill_note = (
@@ -149,6 +162,7 @@ def prompt_node(state: ConversationState) -> dict:
 当前阶段：{state['stage']}；当前为第 {state['round_no']} / {state['max_rounds']} 轮。
 本轮任务：{stage_instruction}
 难度要求：{difficulty_instruction}
+{depth_note}
 {flag_note}
 {resume_note}
 {plan_note}

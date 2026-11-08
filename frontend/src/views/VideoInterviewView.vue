@@ -16,7 +16,9 @@ const taskKey = computed(() => (typeof route.query.taskKey === 'string' ? route.
 const scene = shallowRef<Scene | null>(null)
 const started = shallowRef(false)
 const duration = shallowRef(30)
+const initialDepth = (useRoute().query.depth as 'STANDARD' | 'THREE_LAYER' | 'PRESSURE') || 'STANDARD'
 const engine = shallowRef<'doubao' | 'pipeline'>('doubao')
+const depth = shallowRef<'STANDARD' | 'THREE_LAYER' | 'PRESSURE'>(initialDepth)
 const advanced = shallowRef(false)
 const error = shallowRef('')
 const preview = ref<HTMLVideoElement | null>(null)
@@ -230,6 +232,15 @@ void errorMessage
         </div>
 
         <div class="setup-block">
+          <span class="block-label">追问强度</span>
+          <div class="chip-group" role="group" aria-label="追问强度">
+            <button type="button" class="chip" :class="{ active: depth === 'STANDARD' }" @click="depth = 'STANDARD'">标准</button>
+            <button type="button" class="chip" :class="{ active: depth === 'THREE_LAYER' }" @click="depth = 'THREE_LAYER'">三层深挖</button>
+            <button type="button" class="chip" :class="{ active: depth === 'PRESSURE' }" @click="depth = 'PRESSURE'">压力面</button>
+          </div>
+        </div>
+
+        <div class="setup-block">
           <button type="button" class="advanced-toggle" @click="advanced = !advanced">
             {{ advanced ? '收起高级选项' : '高级选项' }}
           </button>
@@ -256,12 +267,14 @@ void errorMessage
       :scene="scene"
       :engine="engine"
       :duration-minutes="duration"
+        :depth="depth"
       @ended="onEnded"
     />
   </div>
 </template>
 
 <style scoped>
+.block-label { display: block; margin-bottom: 8px; color: var(--text-3); font-size: 12px; }
 .video-page { max-width: 980px; }
 .back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 18px; color: var(--text-3); font-size: 12px; }
 .setup { margin-top: 10px; padding: 24px; display: grid; gap: 20px; }

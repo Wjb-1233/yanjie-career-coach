@@ -16,6 +16,14 @@ const scenes = shallowRef<Scene[]>([])
 const loading = shallowRef(true)
 const error = shallowRef('')
 const startSelection = shallowRef<{ scene: Scene; mode: 'text' | 'voice' } | null>(null)
+const DEPTH_KEY = 'yanjie-interview-depth'
+const depth = shallowRef<'STANDARD' | 'THREE_LAYER' | 'PRESSURE'>(
+  (localStorage.getItem(DEPTH_KEY) as 'STANDARD' | 'THREE_LAYER' | 'PRESSURE') || 'STANDARD',
+)
+function setDepth(value: 'STANDARD' | 'THREE_LAYER' | 'PRESSURE'): void {
+  depth.value = value
+  localStorage.setItem(DEPTH_KEY, value)
+}
 const starting = shallowRef(false)
 const startError = shallowRef('')
 const {
@@ -61,7 +69,7 @@ function start(scene: Scene, mode: 'text' | 'voice' | 'video' | 'drill') {
   }
   startError.value = ''
   if (mode === 'video') {
-    void router.push({ name: 'video', query: { sceneId: scene.id } })
+    void router.push({ name: 'video', query: { sceneId: scene.id, depth: depth.value } })
     return
   }
   if (mode === 'voice') {
@@ -69,6 +77,7 @@ function start(scene: Scene, mode: 'text' | 'voice' | 'video' | 'drill') {
       name: 'voice',
       query: {
         sceneId: scene.id,
+        depth: depth.value,
         ...(planId.value && taskKey.value ? { planId: planId.value, taskKey: taskKey.value } : {}),
       },
     })
@@ -86,12 +95,14 @@ async function confirmStart(file: File | null): Promise<void> {
     const form = new FormData()
     if (file) {
       form.append('sceneId', scene.id)
+      form.append('depth', depth.value)
       form.append('file', file)
     }
     const response = file
       ? await api.post<ApiEnvelope<{ id: string }>>('/training-sessions/with-resume', form, { timeout: MODEL_REQUEST_TIMEOUT_MS })
       : await api.post<ApiEnvelope<{ id: string }>>('/training-sessions', {
         sceneId: scene.id,
+        depth: depth.value,
         ...(planId.value && taskKey.value ? { planId: planId.value, taskKey: taskKey.value } : {}),
       })
     startSelection.value = null
@@ -146,6 +157,12 @@ async function confirmStart(file: File | null): Promise<void> {
         </div>
         <div class="category-tabs" aria-label="面试阶段"><button v-for="category in categories" :key="category" type="button" :class="{ active: activeCategory === category }" @click="activeCategory = category">{{ category }}</button></div>
         <div class="difficulty-guide" aria-label="难度说明"><span v-for="level in DIFFICULTY_LEVELS" :key="level.name" :class="level.tone"><i aria-hidden="true" />{{ level.name }}<small>{{ level.cue }}</small></span></div>
+        <div class="depth-picker" role="group" aria-label="追问强度">
+          <span>追问强度</span>
+          <button type="button" :class="{ active: depth === 'STANDARD' }" @click="setDepth('STANDARD')">标准</button>
+          <button type="button" :class="{ active: depth === 'THREE_LAYER' }" @click="setDepth('THREE_LAYER')">三层深挖</button>
+          <button type="button" :class="{ active: depth === 'PRESSURE' }" @click="setDepth('PRESSURE')">压力面</button>
+        </div>
         <input v-model="query" class="field search" aria-label="搜索场景、角色或关键词" placeholder="搜索场景、角色或关键词" />
       </div>
     </section>
@@ -167,6 +184,9 @@ async function confirmStart(file: File | null): Promise<void> {
 </template>
 
 <style scoped>
+.depth-picker { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-3); }
+.depth-picker button { border: 1px solid var(--border); background: transparent; color: var(--text-2); border-radius: 999px; padding: 4px 12px; font-size: 12px; cursor: pointer; }
+.depth-picker button.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-strong); }
 .scene-hero { position: relative; min-height: 320px; margin-bottom: 30px; padding: 34px 40px; overflow: hidden; align-items: end; border-radius: var(--radius); background: linear-gradient(115deg,#1e40af,#2563eb); color: #fff; isolation: isolate; }
 .scene-hero::before { content: ''; position: absolute; z-index: -1; width: 460px; height: 460px; top: -275px; right: 3%; border: 1px solid rgba(191,219,254,.34); border-radius: 50%; box-shadow: 0 0 0 62px rgba(191,219,254,.045), 0 0 0 125px rgba(191,219,254,.035); }
 .scene-hero::after { content: ''; position: absolute; z-index: -1; width: 260px; height: 260px; right: 15%; bottom: -225px; border: 1px solid rgba(191,219,254,.35); border-radius: 50%; }

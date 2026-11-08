@@ -13,6 +13,7 @@ const props = defineProps<{
   scene: Scene | null
   engine: Engine
   durationMinutes: number
+  depth?: 'STANDARD' | 'THREE_LAYER' | 'PRESSURE'
 }>()
 
 const emit = defineEmits<{ ended: [sessionId: string]; failed: [message: string] }>()
@@ -73,7 +74,12 @@ const statusLabel = computed(() => {
 
 function instructions(): string {
   const current = props.scene
-  const base = '你是一名中文面试官，正在模拟真实面试。候选人说话后，你先简短回应，再追问一个具体问题，每次不超过 60 字。不要自问自答，不要长时间独白。'
+  let base = '你是一名中文面试官，正在模拟真实面试。候选人说话后，你先简短回应，再追问一个具体问题，每次不超过 60 字。不要自问自答，不要长时间独白。'
+  if (props.depth === 'THREE_LAYER') {
+    base += ' 本场启用三层追问：先确认基础知识与事实，再让候选人比较方案优劣，最后给出复杂或异常场景；每轮只推进一层。'
+  } else if (props.depth === 'PRESSURE') {
+    base += ' 本场是压力面：节奏快、连续追问证据和数字，不接客套，但保持专业尊重。'
+  }
   if (!current) return base
   return `${base}本场场景：${current.title}（${current.category}）。你的角色：${current.roleName}。场景背景：${current.background}。考察目标：${current.goal}。请始终围绕这个场景提问。`
 }
@@ -88,8 +94,9 @@ function wsUrl(): string {
   const base = import.meta.env.VITE_API_BASE ?? '/api/v1'
   const scheme = location.protocol === 'https:' ? 'wss' : 'ws'
   if (effectiveEngine.value === 'pipeline') {
-    const query = props.scene?.id ? `?sceneId=${props.scene.id}` : ''
-    return `${scheme}://${location.host}${base}/voice/ws/pipeline${query}`
+    const query = new URLSearchParams({ depth: props.depth ?? 'STANDARD' })
+    if (props.scene?.id) query.set('sceneId', props.scene.id)
+    return `${scheme}://${location.host}${base}/voice/ws/pipeline?${query.toString()}`
   }
   return `${scheme}://${location.host}${base}/voice/ws`
 }

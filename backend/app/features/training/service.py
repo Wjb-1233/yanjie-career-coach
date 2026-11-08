@@ -39,6 +39,7 @@ async def create_training_session(
     mode: str = "STANDARD",
     plan_id: str | None = None,
     task_key: str | None = None,
+    depth: str = "STANDARD",
 ) -> SessionView:
     scene = await get_scene(session, scene_id)
     if mode == "DRILL" and scene.difficulty != "进阶":
@@ -68,6 +69,7 @@ async def create_training_session(
         plan_id=plan_id,
         task_key=task_key,
         mode=mode if mode in {"STANDARD", "DRILL"} else "STANDARD",
+        depth=depth if depth in {"STANDARD", "THREE_LAYER", "PRESSURE"} else "STANDARD",
         max_rounds=settings.max_training_rounds,
     )
     session.add(training)
@@ -101,6 +103,7 @@ async def create_training_session(
         max_rounds=training.max_rounds,
         channel=training.channel,
         mode=training.mode or "STANDARD",
+        depth=training.depth or "STANDARD",
         duration_seconds=training.duration_seconds,
         delivery=training.delivery,
         recording_url=storage.url_of(training.recording_path),
@@ -142,6 +145,7 @@ async def get_training_session(
         max_rounds=training.max_rounds,
         channel=training.channel,
         mode=training.mode or "STANDARD",
+        depth=training.depth or "STANDARD",
         duration_seconds=training.duration_seconds,
         delivery=training.delivery,
         recording_url=storage.url_of(training.recording_path),
@@ -340,6 +344,7 @@ async def stream_reply(session_id: str, user_id: str, user_text: str, finish_aft
                 "scene_category": scene.category,
                 "scene_difficulty": scene.difficulty,
                 "mode": training.mode or "STANDARD",
+                "depth": training.depth or "STANDARD",
                 "role_name": scene.role_name,
                 "scene_background": scene.background,
                 "scene_goal": scene.goal,
