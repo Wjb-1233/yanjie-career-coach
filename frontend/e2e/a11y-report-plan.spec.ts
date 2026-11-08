@@ -68,7 +68,7 @@ test('报告页与计划页无障碍', async ({ page, request }) => {
   expect(finished.status()).toBe(200)
 
   await page.goto(`/report/${sessionId}`)
-  await expect(page.getByRole('heading', { name: /训练报告|这次表达/ }).first()).toBeVisible()
+  await expect(page.getByRole('heading', { name: /训练报告|这一场|这次表达/ }).first()).toBeVisible()
   await scan(page, '训练报告页')
 
   await page.goto('/plan')

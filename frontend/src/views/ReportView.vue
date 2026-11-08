@@ -426,18 +426,18 @@ onMounted(async () => {
 
 <template>
   <div class="page report-page">
-    <header class="page-heading">
-      <div>
-        <p class="eyebrow">训练报告</p>
-        <h1 class="page-title">这次表达，<br />哪里已经做对了？</h1>
-        <p class="page-lead">评分不是结论，而是下一次训练的起点。</p>
+    <header class="report-head">
+      <div class="head-copy">
+        <p class="eyebrow">训练报告{{ session ? ' · ' + session.sceneTitle : '' }}</p>
+        <h1>这一场，<br />哪里已经做对了？</h1>
+        <p class="lead">评分是起点，不是结论。</p>
       </div>
       <div class="report-actions">
-        <button type="button" class="button secondary" @click="exportPdf">打印 / 导出 PDF</button>
+        <button type="button" class="button secondary" @click="exportPdf">导出 PDF</button>
         <button class="button secondary" type="button" :disabled="shareBusy" @click="createShareLink">
           {{ shareBusy ? '生成中…' : shareLink ? '链接已复制' : '生成教练链接' }}
         </button>
-        <RouterLink class="button secondary" to="/scenes">再练一个场景</RouterLink>
+        <RouterLink class="button secondary" to="/scenes">再练一个</RouterLink>
       </div>
     </header>
 
@@ -637,6 +637,11 @@ onMounted(async () => {
         </button>
       </section>
 
+      <details class="more-panel panel">
+        <summary>
+          <span>更多分析</span>
+          <em>表达习惯 · 语速停顿 · 岗位匹配 · 镜头与对比</em>
+        </summary>
       <section v-if="evaluation.speechStats" class="speech panel">
         <header class="speech-head"><h2>表达习惯</h2><span>基于本场全部回答的文本统计</span></header>
         <dl class="speech-grid">
@@ -648,9 +653,9 @@ onMounted(async () => {
         <p v-if="evaluation.speechStats.topFillers.length" class="speech-tags">
           <span v-for="item in evaluation.speechStats.topFillers" :key="item.word">{{ item.word }} ×{{ item.count }}</span>
         </p>
-      </section>
+        </section>
 
-      <section v-if="deliveryStats" class="speech panel">
+        <section v-if="deliveryStats" class="speech panel">
         <header class="speech-head"><h2>表达节奏</h2><span>基于本场语音的停顿与语速分析</span></header>
         <dl class="speech-grid">
           <div><dt>语速</dt><dd class="num">{{ deliveryStats.speechRate }}<small>字/分</small></dd></div>
@@ -683,9 +688,9 @@ onMounted(async () => {
           </div>
           <div class="timeline-scale"><span>0s</span><span>{{ speechDuration }}s</span></div>
         </div>
-      </section>
+        </section>
 
-      <section v-if="session?.jobMatch" class="speech panel">
+        <section v-if="session?.jobMatch" class="speech panel">
         <header class="speech-head">
           <h2>岗位匹配</h2>
           <span>{{ session.jobMatch.score }} / 100 · {{ session.jobMatch.degraded ? '规则估算' : '按 JD 与简历对比' }}</span>
@@ -699,9 +704,9 @@ onMounted(async () => {
             <em>{{ gap.drill }}</em>
           </li>
         </ul>
-      </section>
+        </section>
 
-      <section v-if="comparison" class="compare panel">
+        <section v-if="comparison" class="compare panel">
         <header class="speech-head"><h2>与上次对比</h2><span>同一场景的历史最好成绩</span></header>
         <div class="compare-body">
           <div class="compare-radars">
@@ -722,9 +727,9 @@ onMounted(async () => {
             </li>
           </ul>
         </div>
-      </section>
+        </section>
 
-      <section v-if="session?.recordingUrl" class="speech panel">
+        <section v-if="session?.recordingUrl" class="speech panel">
         <header class="speech-head">
           <h2>现场回放</h2>
           <span>{{ session.channel === 'VIDEO' ? '视频面试录像' : '语音对练录音' }}</span>
@@ -736,9 +741,9 @@ onMounted(async () => {
             {{ String(index + 1).padStart(2, '0') }} {{ mark.text }}
           </button>
         </div>
-      </section>
+        </section>
 
-      <section v-if="visionStats" class="speech panel">
+        <section v-if="visionStats" class="speech panel">
         <header class="speech-head"><h2>镜头表现</h2><span>画面里的客观指标，不评价长相</span></header>
         <dl class="speech-grid">
           <div><dt>出镜率</dt><dd class="num">{{ Math.round(visionStats.faceRatio * 100) }}<small>%</small></dd></div>
@@ -749,9 +754,9 @@ onMounted(async () => {
         <p v-if="visionStats.tips?.length" class="delivery-advice">
           <span v-for="tip in visionStats.tips" :key="tip">{{ tip }}</span>
         </p>
-      </section>
+        </section>
 
-      <section v-if="upgradeStats.total" class="speech panel">
+        <section v-if="upgradeStats.total" class="speech panel">
         <header class="speech-head">
           <h2>措辞升级</h2>
           <span>{{ upgradeStats.total }} 处 · {{ upgradeStats.types.join(' / ') }}</span>
@@ -765,12 +770,14 @@ onMounted(async () => {
             <RouterLink class="deep-link" :to="{ name: 'scripts', query: { sceneId: session?.sceneId, original: item.original, dimension: item.type, objective: item.problem } }">在话术优化里深入改写 →</RouterLink>
           </li>
         </ul>
-      </section>
+        </section>
 
-      <section v-if="evaluation.reference && !evaluation.reference.startsWith('（规则兜底')" class="speech panel">
+        <section v-if="evaluation.reference && !evaluation.reference.startsWith('（规则兜底')" class="speech panel">
         <header class="speech-head"><h2>满分回答参考</h2><span>保留你的真实事实，不编造经历</span></header>
         <p class="reference-text">{{ evaluation.reference }}</p>
-      </section>
+        </section>
+
+      </details>
 
       <section v-if="evaluation.suggestions.length" class="suggestions">
         <header class="section-head">
@@ -1058,4 +1065,31 @@ onMounted(async () => {
 .attempt-item header strong { margin-left: auto; color: var(--text); font-size: 12.5px; }
 .attempt-item p { margin: 6px 0 0; color: var(--text-2); font-size: 12.5px; line-height: 1.75; }
 .attempt-item .attempt-missing { color: var(--text-3); font-size: 11px; }
+</style>
+<style scoped>
+.report-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 30px; }
+.report-head h1 { margin: 10px 0 0; font-size: clamp(28px, 3.2vw, 38px); font-weight: 650; letter-spacing: -.02em; line-height: 1.25; }
+.report-head .lead { margin: 12px 0 0; color: var(--text-3); font-size: 14px; }
+.report-actions { display: flex; gap: 8px; flex: none; flex-wrap: wrap; }
+.hero { padding: 24px 0; border-top: 1px solid var(--divider); border-bottom: 1px solid var(--divider); }
+.hero .label { font-size: 12.5px; color: var(--text-3); }
+.summary { margin-top: 32px; }
+.summary .label { font-size: 12.5px; color: var(--text-3); }
+.summary-text { margin: 10px 0 0; max-width: 76ch; color: var(--text); font-size: 15px; line-height: 1.95; }
+.replay { margin-top: 40px; }
+.replay-head h2, .segments h2, .transcript h2, .self-review h2, .compare-video h2, .suggestions h2, .more-panel summary span { font-size: 18px; font-weight: 600; }
+.replay-head span, .segments header span, .transcript header span, .self-review header span, .compare-video header span { display: none; }
+.replay-item { padding: 18px 0; }
+.replay-q { color: var(--text-3); font-size: 13px; }
+.replay-a { font-size: 14.5px; line-height: 1.8; }
+.more-panel { margin-top: 36px; padding: 0; border-top: 1px solid var(--divider); background: transparent; }
+.more-panel summary { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 18px 0; cursor: pointer; list-style: none; }
+.more-panel summary::-webkit-details-marker { display: none; }
+.more-panel summary em { font-style: normal; color: var(--text-3); font-size: 12.5px; }
+.more-panel[open] summary { border-bottom: 1px solid var(--divider); margin-bottom: 8px; }
+.more-panel .speech, .more-panel .compare { border: 0; border-bottom: 1px solid var(--divider); border-radius: 0; background: transparent; padding: 20px 0; }
+.more-panel .speech-head h2 { font-size: 15px; }
+.more-panel .speech-head span { display: none; }
+.suggestions { margin-top: 40px; }
+@media (max-width: 760px) { .report-head { flex-direction: column; align-items: flex-start; } }
 </style>
