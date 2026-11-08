@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, shallowRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { ArrowRight, MessageSquareText } from 'lucide-vue-next'
+import { MessageSquareText } from 'lucide-vue-next'
 
 import ScriptVersionCard from '@/components/scenes/ScriptVersionCard.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -180,10 +180,10 @@ async function favorite(version: ScriptVersion): Promise<void> {
     <header class="page-heading">
       <div>
         <p class="eyebrow">话术优化</p>
-        <h1 class="page-title">练错的句子，<br />改成能说出口的话。</h1>
-        <p class="page-lead">每场训练里低于 3 分的回答会自动收进来。挑一条，生成三种风格，选一个顺口的存下来。</p>
+        <h1 class="page-title">把说过的话，改得更好。</h1>
+        <p class="page-lead">训练里低于 3 分的回答会自动收进来，挑一条生成三种风格。</p>
       </div>
-      <RouterLink class="saved-entry" to="/scripts/saved">已保存的版本 · {{ history.length }} <span aria-hidden="true">→</span></RouterLink>
+      <RouterLink class="saved-entry" to="/scripts/saved">已保存 {{ history.length }} 个 →</RouterLink>
     </header>
 
     <div v-if="error" class="error-banner">{{ error }}</div>
@@ -284,8 +284,7 @@ async function favorite(version: ScriptVersion): Promise<void> {
               <MessageSquareText :size="14" :stroke-width="1.8" aria-hidden="true" />
               {{ generating === keyOf(item) ? '生成中…' : item.generatedCount ? '再生成三种风格' : '生成三种风格' }}
             </button>
-            <RouterLink v-if="item.practiceSceneId" class="text-btn" :to="`/scenes?sceneId=${item.practiceSceneId}`">再练一轮 <ArrowRight :size="12" aria-hidden="true" /></RouterLink>
-            <RouterLink class="text-btn" :to="`/report/${item.sessionId}`">查看报告 <ArrowRight :size="12" aria-hidden="true" /></RouterLink>
+            <RouterLink class="text-btn" :to="`/report/${item.sessionId}`">查看报告</RouterLink>
             <button
               v-if="item.status !== 'RESOLVED'"
               class="text-btn"
@@ -294,7 +293,6 @@ async function favorite(version: ScriptVersion): Promise<void> {
               :title="item.canResolve ? '标记为已解决' : '先再练一次，才能标记已解决'"
               @click="setStatus(item, 'RESOLVED')"
             >已解决</button>
-            <span v-if="item.status !== 'RESOLVED' && !item.canResolve" class="resolve-hint">再练一次后可变已解决</span>
           </div>
 
           <div v-if="results[keyOf(item)]" class="versions">
@@ -364,4 +362,26 @@ async function favorite(version: ScriptVersion): Promise<void> {
 .deep-check { display: inline-flex; align-items: center; gap: 8px; color: var(--text-2); font-size: 12.5px; }
 .deep-versions { margin-top: 14px; }
 .coach-note { margin: 10px 0 0; color: var(--text-3); font-size: 12.5px; line-height: 1.8; }
+</style>
+<style scoped>
+.studio-page { max-width: 820px; }
+.page-title { font-size: clamp(28px, 3vw, 36px); line-height: 1.25; }
+.page-lead { margin-top: 10px; font-size: 14px; }
+.saved-entry { font-size: 13px; color: var(--text-3); }
+.block { margin-top: 36px; }
+.block-head h2 { font-size: 18px; }
+.block-head span { font-size: 12.5px; color: var(--text-3); }
+.deep-form { border: 0; padding: 0; background: transparent; }
+.deep-field span { font-size: 12.5px; color: var(--text-3); }
+.mistake { border: 0; border-bottom: 1px solid var(--divider); border-radius: 0; padding: 20px 0; background: transparent; }
+.mistake:first-of-type { border-top: 1px solid var(--divider); }
+.mistake-head .dim { font-size: 12.5px; color: var(--text-3); }
+.mistake-head .score { font-size: 12.5px; color: var(--text-3); }
+.mistake-head .meta { font-size: 12px; color: var(--text-3); }
+.question, .quote, .reason { font-size: 14px; line-height: 1.8; }
+.mistake-actions { gap: 14px; margin-top: 12px; }
+.text-btn { font-size: 13px; color: var(--text-3); }
+.mistake-actions .button { font-size: 13px; padding: 8px 14px; }
+.coach-note { font-size: 13px; color: var(--text-2); }
+@media (max-width: 640px) { .page-title { font-size: 26px; } }
 </style>
