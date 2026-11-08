@@ -18,6 +18,10 @@ const props = defineProps<{
 const emit = defineEmits<{ ended: [sessionId: string]; failed: [message: string] }>()
 
 const status = shallowRef<Status>('connecting')
+const effectiveEngine = shallowRef<Engine>(props.engine)
+const fallbackNotice = shallowRef('')
+let fallbackTried = false
+const turnState = shallowRef<'idle' | 'heard' | 'thinking' | 'speaking'>('idle')
 const error = shallowRef('')
 const heard = shallowRef('')
 const reply = shallowRef('')
@@ -43,12 +47,21 @@ let recorder: MediaRecorder | null = null
 const recordedChunks: Blob[] = []
 let countdown: ReturnType<typeof setInterval> | null = null
 let closing = false
+let sessionSeq = 0
 
 const isVideo = computed(() => props.mode === 'video')
 const timeLabel = computed(() => {
   const total = Math.max(0, remaining.value)
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
 })
+const turnHint = computed(() => {
+  if (status.value !== 'live') return ''
+  if (turnState.value === 'heard') return '已收到你的回答，面试官正在想下一个问题…'
+  if (turnState.value === 'thinking') return '面试官正在思考…'
+  if (turnState.value === 'speaking') return '面试官在说，想补充可以点「打断」'
+  return rounds.value === 0 ? '听清问题后直接回答，说完停一下' : '轮到你了，直接说；说完停一下'
+})
+
 const statusLabel = computed(() => {
   if (status.value === 'connecting') return '正在接通面试官'
   if (status.value === 'saving') return '正在整理报告'
@@ -72,7 +85,7 @@ function openingLine(): string {
 function wsUrl(): string {
   const base = import.meta.env.VITE_API_BASE ?? '/api/v1'
   const scheme = location.protocol === 'https:' ? 'wss' : 'ws'
-  if (props.engine === 'pipeline') {
+  if (effectiveEngine.value === 'pipeline') {
     const query = props.scene?.id ? `?sceneId=${props.scene.id}` : ''
     return `${scheme}://${location.host}${base}/voice/ws/pipeline${query}`
   }
@@ -118,13 +131,16 @@ function handleEvent(raw: string): void {
     return
   }
   const type = String(event.type ?? '')
-  if (props.engine === 'pipeline') {
+  if (effectiveEngine.value === 'pipeline') {
     if (type === 'user' && event.text) {
       heard.value = String(event.text)
       reply.value = ''
+      turnState.value = 'heard'
       lastAnswer = String(event.text)
     } else if (type === 'assistant_delta' && event.text) {
+      const wasEmpty = !reply.value
       reply.value = `${reply.value}${event.text}`
+      if (wasEmpty) turnState.value = 'speaking'
     } else if (type === 'assistant_end') {
       lastQuestion = reply.value
       if (lastAnswer.trim()) {
@@ -132,6 +148,7 @@ function handleEvent(raw: string): void {
         lastAnswer = ''
       }
       rounds.value += 1
+      turnState.value = 'idle'
     }
     return
   }
@@ -145,7 +162,9 @@ function handleEvent(raw: string): void {
     lastAnswer = String(event.transcript ?? heard.value)
     heard.value = lastAnswer
     reply.value = ''
+    turnState.value = 'heard'
   } else if (type === 'response.output_text.done') {
+    turnState.value = 'speaking'
     reply.value = String(event.text ?? '')
     lastQuestion = reply.value
     if (lastAnswer.trim()) {
@@ -153,6 +172,7 @@ function handleEvent(raw: string): void {
       lastAnswer = ''
     }
     rounds.value += 1
+    turnState.value = 'idle'
   } else if (type === 'response.output_audio.delta') {
     playPcm(String(event.delta ?? ''))
   } else if (type === 'error') {
@@ -161,12 +181,16 @@ function handleEvent(raw: string): void {
 }
 
 async function start(): Promise<void> {
+  closing = false
   status.value = 'connecting'
   error.value = ''
   heard.value = ''
   reply.value = ''
   rounds.value = 0
+  turnState.value = 'idle'
   remaining.value = props.durationMinutes * 60
+
+  const seq = ++sessionSeq
 
   try {
     const info = await api.get<ApiEnvelope<{ enabled: boolean; voice: string }>>('/voice/status')
@@ -177,7 +201,8 @@ async function start(): Promise<void> {
 
     socket = new WebSocket(wsUrl())
     socket.onopen = async () => {
-      if (props.engine === 'doubao') {
+      if (seq !== sessionSeq) return
+      if (effectiveEngine.value === 'doubao') {
         reply.value = openingLine() // 开场白是纯语音，先把字幕补上
         socket?.send(
           JSON.stringify({
@@ -199,11 +224,18 @@ async function start(): Promise<void> {
       await startMic()
       beginCountdown()
     }
-    socket.onmessage = (message) => handleEvent(String(message.data))
-    socket.onerror = () => fail('连接语音服务失败')
+    socket.onmessage = (message) => {
+      if (seq !== sessionSeq) return
+      handleEvent(String(message.data))
+    }
+    socket.onerror = () => {
+      if (seq !== sessionSeq) return
+      if (!maybeFallback()) fail('连接语音服务失败')
+    }
     socket.onclose = (event) => {
-      if (closing) return
+      if (closing || seq !== sessionSeq) return
       micOn.value = false
+      if (maybeFallback(event.code)) return
       const reasons: Record<number, string> = {
         4001: '语音服务未配置，请联系管理员',
         4003: '语音服务已断开，请重新开始',
@@ -216,6 +248,18 @@ async function start(): Promise<void> {
   } catch {
     fail('无法读取语音服务状态')
   }
+}
+
+function maybeFallback(code?: number): boolean {
+  // 标准引擎连不上上游时，自动用本地管线重开一次；只尝试一次，避免死循环
+  const retryable = code === undefined || [1006, 1011, 4003, 4004, 4005].includes(code)
+  if (effectiveEngine.value !== 'doubao' || fallbackTried || !retryable) return false
+  fallbackTried = true
+  effectiveEngine.value = 'pipeline'
+  fallbackNotice.value = '标准引擎暂时不可用，已自动切换到本地管线'
+  stop()
+  window.setTimeout(() => { void start() }, 500)
+  return true
 }
 
 function fail(message: string): void {
@@ -269,7 +313,7 @@ async function startMic(): Promise<void> {
       for (let i = 0; i < chunk.length; i += 1) {
         pcm[i] = Math.max(-1, Math.min(1, chunk[i])) * 0x7fff
       }
-      if (props.engine === 'pipeline') {
+      if (effectiveEngine.value === 'pipeline') {
         // 本地管线走裸 PCM 二进制帧；标准引擎走 JSON base64
         socket.send(pcm.buffer)
       } else {
@@ -316,7 +360,7 @@ async function stopAndReport(timeUp = false): Promise<void> {
     const form = new FormData()
     form.append('sceneId', props.scene?.id ?? '')
     form.append('turns', JSON.stringify(pendingTurns))
-    form.append('engine', props.engine)
+    form.append('engine', effectiveEngine.value)
     form.append('durationSeconds', String(startedAt ? Math.round((Date.now() - startedAt) / 1000) : 0))
     if (recordedChunks.length) {
       if (isVideo.value) {
@@ -339,7 +383,7 @@ async function stopAndReport(timeUp = false): Promise<void> {
 }
 
 function interrupt(): void {
-  if (props.engine === 'pipeline') {
+  if (effectiveEngine.value === 'pipeline') {
     socket?.send(new ArrayBuffer(0))
   } else {
     socket?.send(JSON.stringify({ type: 'response.cancel' }))
@@ -403,6 +447,11 @@ onBeforeUnmount(stop)
       <div class="line reply"><span class="who">面试官</span><p>{{ reply || '—' }}</p></div>
     </div>
 
+    <p v-if="fallbackNotice" class="fallback">{{ fallbackNotice }}</p>
+    <p v-if="turnHint" class="turn-hint">
+      <i class="dot" :class="turnState" aria-hidden="true" />
+      {{ turnHint }}
+    </p>
     <p v-if="error" class="room-error">{{ error }}</p>
 
     <div class="room-controls">
@@ -442,6 +491,12 @@ onBeforeUnmount(stop)
 .line p { margin: 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-2); color: var(--text); line-height: 1.8; min-height: 44px; }
 .line.reply p { background: var(--card); }
 .room-error { margin: 0; color: var(--danger); font-size: 12.5px; }
+.fallback { margin: 0; color: var(--accent-strong); font-size: 12px; }
+.turn-hint { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--text-2); font-size: 12.5px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); }
+.dot.heard { background: var(--accent); animation: blink 1s ease-in-out infinite; }
+.dot.speaking { background: var(--success); }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 .room-controls { display: flex; align-items: center; gap: 10px; }
 .button.end { background: var(--accent); border-color: var(--accent); color: #fff; display: inline-flex; align-items: center; gap: 6px; }
 .mic-state { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; color: var(--text-3); font-size: 11.5px; }

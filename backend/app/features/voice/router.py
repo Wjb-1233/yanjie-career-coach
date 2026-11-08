@@ -81,16 +81,6 @@ async def voice_ws(client: WebSocket) -> None:
         "X-Api-Connect-Id": str(uuid4()),
     }
 
-    opening = "你好，我是今天的面试官，请先做个自我介绍。"
-    if scene_id:
-        from app.db.base import session_factory
-        from app.db.models import Scene
-
-        async with session_factory() as session:
-            scene = await session.get(Scene, scene_id)
-            if scene is not None:
-                opening = scene.opening_line or f"你好，我是{scene.role_name}，我们先简单聊一聊。"
-
     await VOICE_SLOTS.acquire()
     try:
         async with websockets.connect(REALTIME_URL, additional_headers=headers, max_size=None, open_timeout=20) as upstream:
