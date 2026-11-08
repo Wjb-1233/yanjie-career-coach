@@ -120,7 +120,7 @@ async def complete_training_task(
             )
             if progress is None or not progress.completed:
                 raise AppError(422, "COURSE_NOT_COMPLETED", "请先完成对应微课")
-    if target["actionType"] in {"TRAINING", "RETEST", "SCENE", "VIDEO"}:
+    if target["actionType"] in {"TRAINING", "RETEST", "SCENE", "VIDEO", "VOICE"}:
         training = await session.get(TrainingSession, (evidence or "").strip())
         if training is None or training.user_id != user_id or training.status != "FINISHED":
             raise AppError(422, "TRAINING_NOT_COMPLETED", "请先完成本次情景训练")

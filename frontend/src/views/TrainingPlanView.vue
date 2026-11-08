@@ -109,7 +109,7 @@ const deliveryStats = computed(() => {
   }
 })
 const sceneTasks = computed(() =>
-  (plan.value?.tasks ?? []).filter((task) => ['SCENE', 'VIDEO', 'REVIEW'].includes(task.actionType)),
+  (plan.value?.tasks ?? []).filter((task) => ['SCENE', 'VIDEO', 'VOICE', 'REWRITE', 'REPORT', 'REVIEW', 'TRAINING', 'RETEST'].includes(task.actionType)),
 )
 
 const courseTask = computed(() => plan.value?.tasks.find((task) => task.actionType === 'COURSE') ?? null)
@@ -178,14 +178,14 @@ function stateOf(task: TrainingPlanTask | null): TaskState {
         <header class="section-head">
           <div class="section-title">
             <span class="section-no num">00</span>
-            <h2>先练这两场</h2>
-            <span class="section-hint">按你当前能力值匹配的场景</span>
+            <h2>本场之后做这些</h2>
+            <span class="section-hint">按上一场面试类型安排</span>
           </div>
           <span class="section-state">待完成</span>
         </header>
         <ul class="scene-tasks">
           <li v-for="task in sceneTasks" :key="task.key">
-            <span class="scene-day num">{{ task.actionType === 'VIDEO' ? '视频' : task.day ? 'D' + task.day : '复习' }}</span>
+            <span class="scene-day num">{{ task.actionType === 'VIDEO' ? '视频' : task.actionType === 'VOICE' ? '语音' : task.actionType === 'REWRITE' ? '改写' : task.actionType === 'REPORT' ? '复盘' : task.day ? 'D' + task.day : '复习' }}</span>
             <span class="scene-text">
               <b v-if="task.dimension" class="scene-focus">{{ task.dimension }}</b>
               {{ task.task }}

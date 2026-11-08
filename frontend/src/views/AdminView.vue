@@ -7,13 +7,14 @@ import AdminTasksPanel from '@/components/admin/AdminTasksPanel.vue'
 import AdminScenesPanel from '@/components/admin/AdminScenesPanel.vue'
 import AdminSessionsPanel from '@/components/admin/AdminSessionsPanel.vue'
 import AdminUsersPanel from '@/components/admin/AdminUsersPanel.vue'
+import AdminQuestionBankPanel from '@/components/admin/AdminQuestionBankPanel.vue'
 import LearnerReportPanel from '@/components/admin/LearnerReportPanel.vue'
 import { api, errorMessage } from '@/lib/api'
 import type { AdminCourseRecord, AdminLearnerRow, AdminSceneRecord, AdminUserRecord, ApiEnvelope } from '@/lib/types'
 
 interface Overview { users: number; activeUsers: number; scenes: number; activeScenes: number; courses: number; activeCourses: number; sessions: number; averageScore: number }
 interface LearnerReport { learner: { id: string; name: string; email: string; active: boolean; bio?: string; avatar?: string | null; createdAt?: string | null }; trainingCount: number; evaluationCount: number; averageScore: number; dimensions: Record<string, number>; weakestDimension: string | null; styleTags: string[]; trends: Array<{ date: string; score: number; dimensions: Record<string, number> }> }
-type Tab = 'users' | 'scenes' | 'courses' | 'sessions' | 'coverage' | 'tasks' | 'metrics'
+type Tab = 'users' | 'scenes' | 'bank' | 'courses' | 'sessions' | 'coverage' | 'tasks' | 'metrics'
 interface MistakeStat { name: string; count: number }
 interface MistakeStats { total: number; resolvedRate: number; byDimension: MistakeStat[]; byScene: MistakeStat[] }
 interface CoverageItem { sceneId: string; title: string; category: string; questions: number; sessions: number; coveredSessions: number }
@@ -203,11 +204,12 @@ onMounted(load)
       </div>
     </div>
     <nav class="admin-tabs" aria-label="管理功能">
-      <button v-for="item in [{ id: 'users', label: '学员与权限' }, { id: 'scenes', label: '场景与题库' }, { id: 'courses', label: '微课素材' }, { id: 'sessions', label: '训练与报告' }, { id: 'coverage', label: '题库与错题' }, { id: 'tasks', label: '后台任务' }, { id: 'metrics', label: '运行指标' }]" :key="item.id" :class="{ active: tab === item.id }" @click="tab = item.id as Tab">{{ item.label }}</button>
+      <button v-for="item in [{ id: 'users', label: '学员与权限' }, { id: 'scenes', label: '场景设计' }, { id: 'bank', label: '题库管理' }, { id: 'courses', label: '微课素材' }, { id: 'sessions', label: '训练与报告' }, { id: 'coverage', label: '题库与错题' }, { id: 'tasks', label: '后台任务' }, { id: 'metrics', label: '运行指标' }]" :key="item.id" :class="{ active: tab === item.id }" @click="tab = item.id as Tab">{{ item.label }}</button>
     </nav>
     <div v-if="loading" class="panel loading" aria-label="正在加载管理数据"><div class="skeleton loading-line" /><div class="skeleton loading-line short" /><div class="skeleton loading-card" /></div>
     <AdminUsersPanel v-else-if="tab === 'users'" :users="users" :busy-id="busyId" :requests="passwordRequests" @update="updateUser" @reset="resetPassword" @resolve-request="resolveRequest" @dismiss-request="dismissRequest" />
     <AdminScenesPanel v-else-if="tab === 'scenes'" :scenes="scenes" :busy="loading" @save="saveScene" @deactivate="deactivateScene" />
+    <AdminQuestionBankPanel v-else-if="tab === 'bank'" :scenes="scenes" :busy="loading" @save="saveScene" />
     <AdminCoursesPanel v-else-if="tab === 'courses'" :courses="courses" :busy="loading" @save="saveCourse" @toggle="toggleCourse" />
     <AdminMetricsPanel v-else-if="tab === 'metrics'" :metrics="metrics as never" />
     <AdminTasksPanel v-else-if="tab === 'tasks'" :tasks="tasks" :loading="loading" @refresh="load" />

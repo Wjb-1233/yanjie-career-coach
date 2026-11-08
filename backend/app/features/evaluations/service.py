@@ -373,40 +373,67 @@ async def create_training_plan(
         draft = fallback_plan(focus, course_title, course_content)
     lesson = draft.lesson.model_dump(by_alias=True)
     plan_title = draft.title.replace("四步", "").replace("三步", "").strip() or f"{focus}提升计划"
-    from app.features.plans.personalization import next_due, recommend_scenes
+    from app.features.plans.personalization import next_due
 
-    scene_tasks: list[dict] = []
-    try:
-        due = await next_due(session, user_id)
-        recommended = await recommend_scenes(session, user_id, limit=2)
-    except Exception:  # noqa: BLE001 - 个性化失败不应阻断计划生成
-        due, recommended = [], []
-
-    fit_labels = {
-        "logic": "内容与逻辑",
-        "relevance": "贴合问题",
-        "correctness": "信息完整",
-        "concision": "表达干净",
+    channel = (training.channel or "TEXT").upper()
+    channel_word = {"TEXT": "文字", "VOICE": "语音", "VIDEO": "视频"}.get(channel, "文字")
+    practice_task: dict = {
+        "key": "retry",
+        "day": 1,
+        "task": "回到同一场景，用文字重答最弱的一题",
+        "actionType": "SCENE",
+        "sceneId": training.scene_id,
+        "completed": False,
+        "completedAt": None,
+        "evidence": None,
     }
-    for index, (scene, dimension) in enumerate(recommended, start=1):
-        # 第一场按文字/语音练，第二场改成视频面试：视频更接近真实面试压力
-        video = index >= 2
-        label = fit_labels.get(dimension, dimension)
+    if channel == "VOICE":
+        practice_task = {
+            "key": "voice-retry",
+            "day": 1,
+            "task": "用语音重答本场最弱的一题，重点练停顿和口头禅",
+            "actionType": "VOICE",
+            "sceneId": training.scene_id,
+            "completed": False,
+            "completedAt": None,
+            "evidence": None,
+        }
+    elif channel == "VIDEO":
+        practice_task = {
+            "key": "video-retry",
+            "day": 1,
+            "task": "用视频重答本场最弱的一题，重点看镜头、语速和坐姿",
+            "actionType": "VIDEO",
+            "sceneId": training.scene_id,
+            "completed": False,
+            "completedAt": None,
+            "evidence": None,
+        }
+    scene_tasks: list[dict] = [practice_task]
+    scene_tasks.append({
+        "key": "session-review",
+        "day": 2,
+        "task": f"回看本场{channel_word}复盘：按批注改 2 处表达",
+        "actionType": "REPORT",
+        "sourceSessionId": training.id,
+        "completed": False,
+        "completedAt": None,
+        "evidence": None,
+    })
+    if channel == "TEXT":
         scene_tasks.append({
-            "key": f"scene-{index}",
-            "day": index,
-            "task": (
-                f"到「{scene.title}」开一场视频面试，重点练{label}（{scene.difficulty}）"
-                if video
-                else f"到「{scene.title}」练一场，重点练{label}（{scene.difficulty}）"
-            ),
-            "dimension": label,
-            "actionType": "VIDEO" if video else "SCENE",
-            "sceneId": scene.id,
+            "key": "rewrite",
+            "day": 2,
+            "task": "去话术优化，把本场最弱的两句改写一遍",
+            "actionType": "REWRITE",
             "completed": False,
             "completedAt": None,
             "evidence": None,
         })
+    try:
+        due = await next_due(session, user_id)
+    except Exception:  # noqa: BLE001 - 个性化失败不应阻断计划生成
+        due = []
     if due:
         scene_tasks.append({
             "key": "review",
@@ -430,7 +457,7 @@ async def create_training_plan(
             {
                 "key": "course",
                 "day": 1,
-                "task": f"学习微课《{lesson['title']}》，按三个步骤完成表达练习",
+                "task": f"学习微课《{lesson['title']}》，用{channel_word}复述一遍要点",
                 "actionType": "COURSE",
                 "courseId": course.id if course else None,
                 "sourceSessionId": training.id,
