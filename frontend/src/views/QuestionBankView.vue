@@ -123,7 +123,7 @@ onMounted(() => { void load(1) })
   <div class="page">
     <header class="page-heading">
       <div>
-        <p class="eyebrow">题库</p>
+        <p class="eyebrow">刷题</p>
         <h1 class="page-title">把常见问题，<br /><span>先练成条件反射。</span></h1>
         <p class="page-lead">按岗位、阶段和难度筛选题目，收藏要反复练的，标记已经掌握的。</p>
       </div>

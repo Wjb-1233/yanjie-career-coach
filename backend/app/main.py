@@ -25,20 +25,17 @@ from app.features.admin.router import router as admin_router
 from app.features.ability.router import router as ability_router
 from app.features.auth.router import router as auth_router
 from app.features.courses.router import router as courses_router
-from app.features.coding.router import router as coding_router
 from app.features.dashboard.router import router as dashboard_router
 from app.features.evaluations.router import router as evaluations_router
 from app.features.group_interview.router import router as group_interview_router
 from app.features.health.router import router as health_router
 from app.features.plans.router import router as plans_router
 from app.features.question_bank.router import router as question_bank_router
-from app.features.resume_diagnosis.router import router as resume_diagnosis_router
 from app.features.scenes.mine_router import router as mine_scenes_router
 from app.features.scenes.router import router as scenes_router
 from app.features.share.router import router as share_router
 from app.features.scripts.router import router as scripts_router
 from app.features.training.router import router as training_router
-from app.features.stories.router import router as stories_router
 from app.features.tasks.router import router as tasks_router
 from app.features.telemetry.router import router as telemetry_router
 from app.features.video.router import router as video_router
@@ -249,14 +246,11 @@ for api_router in (
     courses_router,
     plans_router,
     question_bank_router,
-    resume_diagnosis_router,
-    coding_router,
     dashboard_router,
     admin_router,
     voice_router,
     video_router,
     tasks_router,
-    stories_router,
     share_router,
     telemetry_router,
 ):

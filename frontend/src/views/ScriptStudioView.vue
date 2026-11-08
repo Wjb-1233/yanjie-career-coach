@@ -19,10 +19,24 @@ const error = shallowRef('')
 const generating = shallowRef<string | null>(null)
 const results = shallowRef<Record<string, ScriptResult>>({})
 const showResolved = shallowRef(false)
-const useStories = shallowRef(false)
 const deepRewrite = shallowRef<{ sceneId: string; original: string; dimension: string; objective: string } | null>(null)
 const deepBusy = shallowRef(false)
 const deepResult = shallowRef<ScriptResult | null>(null)
+const freeOriginal = shallowRef('')
+const freeObjective = shallowRef('')
+
+async function startFreeRewrite(): Promise<void> {
+  if (!freeOriginal.value.trim() || deepBusy.value) return
+  deepRewrite.value = {
+    sceneId: mattersFirstScene.value,
+    original: freeOriginal.value.trim(),
+    dimension: '',
+    objective: freeObjective.value.trim() || '把这句话改得更具体、更可核查',
+  }
+  await generateDeep()
+  freeOriginal.value = ''
+}
+
 const page = shallowRef(1)
 const PAGE_SIZE = 6
 
@@ -109,7 +123,6 @@ async function generateDeep(): Promise<void> {
       objective: draft.objective,
       originalText: draft.original,
       dimension: draft.dimension || undefined,
-      useStories: useStories.value,
     }, { timeout: MODEL_REQUEST_TIMEOUT_MS })
     deepResult.value = response.data.data
     await load()
@@ -175,6 +188,32 @@ async function favorite(version: ScriptVersion): Promise<void> {
 
     <div v-if="error" class="error-banner">{{ error }}</div>
 
+    <section v-if="!deepRewrite" class="block free-form">
+      <header class="block-head">
+        <div><h2>直接改一句</h2><span>不用等训练，把自己想改的句子贴进来</span></div>
+      </header>
+      <div class="deep-form panel">
+        <label class="deep-field">
+          <span>要改的原句</span>
+          <textarea v-model="freeOriginal" class="field" rows="3" maxlength="2000" placeholder="例如：这个项目我负责后端，做了很多优化。" />
+        </label>
+        <label class="deep-field">
+          <span>想达到的效果</span>
+          <input v-model="freeObjective" class="field" maxlength="500" placeholder="例如：说清楚我具体做了什么、结果怎么样" />
+        </label>
+        <div class="deep-actions">
+          <span class="deep-hint">会生成正式、亲和、简洁三种版本，可保存和试听。</span>
+          <button class="button" type="button" :disabled="deepBusy || !freeOriginal.trim()" @click="startFreeRewrite">
+            {{ deepBusy ? '生成中…' : '生成三种风格' }}
+          </button>
+        </div>
+      </div>
+      <div v-if="deepResult" class="versions deep-versions">
+        <ScriptVersionCard v-for="version in deepResult.versions" :key="version.id" :version="version" :show-actions="true" @favorite="favorite" @preview="playPreview" />
+        <p class="coach-note">{{ deepResult.coachNote }}</p>
+      </div>
+    </section>
+
     <section v-if="deepRewrite" class="block deep">
       <header class="block-head">
         <div><h2>深入改写</h2><span>来自报告中的措辞升级</span></div>
@@ -191,10 +230,6 @@ async function favorite(version: ScriptVersion): Promise<void> {
           <input v-model="deepRewrite.objective" class="field" maxlength="500" placeholder="例如：把结果说清楚，带上可核实的数字" />
         </label>
         <div class="deep-actions">
-          <label class="deep-check">
-            <input v-model="useStories" type="checkbox" />
-            引用故事库里的真实经历（不会编造细节）
-          </label>
           <button class="button" type="button" :disabled="deepBusy || !deepRewrite.original.trim()" @click="generateDeep">
             {{ deepBusy ? '生成中…' : '生成三种风格' }}
           </button>
@@ -287,6 +322,9 @@ async function favorite(version: ScriptVersion): Promise<void> {
 </template>
 
 <style scoped>
+.free-form { margin-bottom: 18px; }
+.deep-hint { color: var(--text-3); font-size: 12px; margin-right: auto; }
+.deep-actions { display: flex; align-items: center; gap: 12px; }
 .studio-page { max-width: 1040px; }
 .block { margin-top: 38px; }
 .block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--divider); }

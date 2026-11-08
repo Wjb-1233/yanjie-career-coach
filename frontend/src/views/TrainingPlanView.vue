@@ -81,6 +81,33 @@ const rounds = computed<Round[]>(() => {
 })
 
 const annotatedCount = computed(() => rounds.value.filter((round) => round.problem || round.advice).length)
+const reviewChannel = computed(() => reviewSession.value?.channel ?? 'TEXT')
+const channelLabel = computed(() => ({ TEXT: '文字面试', VOICE: '语音面试', VIDEO: '视频面试' })[reviewChannel.value] ?? '文字面试')
+const channelHint = computed(() => ({
+  TEXT: '逐轮批注 + 修改建议',
+  VOICE: '对话内容 + 表达节奏 + 逐轮批注',
+  VIDEO: '对话 + 镜头表现 + 逐轮批注',
+})[reviewChannel.value] ?? '逐轮批注 + 修改建议')
+const delivery = computed(() => (reviewSession.value?.delivery ?? {}) as Record<string, unknown>)
+const vision = computed(() => (delivery.value.vision ?? null) as null | {
+  available: boolean
+  faceRatio?: number
+  eyeContactRatio?: number
+  headStability?: number
+  brightness?: number
+  tips?: string[]
+  reason?: string
+})
+const deliveryStats = computed(() => {
+  const stats = delivery.value as Record<string, unknown>
+  if (reviewChannel.value !== 'VOICE' || stats.speechRate === undefined) return null
+  return {
+    speechRate: Math.round(Number(stats.speechRate ?? 0)),
+    pauseCount: Number(stats.pauseCount ?? 0),
+    longestPause: Number(stats.longestPause ?? 0),
+    fillerTotal: Number(stats.fillerTotal ?? 0),
+  }
+})
 const sceneTasks = computed(() =>
   (plan.value?.tasks ?? []).filter((task) => ['SCENE', 'VIDEO', 'REVIEW'].includes(task.actionType)),
 )
@@ -184,8 +211,8 @@ function stateOf(task: TrainingPlanTask | null): TaskState {
         <header class="section-head">
           <div class="section-title">
             <span class="section-no num">01</span>
-            <h2>复盘优化</h2>
-            <span class="section-hint">逐轮批注 + 建议改法</span>
+            <h2>复盘优化 · {{ channelLabel }}</h2>
+            <span class="section-hint">{{ channelHint }}</span>
           </div>
           <span class="section-state">参考</span>
         </header>
@@ -205,6 +232,26 @@ function stateOf(task: TrainingPlanTask | null): TaskState {
               <dd class="num">{{ annotatedCount }}<small>共 {{ rounds.length }} 轮</small></dd>
             </div>
           </dl>
+
+          <div v-if="deliveryStats" class="channel-metrics" aria-label="语音表达节奏">
+            <div><span>语速</span><strong>{{ deliveryStats.speechRate }}<small>字/分</small></strong></div>
+            <div><span>停顿</span><strong>{{ deliveryStats.pauseCount }}<small>次</small></strong></div>
+            <div><span>最长停顿</span><strong>{{ deliveryStats.longestPause }}<small>秒</small></strong></div>
+            <div><span>口头禅</span><strong>{{ deliveryStats.fillerTotal }}<small>次</small></strong></div>
+          </div>
+
+          <div v-if="reviewChannel === 'VIDEO' && vision" class="vision-block" aria-label="镜头表现">
+            <h3>镜头表现</h3>
+            <template v-if="vision.available">
+              <div class="channel-metrics">
+                <div><span>出镜率</span><strong>{{ Math.round((vision.faceRatio ?? 0) * 100) }}<small>%</small></strong></div>
+                <div><span>看镜头</span><strong>{{ Math.round((vision.eyeContactRatio ?? 0) * 100) }}<small>%</small></strong></div>
+                <div><span>头部稳定</span><strong>{{ Math.round((vision.headStability ?? 0) * 100) }}<small>%</small></strong></div>
+              </div>
+              <ul v-if="vision.tips?.length" class="vision-tips"><li v-for="tip in vision.tips" :key="tip">{{ tip }}</li></ul>
+            </template>
+            <p v-else class="vision-empty">{{ vision.reason || '这一场没有可用的镜头分析。' }}</p>
+          </div>
 
           <p class="judgement">{{ baseline.summary }}</p>
           <RouterLink class="report-link" :to="`/report/${reviewSessionId}`">查看完整评分报告 <ArrowRight :size="13" :stroke-width="1.8" aria-hidden="true" /></RouterLink>
@@ -271,6 +318,15 @@ function stateOf(task: TrainingPlanTask | null): TaskState {
 </template>
 
 <style scoped>
+.channel-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin: 12px 0; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-2); }
+.channel-metrics div { display: grid; gap: 2px; }
+.channel-metrics span { color: var(--text-3); font-size: 11px; }
+.channel-metrics strong { font-size: 18px; }
+.channel-metrics small { margin-left: 2px; color: var(--text-3); font-size: 10.5px; font-weight: 400; }
+.vision-block { margin: 12px 0; }
+.vision-block h3 { margin: 0 0 6px; font-size: 12.5px; color: var(--text-2); }
+.vision-tips { margin: 8px 0 0; padding-left: 18px; color: var(--text-2); font-size: 12.5px; display: grid; gap: 3px; }
+.vision-empty { margin: 6px 0 0; color: var(--text-3); font-size: 12px; }
 .plan-page { max-width: 860px; }
 
 .back { display: inline-block; margin-bottom: 26px; color: var(--text-3); font-size: 12px; letter-spacing: .04em; transition: color var(--ease); }

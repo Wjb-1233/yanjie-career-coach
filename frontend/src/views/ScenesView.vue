@@ -30,6 +30,11 @@ function setLanguage(value: 'zh' | 'en'): void {
   language.value = value
   localStorage.setItem(LANGUAGE_KEY, value)
 }
+
+function categoryCount(category: string): number {
+  if (category === '全部') return catalogScenes.value.length
+  return catalogScenes.value.filter((scene) => scene.category === category).length
+}
 const starting = shallowRef(false)
 const startError = shallowRef('')
 const {
@@ -141,7 +146,7 @@ async function confirmStart(file: File | null): Promise<void> {
     <div v-if="error" class="error-banner">{{ error }}</div>
     <section class="scene-catalog" aria-label="选择面试场景">
       <div class="catalog-heading"><div><p class="eyebrow">练习库</p><h2>选择一场对练</h2></div><span>{{ visibleScenes.length }} 个匹配场景</span></div>
-      <div v-if="recommendedSceneId" class="focus-notice">已打开指定训练场景。<RouterLink :to="foundationFocus ? '/practice' : '/scenes'">{{ foundationFocus ? '返回通用练习' : '查看全部场景' }} →</RouterLink></div>
+      <div v-if="recommendedSceneId" class="focus-notice">已打开指定训练场景。<RouterLink to="/scenes">查看全部场景 →</RouterLink></div>
       <div v-else class="filters">
         <div class="my-scenes-link"><RouterLink to="/my-scenes">按自己的岗位建一个场景 →</RouterLink></div>
         <div class="metadata-filters">
@@ -164,7 +169,14 @@ async function confirmStart(file: File | null): Promise<void> {
             @update:model-value="activeDifficulty = $event"
           />
         </div>
-        <div class="category-tabs" aria-label="面试阶段"><button v-for="category in categories" :key="category" type="button" :class="{ active: activeCategory === category }" @click="activeCategory = category">{{ category }}</button></div>
+        <div class="stage-filter">
+          <span class="stage-label">面试阶段</span>
+          <div class="category-tabs" role="tablist" aria-label="面试阶段">
+            <button v-for="category in categories" :key="category" type="button" role="tab" :aria-selected="activeCategory === category" :class="{ active: activeCategory === category }" @click="activeCategory = category">
+              {{ category }}<span class="tab-count">{{ categoryCount(category) }}</span>
+            </button>
+          </div>
+        </div>
         <div class="difficulty-guide" aria-label="难度说明"><span v-for="level in DIFFICULTY_LEVELS" :key="level.name" :class="level.tone"><i aria-hidden="true" />{{ level.name }}<small>{{ level.cue }}</small></span></div>
         <div class="depth-picker" role="group" aria-label="面试语言">
           <span>面试语言</span>
@@ -221,7 +233,13 @@ async function confirmStart(file: File | null): Promise<void> {
 .plan-notice { margin-bottom: 18px; padding: 12px 15px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--sky); color: var(--mint-dark); font-size: 13px; }
 .focus-notice { margin-bottom: 20px; padding: 13px 16px; border: 1px solid var(--border); border-radius:var(--radius); background: var(--glass); color: var(--text-2); font-size: 13px; }
 .focus-notice a { margin-left: 8px; color: var(--text); border-bottom: 1px solid var(--border-bright); padding-bottom: 1px; }
-.category-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.stage-filter { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.stage-label { flex: none; color: var(--text-3); font-size: 12px; letter-spacing: .02em; }
+.category-tabs { display: flex; gap: 8px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.category-tabs button { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.tab-count { padding: 1px 6px; border-radius: 999px; background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text-3); font-size: 10.5px; line-height: 1.5; }
+.category-tabs button.active .tab-count { background: rgba(0,0,0,.24); color: inherit; }
+@media (max-width: 720px) { .stage-filter { flex-direction: column; align-items: stretch; gap: 6px; } }
 .category-tabs button { min-height: 38px; padding: 0 15px; border: 1px solid var(--line); border-radius: 7px; background:var(--card); cursor: pointer; color: var(--ink-soft); transition: background .18s, border-color .18s, color .18s; }
 .category-tabs button:hover { border-color: var(--mint-dark); color: var(--mint-dark); }
 .category-tabs button.active { border-color: var(--accent); background: var(--accent); color: var(--on-solid); }

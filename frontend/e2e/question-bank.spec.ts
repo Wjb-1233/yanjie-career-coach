@@ -13,9 +13,9 @@ test('题库可筛选、收藏并标记掌握', async ({ page }) => {
   await page.locator('input[name="password"]').fill(password)
   await page.locator('input[name="confirmPassword"]').fill(password)
   await page.locator('button[type="submit"]').click()
-  await expect(page.getByRole('link', { name: '题库' })).toBeVisible()
+  await expect(page.getByRole('link', { name: '刷题' })).toBeVisible()
 
-  await page.getByRole('link', { name: '题库' }).click()
+  await page.getByRole('link', { name: '刷题' }).click()
   await expect(page.getByRole('heading', { name: /把常见问题/ })).toBeVisible()
   const cards = page.locator('.bank-card')
   await expect(cards.first()).toBeVisible()

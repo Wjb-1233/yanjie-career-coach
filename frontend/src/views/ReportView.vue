@@ -437,7 +437,6 @@ onMounted(async () => {
         <button class="button secondary" type="button" :disabled="shareBusy" @click="createShareLink">
           {{ shareBusy ? '生成中…' : shareLink ? '链接已复制' : '生成教练链接' }}
         </button>
-        <RouterLink class="button secondary" :to="{ name: 'stories', query: { sessionId: route.params.id } }">沉淀为故事</RouterLink>
         <RouterLink class="button secondary" to="/scenes">再练一个场景</RouterLink>
       </div>
     </header>

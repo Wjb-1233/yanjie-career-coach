@@ -203,7 +203,7 @@ onMounted(load)
       </div>
     </div>
     <nav class="admin-tabs" aria-label="管理功能">
-      <button v-for="item in [{ id: 'users', label: '学员与权限' }, { id: 'scenes', label: '场景设计' }, { id: 'courses', label: '微课素材' }, { id: 'sessions', label: '训练与报告' }, { id: 'coverage', label: '题库与错题' }, { id: 'tasks', label: '后台任务' }, { id: 'metrics', label: '运行指标' }]" :key="item.id" :class="{ active: tab === item.id }" @click="tab = item.id as Tab">{{ item.label }}</button>
+      <button v-for="item in [{ id: 'users', label: '学员与权限' }, { id: 'scenes', label: '场景与题库' }, { id: 'courses', label: '微课素材' }, { id: 'sessions', label: '训练与报告' }, { id: 'coverage', label: '题库与错题' }, { id: 'tasks', label: '后台任务' }, { id: 'metrics', label: '运行指标' }]" :key="item.id" :class="{ active: tab === item.id }" @click="tab = item.id as Tab">{{ item.label }}</button>
     </nav>
     <div v-if="loading" class="panel loading" aria-label="正在加载管理数据"><div class="skeleton loading-line" /><div class="skeleton loading-line short" /><div class="skeleton loading-card" /></div>
     <AdminUsersPanel v-else-if="tab === 'users'" :users="users" :busy-id="busyId" :requests="passwordRequests" @update="updateUser" @reset="resetPassword" @resolve-request="resolveRequest" @dismiss-request="dismissRequest" />

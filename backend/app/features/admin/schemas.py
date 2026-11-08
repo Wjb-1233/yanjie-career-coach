@@ -23,7 +23,7 @@ class SceneAdminInput(ApiModel):
     tags: list[str] = Field(default_factory=list, max_length=20)
     opening_line: str = Field(default="", max_length=1000)
     core_idea: str = Field(default="", max_length=500)
-    question_bank: list[QuestionItem] = Field(default_factory=list, max_length=3)
+    question_bank: list[QuestionItem] = Field(default_factory=list, max_length=20)
     active: bool = True
 
 
