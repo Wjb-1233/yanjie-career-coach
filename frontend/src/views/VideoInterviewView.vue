@@ -16,6 +16,8 @@ const taskKey = computed(() => (typeof route.query.taskKey === 'string' ? route.
 const scene = shallowRef<Scene | null>(null)
 const started = shallowRef(false)
 const duration = shallowRef(30)
+const engine = shallowRef<'doubao' | 'pipeline'>('doubao')
+const advanced = shallowRef(false)
 const error = shallowRef('')
 const preview = ref<HTMLVideoElement | null>(null)
 
@@ -227,6 +229,16 @@ void errorMessage
           <p class="hint">到时间会自动结束并生成报告；也可以随时提前结束。</p>
         </div>
 
+        <div class="setup-block">
+          <button type="button" class="advanced-toggle" @click="advanced = !advanced">
+            {{ advanced ? '收起高级选项' : '高级选项' }}
+          </button>
+          <div v-if="advanced" class="chip-group" role="group" aria-label="语音引擎">
+            <button type="button" class="chip" :class="{ active: engine === 'doubao' }" @click="engine = 'doubao'">标准引擎</button>
+            <button type="button" class="chip" :class="{ active: engine === 'pipeline' }" @click="engine = 'pipeline'">本地管线</button>
+          </div>
+        </div>
+
         <footer class="setup-actions">
           <button class="button start" type="button" :disabled="!ready" @click="start">
             <span class="dot" aria-hidden="true" />
@@ -242,7 +254,7 @@ void errorMessage
       v-else
       mode="video"
       :scene="scene"
-      :engine="'doubao'"
+      :engine="engine"
       :duration-minutes="duration"
       @ended="onEnded"
     />
@@ -273,6 +285,7 @@ void errorMessage
 .setup-actions { display: flex; align-items: center; gap: 16px; padding-top: 6px; border-top: 1px solid var(--divider); }
 .button.start { display: inline-flex; align-items: center; gap: 8px; padding: 0 24px; min-height: 44px; font-size: 14px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+.advanced-toggle { width: fit-content; border: 0; background: transparent; color: var(--text-3); font-size: 12px; cursor: pointer; padding: 0; }
 .link { border: 0; background: transparent; color: var(--text-3); font-size: 12px; cursor: pointer; }
 @media (max-width: 720px) { .checks { grid-template-columns: 1fr; } }
 </style>

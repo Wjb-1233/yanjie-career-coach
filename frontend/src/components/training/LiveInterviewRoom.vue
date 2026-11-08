@@ -267,7 +267,12 @@ async function startMic(): Promise<void> {
       for (let i = 0; i < chunk.length; i += 1) {
         pcm[i] = Math.max(-1, Math.min(1, chunk[i])) * 0x7fff
       }
-      socket.send(JSON.stringify({ type: 'input_audio_buffer.append', audio: toBase64(pcm.buffer) }))
+      if (props.engine === 'pipeline') {
+        // 本地管线走裸 PCM 二进制帧；标准引擎走 JSON base64
+        socket.send(pcm.buffer)
+      } else {
+        socket.send(JSON.stringify({ type: 'input_audio_buffer.append', audio: toBase64(pcm.buffer) }))
+      }
       offset += 320
     }
     pending = merged.slice(offset)
