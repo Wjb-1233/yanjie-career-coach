@@ -311,3 +311,21 @@ onMounted(load)
 .reset-password code { color: var(--text); font-family: ui-monospace, monospace; font-size: 15px; letter-spacing: .04em; }
 .reset-actions { display: flex; justify-content: flex-end; margin-top: 18px; }
 </style>
+<style scoped>
+.admin-page { max-width: 1180px; }
+.page-title { font-size: clamp(28px, 3vw, 34px); letter-spacing: -.02em; }
+.page-lead { margin-top: 8px; font-size: 13.5px; }
+.workflow { padding: 12px 16px; font-size: 12.5px; margin-bottom: 18px; }
+.workflow span { font-weight: 600; }
+.admin-metrics { gap: 12px; margin-bottom: 22px; }
+.admin-metrics div { min-height: 100px; padding: 18px; border-radius: 12px; }
+.admin-metrics strong { font-size: 32px; font-weight: 650; }
+.admin-metrics span { font-size: 12.5px; color: var(--text-3); }
+.admin-tabs { gap: 6px; margin-bottom: 20px; }
+.admin-tabs button { padding: 9px 15px; border-radius: 999px; font-size: 13px; }
+.admin-tabs button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.admin-page :deep(table) { width: 100%; font-size: 13px; border-collapse: collapse; }
+.admin-page :deep(th) { padding: 10px 8px; font-size: 12px; font-weight: 500; color: var(--text-3); text-align: left; border-bottom: 1px solid var(--divider); }
+.admin-page :deep(td) { padding: 12px 8px; border-bottom: 1px solid var(--divider); color: var(--text-2); }
+.admin-page :deep(tbody tr:hover) { background: var(--overlay-1); }
+</style>
