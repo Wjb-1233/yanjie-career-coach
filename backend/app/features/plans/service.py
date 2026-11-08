@@ -523,3 +523,35 @@ async def personalized_lesson(
             "content": chosen.get("content", ""),
         },
     }
+
+
+async def complete_course_task(
+    session: AsyncSession, user_id: str, plan_id: str, task_key: str
+) -> TrainingPlanView:
+    """微课只要求看完视频：一次调用即完成课程任务。"""
+    plan = await session.get(TrainingPlan, plan_id)
+    if plan is None or plan.user_id != user_id:
+        raise not_found("训练计划")
+    tasks = await normalized_tasks(session, plan)
+    target = next((item for item in tasks if item["key"] == task_key), None)
+    if target is None or target["actionType"] != "COURSE" or not target.get("lesson"):
+        raise not_found("个性化课程")
+    if target.get("completed"):
+        return await to_view(session, plan)
+
+    target["completed"] = True
+    target["completedAt"] = datetime.now(timezone.utc).isoformat()
+    target["evidence"] = "已看完微课视频"
+    course_id = target.get("courseId")
+    if course_id:
+        progress = await session.get(CourseProgress, {"user_id": user_id, "course_id": course_id})
+        if progress is None:
+            progress = CourseProgress(user_id=user_id, course_id=course_id)
+            session.add(progress)
+        progress.progress = 100
+        progress.completed = True
+
+    plan.tasks = [dict(item) for item in tasks]
+    plan.status = "COMPLETED" if all(item["completed"] for item in tasks) else "ACTIVE"
+    await session.commit()
+    return await to_view(session, plan)

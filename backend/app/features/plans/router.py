@@ -15,6 +15,7 @@ from app.features.plans.schemas import CompleteTaskRequest, PracticeRequest
 from app.features.evaluations.service import regenerate_training_plan
 from app.features.plans.service import (
     personalized_lesson,
+    complete_course_task,
     complete_lesson_step,
     complete_training_task,
     get_training_plan,
@@ -140,6 +141,12 @@ async def complete_task(
     session: DbSession,
 ) -> dict:
     plan = await complete_training_task(session, user.id, plan_id, task_key, body.evidence)
+    return ok(plan.model_dump(by_alias=True))
+
+
+@router.post("/{plan_id}/tasks/{task_key}/course/complete")
+async def complete_course(plan_id: str, task_key: str, user: CurrentUser, session: DbSession) -> dict:
+    plan = await complete_course_task(session, user.id, plan_id, task_key)
     return ok(plan.model_dump(by_alias=True))
 
 

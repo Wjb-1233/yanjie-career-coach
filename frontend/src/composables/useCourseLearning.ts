@@ -43,6 +43,20 @@ export function useCourseLearning() {
     }
   }
 
+  async function completeCourse(): Promise<void> {
+    if (!plan.value || !courseTask.value || submitting.value) return
+    submitting.value = true
+    error.value = ''
+    try {
+      const path = `/training-plans/${plan.value.id}/tasks/${courseTask.value.key}/course/complete`
+      plan.value = (await api.post<ApiEnvelope<TrainingPlan>>(path)).data.data
+    } catch (reason) {
+      error.value = errorMessage(reason)
+    } finally {
+      submitting.value = false
+    }
+  }
+
   async function submitPractice(answer: string): Promise<void> {
     if (!plan.value || !courseTask.value || submitting.value) return
     submitting.value = true
@@ -59,6 +73,6 @@ export function useCourseLearning() {
 
   return {
     plan: readonly(plan), courseTask, loading: readonly(loading), submitting: readonly(submitting),
-    error: readonly(error), load, completeStep, submitPractice,
+    error: readonly(error), load, completeStep, completeCourse, submitPractice,
   }
 }
