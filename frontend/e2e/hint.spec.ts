@@ -17,7 +17,7 @@ test('文本训练可以打开提示卡', async ({ page }) => {
   await expect(page.getByRole('link', { name: '场景训练' })).toBeVisible()
 
   await page.goto('/scenes')
-  await page.getByRole('button', { name: '文字对练' }).first().click()
+  await page.getByRole('button', { name: '文字', exact: true }).first().click()
   await page.getByRole('button', { name: '直接开始' }).click()
   await expect(page).toHaveURL(/\/training\//, { timeout: 20_000 })
 

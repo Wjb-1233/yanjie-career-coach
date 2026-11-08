@@ -171,9 +171,6 @@ function submit() {
           <span class="timer" :class="{ overtime: answerSeconds >= 180 }"><b>{{ answerLabel }}</b> 本题</span>
           <span class="remaining">剩余 {{ remainingRounds }} 轮</span>
         </div>
-        <div class="round-rail" aria-label="训练轮次进度">
-          <i v-for="round in maxRounds" :key="round" :class="{ active: round <= currentRound }" />
-        </div>
       </div>
     </header>
 
@@ -404,4 +401,17 @@ function submit() {
   .timer-row { gap: 8px; font-size: 10.5px; }
   .remaining { display: none; }
 }
+</style>
+<style scoped>
+.dialogue-header { padding: 20px 26px; }
+.dialogue-header h2 { font-size: 20px; }
+.dialogue-header .eyebrow { font-size: 12px; }
+.timeline { height: min(46vh, 440px); min-height: 300px; padding: 24px 26px; }
+.message-bubble { max-width: 78%; font-size: 15px; line-height: 1.8; }
+.message.user .message-bubble { margin-left: auto; }
+.message .speaker { font-size: 12px; }
+.composer { padding: 16px 24px 20px; }
+.composer textarea { min-height: 92px; }
+.composer-actions { font-size: 12.5px; }
+@media (max-width: 720px) { .timeline { height: 40vh; min-height: 240px; padding: 16px; } .message-bubble { max-width: 90%; } }
 </style>

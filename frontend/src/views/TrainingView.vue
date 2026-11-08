@@ -115,7 +115,7 @@ async function clearResume(): Promise<void> {
 <template>
   <div class="page training-page" :class="{ 'voice-page': mode === 'voice' }">
     <header class="training-heading">
-      <div><p class="eyebrow">角色演练 · {{ stageLabel }}<span v-if="training.session.value?.mode === 'DRILL'" class="drill-tag">深挖模式</span></p><h1>{{ training.session.value?.sceneTitle || '情景训练' }}</h1><p class="training-subtitle">面对模拟角色，按自己的节奏回答。系统会记录对话并在结束后提供复盘建议。</p></div>
+      <div><p class="eyebrow">角色演练 · {{ stageLabel }}<span v-if="training.session.value?.mode === 'DRILL'" class="drill-tag">深挖模式</span></p><h1>{{ training.session.value?.sceneTitle || '情景训练' }}</h1></div>
       <div class="heading-actions">
         <button v-if="training.session.value?.status === 'FINISHED'" class="button secondary" type="button" @click="restart">同场景重新开始</button>
         <RouterLink class="back" to="/scenes">退出训练</RouterLink>
@@ -125,6 +125,8 @@ async function clearResume(): Promise<void> {
       <template v-if="roundsLeft > 0">这是训练计划里的任务：至少完成 {{ planMinRounds }} 轮才能结束，还差 {{ roundsLeft }} 轮。</template>
       <template v-else>已满足计划的 {{ planMinRounds }} 轮要求，可以结束并自动勾掉这项任务。</template>
     </div>
+    <details class="setup">
+      <summary>场景设置 <span>{{ mode === 'voice' ? '语音面试' : '文字面试' }}<template v-if="training.session.value?.questionTotal"> · 必问题 {{ training.session.value.questionCovered }}/{{ training.session.value.questionTotal }}</template></span></summary>
     <div class="mode-bar">
       <div><strong>训练方式</strong><span>{{ mode === 'voice' ? '说出回答，听面试官回应' : '键入回答，按自己的节奏思考' }}</span></div>
     </div>
@@ -192,6 +194,8 @@ async function clearResume(): Promise<void> {
       <button type="button" :disabled="clearingResume" @click="clearResume">{{ clearingResume ? '清除中…' : '清除简历内容' }}</button>
     </div>
     <div v-if="training.session.value?.resumeOpeningDegraded" class="model-notice">首题由本地模板生成；请检查大模型配置。后续对话会继续尝试使用大模型结合简历追问。</div>
+    </details>
+
     <div v-if="pageError || training.error.value" class="error-banner">{{ pageError || training.error.value }}</div>
     <div v-if="training.degraded.value" class="model-notice">本轮由本地教练模板接续。请确认模型服务状态；这轮内容仍可继续训练。</div>
     <div v-if="finishing" class="model-notice">正在生成四维评分，请稍候；报告通常比单轮对话需要更长时间。</div>
@@ -307,4 +311,13 @@ async function clearResume(): Promise<void> {
   line-height: 1.7;
 }
 </style>
-
+<style scoped>
+.training-heading { margin-bottom: 20px; }
+.training-heading h1 { font-size: clamp(24px, 2.6vw, 30px); }
+.setup { margin-bottom: 18px; border-top: 1px solid var(--divider); border-bottom: 1px solid var(--divider); }
+.setup summary { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 14px 0; color: var(--text-2); font-size: 13.5px; cursor: pointer; list-style: none; }
+.setup summary::-webkit-details-marker { display: none; }
+.setup summary span { color: var(--text-3); font-size: 12.5px; }
+.setup[open] { padding-bottom: 8px; }
+.setup :deep(.mode-bar), .setup :deep(.jd-bar) { margin: 0 0 10px; }
+</style>
