@@ -373,3 +373,20 @@ class ResumeDiagnosis(Base):
     jd_excerpt: Mapped[str] = mapped_column(Text, default="")
     result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+
+
+class GroupInterview(Base):
+    """无领导小组讨论（用户 + 两位虚拟候选人 + 主持人）。"""
+
+    __tablename__ = "group_interviews"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    topic_id: Mapped[str] = mapped_column(String(40))
+    topic_title: Mapped[str] = mapped_column(String(120))
+    topic_prompt: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE", index=True)
+    turns: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
