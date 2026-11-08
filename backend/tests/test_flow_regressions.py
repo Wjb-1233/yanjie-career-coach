@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from app.infrastructure.llm import llm_gateway
 from app.main import app
+from tests.plan_task_helper import add_scene_task
 
 
 PLAN_DRAFT = {
@@ -72,7 +73,8 @@ def test_plan_task_session_does_not_create_another_plan(monkeypatch) -> None:
         scene = client.get("/api/v1/scenes", headers=headers).json()["data"][0]["id"]
         _train(client, headers, scene)
         plan = client.get("/api/v1/training-plans", headers=headers).json()["data"][0]
-        task = next(item for item in plan["tasks"] if item["actionType"] == "SCENE")
+        key = add_scene_task(plan["id"], scene)
+        task = {"key": key, "sceneId": scene}
 
         started = client.post(
             "/api/v1/training-sessions",

@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.infrastructure.llm import llm_gateway
 from app.main import app
+from tests.plan_task_helper import add_scene_task
 
 
 PLAN_DRAFT = {
@@ -70,7 +71,8 @@ def test_scene_task_requires_finished_training(monkeypatch) -> None:
         headers = _login(client)
         _finish(client, headers, "scene-interview-03", 2, True)
         plan = client.get("/api/v1/training-plans", headers=headers).json()["data"][0]
-        scene_task = next(task for task in plan["tasks"] if task["actionType"] in {"SCENE", "VIDEO"})
+        key = add_scene_task(plan["id"], "scene-interview-03")
+        scene_task = {"key": key, "sceneId": "scene-interview-03"}
 
         without_evidence = client.post(
             f"/api/v1/training-plans/{plan['id']}/tasks/{scene_task['key']}/complete",

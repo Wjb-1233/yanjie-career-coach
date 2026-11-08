@@ -377,49 +377,18 @@ async def create_training_plan(
 
     channel = (training.channel or "TEXT").upper()
     channel_word = {"TEXT": "文字", "VOICE": "语音", "VIDEO": "视频"}.get(channel, "文字")
-    practice_task: dict = {
-        "key": "retry",
-        "day": 1,
-        "task": "回到同一场景，用文字重答最弱的一题",
-        "actionType": "SCENE",
-        "sceneId": training.scene_id,
-        "completed": False,
-        "completedAt": None,
-        "evidence": None,
-    }
-    if channel == "VOICE":
-        practice_task = {
-            "key": "voice-retry",
+    scene_tasks: list[dict] = [
+        {
+            "key": "session-review",
             "day": 1,
-            "task": "用语音重答本场最弱的一题，重点练停顿和口头禅",
-            "actionType": "VOICE",
-            "sceneId": training.scene_id,
+            "task": f"回看本场{channel_word}复盘：按批注改 2 处表达",
+            "actionType": "REPORT",
+            "sourceSessionId": training.id,
             "completed": False,
             "completedAt": None,
             "evidence": None,
         }
-    elif channel == "VIDEO":
-        practice_task = {
-            "key": "video-retry",
-            "day": 1,
-            "task": "用视频重答本场最弱的一题，重点看镜头、语速和坐姿",
-            "actionType": "VIDEO",
-            "sceneId": training.scene_id,
-            "completed": False,
-            "completedAt": None,
-            "evidence": None,
-        }
-    scene_tasks: list[dict] = [practice_task]
-    scene_tasks.append({
-        "key": "session-review",
-        "day": 2,
-        "task": f"回看本场{channel_word}复盘：按批注改 2 处表达",
-        "actionType": "REPORT",
-        "sourceSessionId": training.id,
-        "completed": False,
-        "completedAt": None,
-        "evidence": None,
-    })
+    ]
     if channel == "TEXT":
         scene_tasks.append({
             "key": "rewrite",
@@ -457,7 +426,7 @@ async def create_training_plan(
             {
                 "key": "course",
                 "day": 1,
-                "task": f"学习微课《{lesson['title']}》，用{channel_word}复述一遍要点",
+                "task": f"观看 AI 生成的视频微课《{lesson['title']}》，学完再练",
                 "actionType": "COURSE",
                 "courseId": course.id if course else None,
                 "sourceSessionId": training.id,
