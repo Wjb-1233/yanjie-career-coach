@@ -27,7 +27,6 @@ from app.features.auth.router import router as auth_router
 from app.features.courses.router import router as courses_router
 from app.features.dashboard.router import router as dashboard_router
 from app.features.evaluations.router import router as evaluations_router
-from app.features.group_interview.router import router as group_interview_router
 from app.features.health.router import router as health_router
 from app.features.plans.router import router as plans_router
 from app.features.scenes.mine_router import router as mine_scenes_router
@@ -233,7 +232,6 @@ app.add_exception_handler(RequestValidationError, validation_error_handler)
 app.add_exception_handler(Exception, unexpected_error_handler)
 
 for api_router in (
-    group_interview_router,
     health_router,
     auth_router,
     scenes_router,
