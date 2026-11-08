@@ -83,10 +83,6 @@ function formatDate(value: string): string {
         <dt>当前提升重点</dt>
         <dd class="focus"><i class="dot" aria-hidden="true" /><span class="focus-name">{{ trainingCount ? focus : '尚未生成' }}</span></dd>
       </div>
-      <div class="fact">
-        <dt>表达风格</dt>
-        <dd class="soft tags"><span v-for="tag in styleTags.slice(0, 3)" :key="tag">{{ tag }}</span><em v-if="!styleTags.length">待首次训练</em></dd>
-      </div>
     </dl>
   </section>
 </template>
@@ -94,12 +90,12 @@ function formatDate(value: string): string {
 <style scoped>
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 328px;
+  grid-template-columns: minmax(0, 1fr) 300px;
   border-radius: var(--radius);
 }
 .hero-main { display: flex; flex-direction: column; padding: 36px 40px 34px; }
 
-.label { margin: 0; color: var(--text-3); font-size: 11px; letter-spacing: .2em; }
+.label { margin: 0; color: var(--text-3); font-size: 12.5px; }
 
 .figure { display: flex; align-items: flex-end; gap: 12px; margin: 26px 0 0; }
 .figure .num {
@@ -116,7 +112,7 @@ function formatDate(value: string): string {
 .empty-score span { color: var(--text-3); font-size: 12.5px; font-weight: 400; letter-spacing: .02em; }
 .figure .den { padding-bottom: 12px; color: var(--text-3); font-family: var(--font-num); font-size: 13px; letter-spacing: .06em; }
 
-.caption { margin: 22px 0 0; color: var(--text-3); font-size: 12px; line-height: 1.7; letter-spacing: .02em; }
+.caption { margin: 22px 0 0; color: var(--text-3); font-size: 13px; line-height: 1.7; }
 
 .cta {
   align-self: flex-start;
@@ -149,20 +145,20 @@ function formatDate(value: string): string {
   border-bottom: 1px solid var(--divider);
 }
 .fact:last-child { border-bottom: 0; }
-.fact dt { color: var(--text-3); font-size: 11px; letter-spacing: .14em; }
+.fact dt { color: var(--text-3); font-size: 12.5px; }
 .fact dd { display: flex; align-items: baseline; gap: 7px; margin: 0; }
 .fact dd.tags { flex-wrap: wrap; gap: 6px; align-items: center; }
 .fact dd.tags span { padding: 2px 8px; border: 1px solid var(--border); border-radius: 5px; color: var(--text-2); font-size: 10.5px; letter-spacing: .02em; }
 .fact dd.tags em { color: var(--text-3); font-style: normal; font-size: 12px; }
 .fact .value { color: var(--text); font-family: var(--font-num); font-size: 26px; font-weight: 300; letter-spacing: -.01em; }
 .fact em { color: var(--text-3); font-size: 12px; font-style: normal; }
-.fact .focus-name { color: var(--text); font-size: 20px; font-weight: 400; letter-spacing: .02em; }
+.fact .focus-name { color: var(--text); font-size: 22px; font-weight: 500; }
 .fact .dot { display: inline-block; width: 5px; height: 5px; margin-right: 8px; transform: translateY(-3px); background: var(--accent); }
 .fact .soft { color: var(--text-2); font-size: 13px; line-height: 1.6; letter-spacing: .02em; }
 
 @media (max-width: 900px) {
   .hero { grid-template-columns: 1fr; }
-  .hero-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--divider); border-left: 0; }
+  .hero-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--divider); border-left: 0; }
   .fact { border-right: 1px solid var(--divider); border-bottom: 0; padding: 16px 20px; }
   .fact:last-child { border-right: 0; }
 }

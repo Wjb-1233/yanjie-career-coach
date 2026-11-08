@@ -48,7 +48,6 @@ const lastTrainedAt = computed(() => {
   return trends.length ? trends[trends.length - 1].date : null
 })
 const hasTrend = computed(() => (data.value?.trends.length ?? 0) >= 2)
-const trendGap = computed(() => Math.max(0, 2 - (data.value?.trends.length ?? 0)))
 const today = computed(() => {
   const date = new Date()
   return `${date.getFullYear()} 年 ${date.getMonth() + 1} 月 ${date.getDate()} 日`
@@ -107,7 +106,7 @@ const todayAction = computed<{ eyebrow: string; title: string; detail: string; l
 <template>
   <div class="page dashboard">
     <div class="page-head">
-      <span class="label">成长看板</span>
+      <h1>成长看板</h1>
       <span class="date">{{ today }}</span>
     </div>
 
@@ -171,13 +170,12 @@ const todayAction = computed<{ eyebrow: string; title: string; detail: string; l
         action-to="/scenes"
       />
 
-      <section class="trend panel" aria-labelledby="trend-title">
+      <section v-if="hasTrend" class="trend panel" aria-labelledby="trend-title">
         <header class="section-head">
           <h2 id="trend-title" class="label">评分变化</h2>
           <span class="note">综合分 / 100</span>
         </header>
-        <ScoreTrend v-if="hasTrend" compact :points="data.trends" />
-        <p v-else class="trend-empty">再完成 {{ trendGap }} 次训练，这里会显示评分曲线。</p>
+        <ScoreTrend compact :points="data.trends" />
       </section>
     </template>
   </div>
@@ -190,9 +188,10 @@ const todayAction = computed<{ eyebrow: string; title: string; detail: string; l
   align-items: baseline;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 26px;
 }
-.page-head .date { color: var(--text-3); font-size: 11px; letter-spacing: .06em; }
+.page-head h1 { margin: 0; font-size: clamp(28px, 3.2vw, 36px); font-weight: 650; letter-spacing: -.02em; color: var(--text); }
+.page-head .date { color: var(--text-3); font-size: 12.5px; }
 
 .loading { display: grid; gap: 24px; }
 .loading-hero { min-height: 300px; }
@@ -217,10 +216,10 @@ const todayAction = computed<{ eyebrow: string; title: string; detail: string; l
   .trend { margin-top: 38px; }
 }
 .degraded-note { margin: 8px 0 0; color: var(--accent-strong); font-size: 12px; }
-.today-card { margin-top: 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 22px; }
-.today-copy .eyebrow { margin: 0 0 6px; color: var(--accent-strong); font-size: 11px; letter-spacing: .12em; }
-.today-copy h2 { margin: 0; font-size: 16px; font-weight: 600; }
-.today-copy p { margin: 6px 0 0; color: var(--text-2); font-size: 12.5px; line-height: 1.7; }
+.today-card { margin-top: 26px; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 26px; }
+.today-copy .eyebrow { margin: 0 0 8px; color: var(--text-3); font-size: 12px; }
+.today-copy h2 { margin: 0; font-size: 19px; font-weight: 600; }
+.today-copy p { margin: 8px 0 0; color: var(--text-2); font-size: 14px; line-height: 1.75; }
 @media (max-width: 720px) { .today-card { flex-direction: column; align-items: flex-start; } }
 
 .verify-banner { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; padding: 14px 18px; border: 1px solid var(--accent); background: var(--accent-soft); }
