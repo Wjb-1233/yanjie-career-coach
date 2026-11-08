@@ -494,3 +494,22 @@ textarea.input { resize: vertical; line-height: 1.8; }
 .button.danger { background: #b4553f; border-color: #b4553f; color: #fff; }
 .button.danger:hover { background: #9c4635; border-color: #9c4635; }
 </style>
+<style scoped>
+.profile-page { max-width: 900px; }
+.page-title { font-size: clamp(28px, 3vw, 36px); letter-spacing: -.02em; }
+.page-lead { margin-top: 10px; font-size: 14px; }
+.hero-card { padding: 24px 26px; border-radius: 16px; }
+.hero-top { gap: 18px; }
+.avatar-ring { width: 64px; height: 64px; }
+.avatar-fallback { font-size: 22px; }
+.hero-identity h2 { font-size: 22px; }
+.hero-meta { font-size: 13px; }
+.metrics { margin-top: 18px; gap: 10px; }
+.metrics dt { font-size: 12px; color: var(--text-3); }
+.metrics .metric-num { font-size: 24px; }
+.card-grid { gap: 16px; margin-top: 20px; }
+.card { padding: 22px; border-radius: 14px; }
+.card-head h2 { font-size: 16px; }
+.field-row { font-size: 12.5px; color: var(--text-3); }
+.card p, .card small { font-size: 12.5px; }
+</style>
