@@ -50,7 +50,8 @@ async def create_training_session(
     if resume_filename and resume_text:
         opening_line, opening_degraded = await opening_question(scene, resume_text)
     elif not opening_line:
-        opening_line, opening_degraded = await opening_question(scene, None)
+        # 场景没有预设开场白时用确定性文案，不再请求模型，创建会话保持毫秒级
+        opening_line = f"你好，我是{scene.role_name}，今天这场是{scene.category}，请先做个自我介绍。"
     if plan_id:
         plan = await session.get(TrainingPlan, plan_id)
         if plan is None or plan.user_id != user_id:

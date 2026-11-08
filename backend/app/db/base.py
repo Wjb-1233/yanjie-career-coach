@@ -26,3 +26,18 @@ async def get_session() -> AsyncIterator[AsyncSession]:
     async with session_factory() as session:
         yield session
 
+
+
+async def warmup_pool() -> None:
+    """预热连接池，避免首批并发请求分担建连耗时。"""
+    if settings.database_url.startswith("sqlite"):
+        return
+    connections = []
+    try:
+        for _ in range(max(1, settings.db_pool_size)):
+            connections.append(await engine.connect())
+    except Exception:  # noqa: BLE001 - 预热失败不影响启动
+        pass
+    finally:
+        for connection in connections:
+            await connection.close()

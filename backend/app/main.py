@@ -19,6 +19,7 @@ from app.core.errors import (
 from app.core.logging import configure_logging
 from app.db.base import Base, engine, session_factory
 from app.db.migrations import assert_database_is_current
+from app.db.base import warmup_pool
 from app.db.seed import seed_database
 from app.features.admin.router import router as admin_router
 from app.features.ability.router import router as ability_router
@@ -87,6 +88,7 @@ async def lifespan(_: FastAPI):
     await rate_limiter.initialize()
     if settings.environment == "production":
         await llm_gateway.health_status(force=True)
+    await warmup_pool()
     async with session_factory() as session:
         await seed_database(session, include_demo_users=settings.environment != "production")
     # 自动清理只在生产环境跑，开发/测试/演示环境用后台按钮手动触发

@@ -1,3 +1,4 @@
+import asyncio
 import json
 from typing import Any
 
@@ -24,6 +25,8 @@ class SessionStateStore:
             return
         try:
             await self._redis.ping()
+            # 预热连接池：并发建立若干连接，避免首批请求在建连上排队
+            await asyncio.gather(*[self._redis.ping() for _ in range(8)], return_exceptions=True)
             self._remote_available = True
         except Exception:
             self._remote_available = False
