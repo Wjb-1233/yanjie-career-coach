@@ -52,7 +52,7 @@ async def lesson(plan_id: str, body: LessonRequest, user: CurrentUser, session: 
 @router.post("/{plan_id}/lesson/video")
 async def lesson_video(plan_id: str, body: LessonRequest, user: CurrentUser, session: DbSession) -> dict:
     """把当前微课渲染成 mp4；同一份内容 + 同一引擎只渲染一次。"""
-    from app.features.lessons.video import build_video, lesson_key
+    from app.features.lessons.video import lesson_key, render_video_with_fallback
 
     result = await personalized_lesson(session, user.id, plan_id, body.task_key, force=body.force)
     lesson = ((result or {}).get("lesson") or {})
@@ -66,14 +66,12 @@ async def lesson_video(plan_id: str, body: LessonRequest, user: CurrentUser, ses
     key = f"{lesson_key(lesson)}-{engine}"
     target = settings.lesson_video_dir_path / f"{key}.mp4"
     if not target.exists():
-        if engine == "remotion":
-            from app.features.lessons.remotion_render import render_lesson
-            from app.features.plans.service import get_training_plan
+        from app.features.plans.service import get_training_plan
 
-            plan = await get_training_plan(session, user.id, plan_id)
-            await asyncio.to_thread(render_lesson, lesson, target, key, plan.focus_dimension)
-        else:
-            await asyncio.to_thread(build_video, lesson, target)
+        plan = await get_training_plan(session, user.id, plan_id)
+        engine, target, key = await asyncio.to_thread(
+            render_video_with_fallback, engine, lesson, target, key, plan.focus_dimension
+        )
     chapters: list[dict] = []
     sidecar = target.with_suffix(".json")
     if sidecar.is_file():

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 import json
 import os
 import shutil
@@ -16,6 +17,8 @@ import tempfile
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
+
+logger = logging.getLogger(__name__)
 
 WIDTH, HEIGHT = 1600, 900
 FONT_CANDIDATES = [
@@ -225,3 +228,27 @@ if __name__ == "__main__":
     target = Path("D:/graduation_design/backend/static/lessons") / f"{lesson_key(payload)}.mp4"
     build_video(payload, target)
     print(target)
+
+
+def render_video_with_fallback(
+    engine: str, lesson: dict, target: Path, key: str, dimension: str = ""
+) -> tuple[str, Path, str]:
+    """渲染微课；remotion 失败（没装 Node / 渲染报错）时回退到 Python 引擎。
+
+    返回 (实际引擎, 实际文件, 实际 key)。
+    """
+    if engine == "remotion":
+        try:
+            from app.features.lessons.remotion_render import render_lesson
+
+            render_lesson(lesson, target, key, dimension)
+            return "remotion", target, key
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("lesson.remotion_failed error_type=%s", type(exc).__name__)
+            fallback_key = f"{key}-python"
+            fallback_target = target.with_name(f"{fallback_key}.mp4")
+            build_video(lesson, fallback_target)
+            return "python-fallback", fallback_target, fallback_key
+
+    build_video(lesson, target)
+    return "python", target, key

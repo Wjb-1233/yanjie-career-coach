@@ -30,10 +30,12 @@ const micOn = shallowRef(false)
 const remaining = shallowRef(props.durationMinutes * 60)
 const preview = ref<HTMLVideoElement | null>(null)
 
-const turns = shallowRef<Array<{ question: string; answer: string }>>([])
+const turns = shallowRef<Array<{ question: string; answer: string; startMs?: number; endMs?: number }>>([])
 let lastAnswer = ''
 let lastQuestion = ''
 let startedAt = 0
+let turnStartedAt = 0
+let pendingTiming: { startMs: number; endMs: number } | null = null
 
 let socket: WebSocket | null = null
 let audioContext: AudioContext | null = null
@@ -137,6 +139,8 @@ function handleEvent(raw: string): void {
       reply.value = ''
       turnState.value = 'heard'
       lastAnswer = String(event.text)
+      pendingTiming = { startMs: turnStartedAt || startedAt, endMs: Date.now() }
+      turnStartedAt = Date.now()
     } else if (type === 'assistant_delta' && event.text) {
       const wasEmpty = !reply.value
       reply.value = `${reply.value}${event.text}`
@@ -144,8 +148,15 @@ function handleEvent(raw: string): void {
     } else if (type === 'assistant_end') {
       lastQuestion = reply.value
       if (lastAnswer.trim()) {
-        turns.value = [...turns.value, { question: lastQuestion, answer: lastAnswer }]
+        turns.value = [...turns.value, {
+          question: lastQuestion,
+          answer: lastAnswer,
+          startMs: pendingTiming?.startMs,
+          endMs: pendingTiming?.endMs,
+        }]
         lastAnswer = ''
+        pendingTiming = null
+        turnStartedAt = Date.now()
       }
       rounds.value += 1
       turnState.value = 'idle'
@@ -163,13 +174,22 @@ function handleEvent(raw: string): void {
     heard.value = lastAnswer
     reply.value = ''
     turnState.value = 'heard'
+    pendingTiming = { startMs: turnStartedAt || startedAt, endMs: Date.now() }
+    turnStartedAt = Date.now()
   } else if (type === 'response.output_text.done') {
     turnState.value = 'speaking'
     reply.value = String(event.text ?? '')
     lastQuestion = reply.value
     if (lastAnswer.trim()) {
-      turns.value = [...turns.value, { question: lastQuestion, answer: lastAnswer }]
+      turns.value = [...turns.value, {
+        question: lastQuestion,
+        answer: lastAnswer,
+        startMs: pendingTiming?.startMs,
+        endMs: pendingTiming?.endMs,
+      }]
       lastAnswer = ''
+      pendingTiming = null
+      turnStartedAt = Date.now()
     }
     rounds.value += 1
     turnState.value = 'idle'
@@ -221,6 +241,7 @@ async function start(): Promise<void> {
       }
       status.value = 'live'
       startedAt = Date.now()
+      turnStartedAt = startedAt
       await startMic()
       beginCountdown()
     }
@@ -347,7 +368,12 @@ async function stopAndReport(timeUp = false): Promise<void> {
   if (status.value === 'saving') return
   if (countdown) { clearInterval(countdown); countdown = null }
   const pendingTurns = lastAnswer.trim()
-    ? [...turns.value, { question: lastQuestion, answer: lastAnswer }]
+    ? [...turns.value, {
+        question: lastQuestion,
+        answer: lastAnswer,
+        startMs: pendingTiming?.startMs ?? (turnStartedAt || startedAt),
+        endMs: pendingTiming?.endMs ?? Date.now(),
+      }]
     : turns.value
   if (!pendingTurns.length) {
     fail(timeUp ? '时间到了，但这次还没有可评分的内容' : '这次还没有可评分的内容')

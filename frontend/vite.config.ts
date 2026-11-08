@@ -5,6 +5,20 @@ export default defineConfig({
   plugins: [
     vue(),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (id.includes('markdown-it') || id.includes('dompurify')) return 'vendor-markdown'
+          if (id.includes('reka-ui') || id.includes('lucide')) return 'vendor-ui'
+          if (id.includes('axios')) return 'vendor-http'
+          if (id.includes('vue') || id.includes('@vue')) return 'vendor-vue'
+          return undefined
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': '/src',

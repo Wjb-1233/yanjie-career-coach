@@ -116,9 +116,25 @@ async def voice_ws(client: WebSocket) -> None:
         VOICE_SLOTS.release()
 
 
+def _turn_marks(turns: list["VoiceTurn"]) -> list[dict]:
+    """把带时间窗的轮次转成切段标记；缺时间的轮次跳过。"""
+    return [
+        {
+            "text": turn.question or turn.answer[:40],
+            "start": (turn.startMs or 0) / 1000,
+            "end": (turn.endMs or 0) / 1000,
+        }
+        for turn in turns
+        if turn.startMs is not None and turn.endMs is not None and turn.endMs > turn.startMs
+    ]
+
+
 class VoiceTurn(BaseModel):
     question: str = Field(default="")
     answer: str = Field(default="")
+    # 实时房间会带上每轮的时间窗，用于把整段录像切成按题片段
+    startMs: int | None = Field(default=None, ge=0)
+    endMs: int | None = Field(default=None, ge=0)
 
 
 @router.post("/sessions", status_code=201)
@@ -162,7 +178,19 @@ async def save_voice_session(
         channel = "VIDEO"
         if delivery is None:
             delivery = {}
-        delivery = {**delivery, "vision": vision, "engine": engine}
+        marks = _turn_marks(parsed)
+        segments: list[dict] = []
+        if marks and recording_path:
+            from app.features.video.segments import split_segments
+
+            segments = await asyncio.to_thread(
+                split_segments,
+                storage.path_of(recording_path),
+                marks,
+                settings.recording_dir_path,
+                storage.signed_url,
+            )
+        delivery = {**delivery, "vision": vision, "engine": engine, "marks": marks, "segments": segments}
     elif audio is not None:
         suffix = Path(audio.filename or "voice.webm").suffix or ".webm"
         handle = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)

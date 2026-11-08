@@ -155,10 +155,11 @@ async def _daily_calls(user_id: str) -> int:
 
 
 async def _record_usage(user_id: str) -> None:
-    from sqlalchemy import select
+    from sqlalchemy import update
+    from sqlalchemy.exc import IntegrityError
 
     from app.db.base import session_factory
-    from app.db.models import ModelUsageDaily
+    from app.db.models import ModelUsageDaily, now
 
     day = _today()
     async with session_factory() as session:
@@ -167,7 +168,17 @@ async def _record_usage(user_id: str) -> None:
             session.add(ModelUsageDaily(user_id=user_id, day=day, calls=1))
         else:
             row.calls = int(row.calls) + 1
-        await session.commit()
+        try:
+            await session.commit()
+        except IntegrityError:
+            # 同一用户并发请求会同时插入，退化为原子 UPDATE
+            await session.rollback()
+            await session.execute(
+                update(ModelUsageDaily)
+                .where(ModelUsageDaily.user_id == user_id, ModelUsageDaily.day == day)
+                .values(calls=ModelUsageDaily.calls + 1, updated_at=now())
+            )
+            await session.commit()
 
 
 async def limit_client_error(request: Request) -> None:

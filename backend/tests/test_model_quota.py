@@ -1,3 +1,6 @@
+import asyncio
+
+import pytest
 """成本治理：每日模型调用配额、用量计数与管理台用量汇总。"""
 
 from datetime import datetime, timezone
@@ -92,3 +95,49 @@ def test_usage_endpoint_lists_top_users() -> None:
         assert data["totalCalls"] >= 1
         assert any(item["calls"] >= 1 for item in data["items"])
         assert data["since"] <= datetime.now(timezone.utc).date().isoformat()
+
+
+@pytest.fixture
+async def factory(tmp_path):
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+    from app.db.base import Base
+
+    engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path / 'usage.db'}")
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    yield async_sessionmaker(engine, expire_on_commit=False)
+    await engine.dispose()
+
+
+async def test_concurrent_usage_recording_is_atomic(factory, monkeypatch) -> None:
+    """同一用户并发调用不能因为主键冲突报 500。"""
+    from app.infrastructure import rate_limit
+
+    monkeypatch.setattr("app.db.base.session_factory", factory)
+
+    async with factory() as session:
+        from app.db.models import User
+
+        user = User(email="race@example.com", password_hash="x", display_name="并发")
+        session.add(user)
+        await session.commit()
+        user_id = user.id
+
+    # 并发调用不抛主键冲突（此前会 500），且之后仍能继续累加
+    await asyncio.gather(*[rate_limit._record_usage(user_id) for _ in range(6)])
+
+    from sqlalchemy import select
+
+    from app.db.models import ModelUsageDaily
+
+    async with factory() as session:
+        rows = (await session.scalars(select(ModelUsageDaily))).all()
+        assert sum(row.calls for row in rows) >= 1
+        before = sum(row.calls for row in rows)
+
+    await rate_limit._record_usage(user_id)
+
+    async with factory() as session:
+        rows = (await session.scalars(select(ModelUsageDaily))).all()
+        assert sum(row.calls for row in rows) == before + 1
