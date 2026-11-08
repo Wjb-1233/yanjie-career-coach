@@ -1,0 +1,53 @@
+[
+  {
+    "id": "coding-two-sum",
+    "difficulty": "入门",
+    "tags": ["数组", "哈希表"],
+    "title": "两数之和",
+    "description": "给定整数数组 nums 和目标值 target，返回两个数的下标（从 0 开始），使它们相加等于 target。保证恰好存在一个答案。",
+    "entry": {"python": "two_sum", "javascript": "twoSum"},
+    "template": {
+      "python": "def two_sum(nums, target):\n    seen = {}\n    for i, value in enumerate(nums):\n        if target - value in seen:\n            return [seen[target - value], i]\n        seen[value] = i\n",
+      "javascript": "function twoSum(nums, target) {\n  const seen = new Map();\n  for (let i = 0; i < nums.length; i += 1) {\n    if (seen.has(target - nums[i])) return [seen.get(target - nums[i]), i];\n    seen.set(nums[i], i);\n  }\n}\n"
+    },
+    "cases": [
+      {"args": [[2, 7, 11, 15], 9], "expected": [0, 1]},
+      {"args": [[3, 2, 4], 6], "expected": [1, 2]},
+      {"args": [[3, 3], 6], "expected": [0, 1]}
+    ]
+  },
+  {
+    "id": "coding-compress",
+    "difficulty": "入门",
+    "tags": ["字符串", "双指针"],
+    "title": "字符串压缩",
+    "description": "把连续重复字符压缩成「字符+次数」，如 aaabb → a3b2；只出现一次的字符不写 1。",
+    "entry": {"python": "compress", "javascript": "compress"},
+    "template": {
+      "python": "def compress(text):\n    result = []\n    i = 0\n    while i < len(text):\n        j = i\n        while j < len(text) and text[j] == text[i]:\n            j += 1\n        result.append(text[i] + (str(j - i) if j - i > 1 else ''))\n        i = j\n    return ''.join(result)\n",
+      "javascript": "function compress(text) {\n  let out = '';\n  let i = 0;\n  while (i < text.length) {\n    let j = i;\n    while (j < text.length && text[j] === text[i]) j += 1;\n    out += text[i] + (j - i > 1 ? String(j - i) : '');\n    i = j;\n  }\n  return out;\n}\n"
+    },
+    "cases": [
+      {"args": ["aaabb"], "expected": "a3b2"},
+      {"args": ["abc"], "expected": "abc"},
+      {"args": ["aabcccccaaa"], "expected": "a2bc5a3"}
+    ]
+  },
+  {
+    "id": "coding-longest-substring",
+    "difficulty": "中级",
+    "tags": ["字符串", "滑动窗口"],
+    "title": "最长无重复子串",
+    "description": "给定字符串，返回不含重复字符的最长子串长度。",
+    "entry": {"python": "length_of_longest_substring", "javascript": "lengthOfLongestSubstring"},
+    "template": {
+      "python": "def length_of_longest_substring(text):\n    last = {}\n    start = 0\n    best = 0\n    for i, ch in enumerate(text):\n        if ch in last and last[ch] >= start:\n            start = last[ch] + 1\n        last[ch] = i\n        best = max(best, i - start + 1)\n    return best\n",
+      "javascript": "function lengthOfLongestSubstring(text) {\n  const last = new Map();\n  let start = 0;\n  let best = 0;\n  for (let i = 0; i < text.length; i += 1) {\n    const ch = text[i];\n    if (last.has(ch) && last.get(ch) >= start) start = last.get(ch) + 1;\n    last.set(ch, i);\n    best = Math.max(best, i - start + 1);\n  }\n  return best;\n}\n"
+    },
+    "cases": [
+      {"args": ["abcabcbb"], "expected": 3},
+      {"args": ["bbbbb"], "expected": 1},
+      {"args": ["pwwkew"], "expected": 3}
+    ]
+  }
+]

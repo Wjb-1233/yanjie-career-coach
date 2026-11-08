@@ -25,6 +25,7 @@ from app.features.admin.router import router as admin_router
 from app.features.ability.router import router as ability_router
 from app.features.auth.router import router as auth_router
 from app.features.courses.router import router as courses_router
+from app.features.coding.router import router as coding_router
 from app.features.dashboard.router import router as dashboard_router
 from app.features.evaluations.router import router as evaluations_router
 from app.features.group_interview.router import router as group_interview_router
@@ -249,6 +250,7 @@ for api_router in (
     plans_router,
     question_bank_router,
     resume_diagnosis_router,
+    coding_router,
     dashboard_router,
     admin_router,
     voice_router,

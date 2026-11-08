@@ -15,6 +15,7 @@ const router = createRouter({
     { path: '/scenes', name: 'scenes', component: () => import('@/views/ScenesView.vue') },
     { path: '/question-bank', name: 'question-bank', component: () => import('@/views/QuestionBankView.vue') },
     { path: '/group-interview', name: 'group-interview', component: () => import('@/views/GroupInterviewView.vue') },
+    { path: '/coding', name: 'coding', component: () => import('@/views/CodingView.vue') },
     { path: '/group-interview/:id', name: 'group-interview-room', component: () => import('@/views/GroupInterviewView.vue') },
     { path: '/resume-diagnosis', name: 'resume-diagnosis', component: () => import('@/views/ResumeDiagnosisView.vue') },
     { path: '/my-scenes', name: 'my-scenes', component: () => import('@/views/MyScenesView.vue') },
