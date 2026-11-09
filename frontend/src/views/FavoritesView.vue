@@ -61,7 +61,7 @@ onMounted(load)
         <div v-if="!scenes.length" class="empty-note">还没有收藏场景。<RouterLink to="/scenes">去场景训练看看 →</RouterLink></div>
         <div v-else class="scene-list">
           <article v-for="scene in scenes" :key="scene.id" class="scene-item">
-            <div><span class="scene-category">{{ scene.category }}</span><h3>{{ scene.title }}</h3><p>{{ scene.roleName }} · {{ scene.industry }} / {{ scene.position }}</p><span class="difficulty" :class="difficultyTone(scene.difficulty)">{{ scene.difficulty }}</span></div>
+            <div><span class="scene-category">{{ scene.category }}</span><h3><RouterLink :to="{ name: 'scenes', query: { sceneId: scene.id } }">{{ scene.title }}</RouterLink></h3><p>{{ scene.roleName }} · {{ scene.industry }} / {{ scene.position }}</p><span class="difficulty" :class="difficultyTone(scene.difficulty)">{{ scene.difficulty }}</span></div>
             <div class="item-actions"><RouterLink class="button secondary" :to="{ name: 'scenes', query: { sceneId: scene.id } }">进入场景 →</RouterLink><button type="button" @click="removeScene(scene)">取消收藏</button></div>
           </article>
         </div>
@@ -110,6 +110,8 @@ onMounted(load)
 .scene-list, .script-list { display: grid; gap: 0; }
 .scene-item { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 0; border: 0; border-bottom: 1px solid var(--divider); border-radius: 0; background: transparent; }
 .scene-item h3 { margin: 4px 0; font-size: 17px; }
+.scene-item h3 a { color: var(--text); }
+.scene-item h3 a:hover { color: var(--accent-strong); }
 .scene-item p { margin: 0 0 4px; color: var(--text-3); font-size: 12.5px; }
 .scene-category { color: var(--text-3); font-size: 12px; }
 .difficulty { font-size: 12px; font-weight: 500; }

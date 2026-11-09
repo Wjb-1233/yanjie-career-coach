@@ -154,7 +154,10 @@ async function exportReports(): Promise<void> {
   <div class="page history-page">
     <header class="page-heading">
       <div><p class="eyebrow">训练档案</p><h1 class="page-title">训练记录</h1><p class="page-lead">回看历史对话和评分报告。</p></div>
-      <button class="button secondary" type="button" :disabled="!items.length" @click="exportReports">导出报告</button>
+      <div class="head-actions">
+        <RouterLink to="/plans">能力提升 →</RouterLink>
+        <button class="button secondary" type="button" :disabled="!items.length" @click="exportReports">导出报告</button>
+      </div>
     </header>
     <div v-if="error" class="error-banner">{{ error }}</div>
     <section class="history-tools">
@@ -282,6 +285,9 @@ async function exportReports(): Promise<void> {
 .history-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 20px 0 22px; }
 .history-tools input { flex: 1 1 240px; }
 .history-tools :deep(.select-trigger) { width: auto; min-width: 130px; }
+.head-actions { display: flex; align-items: center; gap: 14px; }
+.head-actions a { color: var(--text-3); font-size: 13px; }
+.head-actions a:hover { color: var(--text); }
 .text-refresh { border: 0; background: transparent; color: var(--text-3); font-size: 13px; cursor: pointer; }
 .history-item { padding: 18px 22px; border-radius: 14px; }
 .history-meta { font-size: 12.5px; color: var(--text-3); gap: 10px; }

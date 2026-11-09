@@ -77,11 +77,11 @@ function formatDate(value: string): string {
     <dl class="hero-facts">
       <div class="fact">
         <dt>累计训练</dt>
-        <dd><span class="num value">{{ trainingCount }}</span><em>次</em></dd>
+        <dd><RouterLink to="/history"><span class="num value">{{ trainingCount }}</span><em>次</em></RouterLink></dd>
       </div>
       <div class="fact">
         <dt>当前提升重点</dt>
-        <dd class="focus"><i class="dot" aria-hidden="true" /><span class="focus-name">{{ trainingCount ? focus : '尚未生成' }}</span></dd>
+        <dd class="focus"><RouterLink to="/plans"><i class="dot" aria-hidden="true" /><span class="focus-name">{{ trainingCount ? focus : '尚未生成' }}</span></RouterLink></dd>
       </div>
     </dl>
   </section>
@@ -135,8 +135,7 @@ function formatDate(value: string): string {
 .cta:hover svg { transform: translateX(2px); }
 
 .hero-facts { display: flex; flex-direction: column; margin: 0; border-left: 1px solid var(--divider); }
-.fact {
-  display: flex;
+.fact { display: flex;
   flex: 1;
   flex-direction: column;
   justify-content: center;
@@ -152,6 +151,8 @@ function formatDate(value: string): string {
 .fact dd.tags em { color: var(--text-3); font-style: normal; font-size: 12px; }
 .fact .value { color: var(--text); font-family: var(--font-num); font-size: 26px; font-weight: 300; letter-spacing: -.01em; }
 .fact em { color: var(--text-3); font-size: 12px; font-style: normal; }
+.fact dd a { display: flex; align-items: baseline; gap: 7px; color: inherit; text-decoration: none; }
+.fact dd a:hover .focus-name, .fact dd a:hover .value { color: var(--accent-strong); }
 .fact .focus-name { color: var(--text); font-size: 22px; font-weight: 500; }
 .fact .dot { display: inline-block; width: 5px; height: 5px; margin-right: 8px; transform: translateY(-3px); background: var(--accent); }
 .fact .soft { color: var(--text-2); font-size: 13px; line-height: 1.6; letter-spacing: .02em; }

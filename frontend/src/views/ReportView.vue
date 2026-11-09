@@ -478,6 +478,12 @@ onMounted(async () => {
         </ul>
       </section>
 
+      <nav class="report-jumps" aria-label="相关入口">
+        <RouterLink to="/plans">去能力提升 →</RouterLink>
+        <RouterLink to="/scripts">去话术优化 →</RouterLink>
+        <RouterLink to="/history">训练记录 →</RouterLink>
+      </nav>
+
       <section v-if="weeklyActions.length" class="actions-card panel">
         <header><h2>接下来只做三件事</h2><span>按顺序做，别一次改所有问题</span></header>
         <ol>
@@ -1092,4 +1098,9 @@ onMounted(async () => {
 .more-panel .speech-head span { display: none; }
 .suggestions { margin-top: 40px; }
 @media (max-width: 760px) { .report-head { flex-direction: column; align-items: flex-start; } }
+</style>
+<style scoped>
+.report-jumps { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 16px; }
+.report-jumps a { color: var(--text-3); font-size: 13.5px; }
+.report-jumps a:hover { color: var(--text); }
 </style>

@@ -138,6 +138,7 @@ async function confirmStart(file: File | null): Promise<void> {
       <div class="head-side">
         <span>{{ catalogScenes.length }} 场</span>
         <RouterLink to="/my-scenes">自建场景 →</RouterLink>
+        <RouterLink to="/favorites">我的收藏 →</RouterLink>
       </div>
     </header>
 
