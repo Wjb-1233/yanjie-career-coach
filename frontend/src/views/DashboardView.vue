@@ -170,13 +170,6 @@ const todayAction = computed<{ eyebrow: string; title: string; detail: string; l
         action-to="/scenes"
       />
 
-      <nav class="quick-links" aria-label="快捷入口">
-        <RouterLink to="/scenes">选场景练一场 →</RouterLink>
-        <RouterLink to="/plans">继续提升计划 →</RouterLink>
-        <RouterLink to="/scripts">改一句话术 →</RouterLink>
-        <RouterLink to="/history">查看训练记录 →</RouterLink>
-      </nav>
-
       <section v-if="hasTrend" class="trend panel" aria-labelledby="trend-title">
         <header class="section-head">
           <h2 id="trend-title" class="label">评分变化</h2>
@@ -223,9 +216,6 @@ const todayAction = computed<{ eyebrow: string; title: string; detail: string; l
   .trend { margin-top: 38px; }
 }
 .degraded-note { margin: 8px 0 0; color: var(--accent-strong); font-size: 12px; }
-.quick-links { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 18px; padding: 0 2px; }
-.quick-links a { color: var(--text-3); font-size: 13.5px; }
-.quick-links a:hover { color: var(--text); }
 .today-card { margin-top: 26px; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 26px; }
 .today-copy .eyebrow { margin: 0 0 8px; color: var(--text-3); font-size: 12px; }
 .today-copy h2 { margin: 0; font-size: 19px; font-weight: 600; }

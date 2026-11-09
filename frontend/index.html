@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#f5f3ee" />
+    <meta name="theme-color" content="#0b0e13" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -16,8 +16,14 @@
   </head>
   <body>
     <script>
-      // 项目只提供亮色主题
-      document.documentElement.dataset.theme = 'light'
+      // 主题：优先读取上次选择，其次跟随系统；默认深色
+      try {
+        var saved = localStorage.getItem('yanjie-theme')
+        var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches
+        document.documentElement.dataset.theme = saved || (prefersLight ? 'light' : 'dark')
+      } catch (error) {
+        document.documentElement.dataset.theme = 'dark'
+      }
     </script>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>

@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, shallowRef } from 'vue'
+import { computed, onMounted, onUnmounted, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { Bookmark, FolderPlus, History, LayoutDashboard, MessageSquareText, MessagesSquare, Settings, TrendingUp, UserRound } from 'lucide-vue-next'
+import { Moon, Sun, Bookmark, FolderPlus, History, LayoutDashboard, MessageSquareText, MessagesSquare, Settings, TrendingUp, UserRound } from 'lucide-vue-next'
 
 import AtmosphereBackdrop from '@/components/layout/AtmosphereBackdrop.vue'
 import { useAuth } from '@/composables/useAuth'
+import { useTheme } from '@/composables/useTheme'
 
 const route = useRoute()
 const router = useRouter()
@@ -28,11 +29,20 @@ const adminNavItems = [
 const navItems = computed(() => auth.user.value?.role === 'ADMIN' ? adminNavItems : studentNavItems)
 
 const home = computed(() => auth.user.value?.role === 'ADMIN' ? '/admin' : '/')
+const { theme, toggle: toggleTheme, applyScope } = useTheme()
 const sidebarCollapsed = shallowRef(false)
 const mobileMenuOpen = shallowRef(false)
 const mobileView = shallowRef(false)
 const roleLabel = computed(() => auth.user.value?.role === 'ADMIN' ? '管理员' : '训练学员')
 
+// 学员与管理员各自记住自己的主题偏好
+watch(() => auth.user.value?.role ?? null, (role) => {
+  if (role) applyScope(role as 'STUDENT' | 'ADMIN')
+}, { immediate: true })
+
+watch(() => auth.user.value?.role ?? null, (role) => {
+  if (role) applyScope(role as 'STUDENT' | 'ADMIN')
+}, { immediate: true })
 
 
 
@@ -70,6 +80,10 @@ async function signOut() {
         </RouterLink>
       </div>
       <div class="topbar-account">
+        <button class="theme-toggle" type="button" :aria-label="theme === 'dark' ? '切换到日间模式' : '切换到夜间模式'" @click="toggleTheme">
+          <Sun v-if="theme === 'dark'" :size="15" :stroke-width="1.7" aria-hidden="true" />
+          <Moon v-else :size="15" :stroke-width="1.7" aria-hidden="true" />
+        </button>
         <span class="role">{{ roleLabel }}</span>
         <strong>{{ auth.user.value?.displayName }}</strong>
         <button type="button" @click="signOut">退出</button>
@@ -158,6 +172,8 @@ async function signOut() {
 .topbar-account { display: flex; align-items: center; gap: 18px; color: var(--text-3); font-size: 12px; letter-spacing: .04em; }
 .topbar-account .role { color: var(--text-3); }
 .topbar-account strong { color: var(--text-2); font-size: 12px; font-weight: 400; }
+.theme-toggle { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--text-2); cursor: pointer; transition: border-color .16s var(--ease), color .16s var(--ease); }
+.theme-toggle:hover { border-color: var(--border-bright); color: var(--text); }
 .topbar-account button {
   padding: 0;
   border: 0;

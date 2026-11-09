@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef } from 'vue'
+import { computed, onMounted, ref, shallowRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { api, errorMessage } from '@/lib/api'
@@ -15,6 +15,11 @@ const done = shallowRef(false)
 
 const ready = computed(() => token.value.length >= 10)
 const canSubmit = computed(() => ready.value && password.value.length >= 8 && password.value === confirm.value)
+
+// 重置页固定夜间视觉，和登录页一致
+onMounted(() => {
+  document.documentElement.dataset.theme = 'dark'
+})
 
 async function submit(): Promise<void> {
   if (!canSubmit.value || busy.value) return
