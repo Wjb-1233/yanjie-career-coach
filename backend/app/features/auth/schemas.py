@@ -9,6 +9,8 @@ class RegisterRequest(ApiModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=72)
     display_name: str = Field(min_length=1, max_length=60, alias="displayName")
+    # 注册必须显式勾选《隐私政策》，缺省视为未同意
+    consent: bool = False
 
 
 class LoginRequest(ApiModel):

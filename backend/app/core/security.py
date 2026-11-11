@@ -16,6 +16,11 @@ from app.db.models import User
 password_hasher = PasswordHash.recommended()
 bearer = HTTPBearer(auto_error=False)
 
+# 令牌用途（typ）：同一个签名密钥下按用途隔离，一种令牌不能当另一种用
+ACCESS_TOKEN_TYPE = "access"
+VOICE_TICKET_TYPE = "voice-ticket"
+VOICE_TICKET_SECONDS = 60
+
 
 def hash_password(password: str) -> str:
     return password_hasher.hash(password)
@@ -31,6 +36,7 @@ def create_access_token(user: User) -> tuple[str, int]:
     token = jwt.encode(
         {
             "sub": user.id,
+            "typ": ACCESS_TOKEN_TYPE,
             "email": user.email,
             "role": user.role,
             "iss": settings.jwt_issuer,
@@ -42,6 +48,45 @@ def create_access_token(user: User) -> tuple[str, int]:
         algorithm=settings.jwt_algorithm,
     )
     return token, expires_seconds
+
+
+def create_voice_ticket(user: User) -> tuple[str, int]:
+    """签发语音 WebSocket 票据：60 秒内一次性换连，避免把登录令牌拼进 URL。"""
+    now = datetime.now(timezone.utc)
+    ticket = jwt.encode(
+        {
+            "sub": user.id,
+            "typ": VOICE_TICKET_TYPE,
+            "iss": settings.jwt_issuer,
+            "aud": settings.jwt_audience,
+            "iat": now,
+            "exp": now + timedelta(seconds=VOICE_TICKET_SECONDS),
+        },
+        settings.jwt_secret,
+        algorithm=settings.jwt_algorithm,
+    )
+    return ticket, VOICE_TICKET_SECONDS
+
+
+def decode_voice_ticket(ticket: str | None) -> str | None:
+    """校验语音票据，无效返回 None；WS 侧由调用方按 close code 处理。"""
+    if not ticket:
+        return None
+    try:
+        payload = jwt.decode(
+            ticket,
+            settings.jwt_secret,
+            algorithms=[settings.jwt_algorithm],
+            audience=settings.jwt_audience,
+            issuer=settings.jwt_issuer,
+            options={"require": ["sub", "typ", "exp", "iss", "aud", "iat"]},
+        )
+    except InvalidTokenError:
+        return None
+    if payload.get("typ") != VOICE_TICKET_TYPE:
+        return None
+    user_id = payload.get("sub")
+    return user_id if isinstance(user_id, str) and user_id else None
 
 
 def decode_user_id(
@@ -61,6 +106,9 @@ def decode_user_id(
         user_id = payload.get("sub")
     except InvalidTokenError as exc:
         raise AppError(401, "TOKEN_INVALID", "登录状态无效或已过期") from exc
+    if payload.get("typ") != ACCESS_TOKEN_TYPE:
+        # 邮箱验证链接、语音票据等一次性令牌不能当登录态用
+        raise AppError(401, "TOKEN_INVALID", "登录状态无效或已过期")
     if not isinstance(user_id, str) or not user_id:
         raise AppError(401, "TOKEN_INVALID", "登录状态无效或已过期")
     return user_id

@@ -89,6 +89,7 @@ def test_lesson_generated_on_demand(monkeypatch) -> None:
                 "email": f"ls-{uuid4().hex[:8]}@example.com",
                 "password": "GraduateDesign123!",
                 "displayName": "微课测试",
+                "consent": True,
             },
         )
         headers = {"Authorization": f"Bearer {registered.json()['data']['accessToken']}"}

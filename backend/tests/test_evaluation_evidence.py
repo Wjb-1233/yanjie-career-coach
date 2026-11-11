@@ -35,6 +35,7 @@ def test_report_keeps_only_verifiable_score_evidence(monkeypatch) -> None:
             "email": f"evidence-{uuid4().hex[:8]}@example.com",
             "password": "GraduateDesign123!",
             "displayName": "证据测试",
+            "consent": True,
         })
         headers = {"Authorization": f"Bearer {registered.json()['data']['accessToken']}"}
         scene_id = client.get("/api/v1/scenes", headers=headers).json()["data"][0]["id"]

@@ -18,9 +18,9 @@ from app.core.errors import AppError
 from app.core.responses import ok
 from app.core.security import CurrentUser
 from app.features.auth.email_verify import require_verified
-from app.db.models import Scene
 from app.features.evaluations.delivery import analyze
 from app.features.video.metrics import analyze_video
+from app.features.scenes.service import get_scene
 from app.features.voice.session import create_voice_session
 
 logger = logging.getLogger(__name__)
@@ -62,9 +62,7 @@ async def create_video_interview(
     duration_seconds: Annotated[float | None, Form(alias="durationSeconds")] = None,
 ):
     require_verified(user)
-    scene = await session.get(Scene, scene_id)
-    if scene is None:
-        raise AppError(404, "SCENE_NOT_FOUND", "场景不存在")
+    await get_scene(session, scene_id, user.id)
 
     import json
 

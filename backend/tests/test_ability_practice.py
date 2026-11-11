@@ -44,6 +44,7 @@ def test_weakest_dimension_practice_uses_real_answer_and_persists_feedback(monke
             "email": f"ability-{uuid4().hex[:8]}@example.com",
             "password": "GraduateDesign123!",
             "displayName": "能力练习测试",
+            "consent": True,
         })
         headers = {"Authorization": f"Bearer {registered.json()['data']['accessToken']}"}
         assert client.get("/api/v1/ability/current").status_code == 401

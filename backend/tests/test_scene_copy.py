@@ -10,7 +10,7 @@ from app.main import app
 def _register(client: TestClient, prefix: str) -> dict[str, str]:
     response = client.post(
         "/api/v1/auth/register",
-        json={"email": f"{prefix}-{uuid4().hex[:8]}@example.com", "password": "CopyTest123!", "displayName": "复制"},
+        json={"email": f"{prefix}-{uuid4().hex[:8]}@example.com", "password": "CopyTest123!", "displayName": "复制", "consent": True},
     )
     return {"Authorization": f"Bearer {response.json()['data']['accessToken']}"}
 

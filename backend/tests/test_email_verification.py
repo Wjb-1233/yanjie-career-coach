@@ -27,7 +27,7 @@ def _register(client: TestClient, prefix: str) -> tuple[dict[str, str], str]:
     email = f"{prefix}-{uuid4().hex[:8]}@example.com"
     response = client.post(
         "/api/v1/auth/register",
-        json={"email": email, "password": "VerifyTest123!", "displayName": "验证"},
+        json={"email": email, "password": "VerifyTest123!", "displayName": "验证", "consent": True},
     )
     assert response.status_code == 201, response.text
     return {"Authorization": f"Bearer {response.json()['data']['accessToken']}"}, email

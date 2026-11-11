@@ -19,7 +19,7 @@ def test_create_session_uses_scene_opening_without_llm(monkeypatch) -> None:
         email = f"opening-{uuid.uuid4().hex[:8]}@example.com"
         reg = client.post(
             "/api/v1/auth/register",
-            json={"email": email, "password": "Opening123!", "displayName": "开场校验"},
+            json={"email": email, "password": "Opening123!", "displayName": "开场校验", "consent": True},
         )
         token = reg.json()["data"]["accessToken"]
         headers = {"Authorization": f"Bearer {token}"}

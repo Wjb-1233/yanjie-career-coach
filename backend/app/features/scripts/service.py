@@ -43,7 +43,7 @@ SYSTEM_PROMPT = """你是一名严谨的中文求职面试表达教练。请基�
 async def generate(
     session: AsyncSession, user_id: str, body: GenerateScriptsRequest
 ) -> ScriptGeneration:
-    scene = await get_scene(session, body.scene_id)
+    scene = await get_scene(session, body.scene_id, user_id)
     knowledge = await knowledge_store.search(scene.title + body.objective, 2)
     references = "\n".join(f"- {item.title}：{item.content}" for item in knowledge)
     dimension = normalize_dimension(body.dimension)

@@ -58,6 +58,8 @@ def set_refresh_cookie(response: Response, token: str, max_age: int | None = Non
 
 @router.post("/register", status_code=201, dependencies=[Depends(limit_register)])
 async def register(body: RegisterRequest, response: Response, session: DbSession) -> dict:
+    if not body.consent:
+        raise AppError(422, "CONSENT_REQUIRED", "请先阅读并同意《隐私政策》再注册")
     result, refresh = await service.register(
         session, body.email, body.password, body.display_name
     )

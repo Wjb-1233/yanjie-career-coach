@@ -29,6 +29,7 @@ def test_every_category_has_a_startable_scene() -> None:
             "email": f"catalog-{uuid4().hex[:8]}@example.com",
             "password": "GraduateDesign123!",
             "displayName": "场景覆盖测试",
+            "consent": True,
         })
         headers = {"Authorization": f"Bearer {registered.json()['data']['accessToken']}"}
         response = client.get("/api/v1/scenes", params={"size": 100}, headers=headers)
@@ -49,6 +50,7 @@ def test_scene_favorites_are_private_and_listed_separately() -> None:
             registered = client.post("/api/v1/auth/register", json={
                 "email": f"favorite-{uuid4().hex[:8]}@example.com",
                 "password": "GraduateDesign123!", "displayName": "收藏测试",
+                "consent": True,
             })
             users.append({"Authorization": f"Bearer {registered.json()['data']['accessToken']}"})
         scene_id = client.get("/api/v1/scenes", headers=users[0]).json()["data"][0]["id"]

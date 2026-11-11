@@ -9,6 +9,7 @@ import logging
 from uuid import uuid4
 
 import json
+import re
 import shutil
 import tempfile
 from pathlib import Path
@@ -19,7 +20,7 @@ from pydantic import BaseModel, Field
 from app.core.config import settings
 from app.core.errors import AppError
 from app.core.responses import ok
-from app.core.security import CurrentUser
+from app.core.security import CurrentUser, create_voice_ticket, decode_voice_ticket
 from app.features.auth.email_verify import require_verified
 from app.db.base import get_session
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,6 +39,54 @@ APP_KEY = "PlgvMymc7f3tQnJ6"
 VOICE_SLOTS = asyncio.Semaphore(2)
 BUSY_CLOSE_CODE = 4029
 BUSY_REASON = "语音服务繁忙，请稍后重试"
+# 没票或票失效：WS 无法用 Authorization 头，只能靠 ?ticket= 换连
+UNAUTHORIZED_CLOSE_CODE = 4003
+UNAUTHORIZED_REASON = "语音会话未授权"
+
+
+PIPELINE_CLOSE_CODE = 4005
+# 像密钥的长串（sk-… 或 32 位以上的乱码高熵串）：日志里一律抹掉
+_KEY_LIKE = re.compile(r"sk-[A-Za-z0-9_\-]{6,}|[A-Za-z0-9_\-]{32,}")
+
+
+def redact(message: str) -> str:
+    """日志只留错误语义，凭据值不进日志文件。"""
+    return _KEY_LIKE.sub("***", message)[:200]
+
+
+def pipeline_failure_hint(exc: Exception) -> str:
+    """把启动异常归到一个可读原因：一眼分清模型没配好还是依赖没装。"""
+    detail = f"{type(exc).__name__} {exc}".lower()
+    if isinstance(exc, ImportError) or "no module named" in detail or "not installed" in detail:
+        return "管线依赖缺失"
+    if (
+        "api_key" in detail
+        or "api key" in detail
+        or "not configured" in detail
+        or "authentication" in detail
+        or "unauthorized" in detail
+        or "401" in detail
+    ):
+        return "模型未配置"
+    if "connect" in detail or "timeout" in detail or "timed out" in detail:
+        return "模型服务不可达"
+    return ""
+
+
+async def close_pipeline_failed(client: WebSocket, exc: Exception) -> None:
+    """管线启动失败统一出口：日志带异常类型与原因，关闭码 reason 也带可读原因。"""
+    hint = pipeline_failure_hint(exc)
+    logger.warning(
+        "voice.pipeline_failed error_type=%s hint=%s error_msg=%s",
+        type(exc).__name__,
+        hint or "unknown",
+        redact(str(exc)),
+    )
+    reason = "语音管线启动失败" + (f"：{hint}" if hint else "")
+    try:
+        await client.close(code=PIPELINE_CLOSE_CODE, reason=reason)
+    except Exception:  # noqa: BLE001 - 连接可能已断，关闭失败不影响退出
+        pass
 
 
 def realtime_configured() -> bool:
@@ -56,9 +105,27 @@ async def status() -> dict:
     )
 
 
+async def authorize(client: WebSocket) -> str | None:
+    """校验 query 里的票据；失败直接关闭连接并返回 None。"""
+    user_id = decode_voice_ticket(client.query_params.get("ticket"))
+    if user_id:
+        return user_id
+    await client.close(code=UNAUTHORIZED_CLOSE_CODE, reason=UNAUTHORIZED_REASON)
+    return None
+
+
+@router.post("/ws-ticket")
+async def issue_ws_ticket(user: CurrentUser) -> dict:
+    """登录后取一次性票据，供 /voice/ws 与 /voice/ws/pipeline 换连。"""
+    ticket, expires_in = create_voice_ticket(user)
+    return ok({"ticket": ticket, "expiresIn": expires_in})
+
+
 @router.websocket("/ws")
 async def voice_ws(client: WebSocket) -> None:
     await client.accept()
+    if await authorize(client) is None:
+        return
     if not realtime_configured():
         await client.close(code=4001, reason="语音服务未配置")
         return
@@ -220,11 +287,20 @@ async def save_voice_session(
 @router.websocket("/ws/pipeline")
 async def voice_pipeline_ws(client: WebSocket, sceneId: str | None = None, depth: str = "STANDARD", lang: str = "zh") -> None:
     """pipecat 引擎：本地 Whisper + DeepSeek + 系统语音。"""
-    from pipecat.pipeline.runner import PipelineRunner
-
-    from app.features.voice.pipeline import build_pipeline
-
     await client.accept()
+    user_id = await authorize(client)
+    if user_id is None:
+        return
+
+    try:
+        from pipecat.pipeline.runner import PipelineRunner
+
+        from app.features.voice.pipeline import build_pipeline
+    except ImportError as exc:
+        # 依赖没装齐也要给出可读原因，而不是断成一条没有理由的连接
+        await close_pipeline_failed(client, exc)
+        return
+
     if VOICE_SLOTS.locked() and VOICE_SLOTS._value <= 0:  # noqa: SLF001
         await client.close(code=BUSY_CLOSE_CODE, reason=BUSY_REASON)
         return
@@ -245,10 +321,13 @@ async def voice_pipeline_ws(client: WebSocket, sceneId: str | None = None, depth
     opening = "Hello, I'm your interviewer today. Please start with a brief self-introduction." if lang == "en" else "你好，我是今天的面试官，请先做个自我介绍。"
     if sceneId:
         from app.db.base import session_factory
-        from app.db.models import Scene
+        from app.features.scenes.service import get_scene
 
         async with session_factory() as session:
-            scene = await session.get(Scene, sceneId)
+            try:
+                scene = await get_scene(session, sceneId, user_id)
+            except AppError:
+                scene = None
             if scene is not None:
                 instructions = (
                     f"{instructions}\n本场场景：{scene.title}（{scene.category}）。"
@@ -266,10 +345,6 @@ async def voice_pipeline_ws(client: WebSocket, sceneId: str | None = None, depth
     except WebSocketDisconnect:
         return
     except Exception as exc:  # noqa: BLE001
-        logger.warning("voice.pipeline_failed error_type=%s", type(exc).__name__)
-        try:
-            await client.close(code=4005, reason="语音管线启动失败")
-        except Exception:
-            pass
+        await close_pipeline_failed(client, exc)
     finally:
         VOICE_SLOTS.release()

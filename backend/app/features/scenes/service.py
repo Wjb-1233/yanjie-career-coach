@@ -28,9 +28,15 @@ def _with_competency(scene: Scene) -> Scene:
     return scene
 
 
-async def get_scene(session: AsyncSession, scene_id: str) -> Scene:
+async def get_scene(session: AsyncSession, scene_id: str, user_id: str | None = None) -> Scene:
+    """按 id 取场景；非 public 场景只有 owner 能取，一律 404，避免用状态码枚举存在性。
+
+    未传 user_id 的调用方按匿名处理，只能拿到 public 场景（fail-closed）。
+    """
     scene = await session.get(Scene, scene_id)
     if scene is None or not scene.active:
+        raise not_found("场景")
+    if scene.visibility != "public" and scene.owner_id != user_id:
         raise not_found("场景")
     return scene
 
@@ -94,7 +100,7 @@ async def list_scenes(
 
 
 async def toggle_favorite(session: AsyncSession, user_id: str, scene_id: str) -> bool:
-    await get_scene(session, scene_id)
+    await get_scene(session, scene_id, user_id)
     key = {"user_id": user_id, "scene_id": scene_id}
     favorite = await session.get(Favorite, key)
     if favorite:

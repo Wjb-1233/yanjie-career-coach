@@ -58,7 +58,7 @@ async def create_training_session(
     depth: str = "STANDARD",
     language: str = "zh",
 ) -> SessionView:
-    scene = await get_scene(session, scene_id)
+    scene = await get_scene(session, scene_id, user_id)
     if mode == "DRILL" and scene.difficulty != "进阶":
         raise AppError(422, "DRILL_REQUIRES_ADVANCED", "深挖模式只在进阶难度场景开放")
     if resume_text and scene.category == "基础能力提升":

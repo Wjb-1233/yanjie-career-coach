@@ -62,7 +62,7 @@ def test_repeat_does_not_advance_round() -> None:
         email = f"repeat-{uuid.uuid4().hex[:8]}@example.com"
         reg = client.post(
             "/api/v1/auth/register",
-            json={"email": email, "password": "RepeatTest123!", "displayName": "重复"},
+            json={"email": email, "password": "RepeatTest123!", "displayName": "重复", "consent": True},
         )
         token = reg.json()["data"]["accessToken"]
         headers = {"Authorization": f"Bearer {token}"}

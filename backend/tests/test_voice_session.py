@@ -15,6 +15,7 @@ def _register(client: TestClient) -> dict:
             "email": f"voice-{uuid4().hex[:8]}@example.com",
             "password": "VoiceTest123",
             "displayName": "语音测试",
+            "consent": True,
         },
     )
     assert response.status_code == 201, response.text

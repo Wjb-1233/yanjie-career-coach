@@ -50,7 +50,7 @@ def test_create_session_persists_language() -> None:
         email = f"lang-{uuid.uuid4().hex[:8]}@example.com"
         reg = client.post(
             "/api/v1/auth/register",
-            json={"email": email, "password": "LangTest123!", "displayName": "英文面试"},
+            json={"email": email, "password": "LangTest123!", "displayName": "英文面试", "consent": True},
         )
         token = reg.json()["data"]["accessToken"]
         headers = {"Authorization": f"Bearer {token}"}

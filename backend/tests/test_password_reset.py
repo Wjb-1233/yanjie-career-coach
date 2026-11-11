@@ -14,7 +14,7 @@ def _register(client: TestClient, prefix: str) -> tuple[str, str]:
     email = f"{prefix}-{uuid4().hex[:8]}@example.com"
     response = client.post(
         "/api/v1/auth/register",
-        json={"email": email, "password": "ResetTest123!", "displayName": "重置"},
+        json={"email": email, "password": "ResetTest123!", "displayName": "重置", "consent": True},
     )
     assert response.status_code == 201, response.text
     return email, "ResetTest123!"

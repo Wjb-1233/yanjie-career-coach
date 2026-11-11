@@ -30,7 +30,7 @@ PLAN_DRAFT = {
 def _login(client: TestClient) -> dict[str, str]:
     registered = client.post(
         "/api/v1/auth/register",
-        json={"email": f"rules-{uuid4().hex[:8]}@example.com", "password": "GraduateDesign123!", "displayName": "规则"},
+        json={"email": f"rules-{uuid4().hex[:8]}@example.com", "password": "GraduateDesign123!", "displayName": "规则", "consent": True},
     )
     return {"Authorization": f"Bearer {registered.json()['data']['accessToken']}"}
 

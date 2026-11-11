@@ -87,7 +87,7 @@ def test_plan_is_review_then_lesson_and_closes(monkeypatch) -> None:
     with TestClient(app, client=(f"loop-{uuid4().hex}", 50000)) as client:
         registered = client.post(
             "/api/v1/auth/register",
-            json={"email": f"loop-{uuid4().hex[:8]}@example.com", "password": "GraduateDesign123!", "displayName": "闭环测试"},
+            json={"email": f"loop-{uuid4().hex[:8]}@example.com", "password": "GraduateDesign123!", "displayName": "闭环测试", "consent": True},
         )
         headers = {"Authorization": f"Bearer {registered.json()['data']['accessToken']}"}
         baseline_id = finish_training(client, headers, "scene-interview-03", True)

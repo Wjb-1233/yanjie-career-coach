@@ -9,7 +9,7 @@ def test_early_finish_waits_for_the_current_answer_and_does_not_ask_again() -> N
     with TestClient(app) as client:
         registered = client.post(
             "/api/v1/auth/register",
-            json={"email": f"closure-{uuid4().hex[:8]}@example.com", "password": "GraduateDesign123!", "displayName": "收尾测试"},
+            json={"email": f"closure-{uuid4().hex[:8]}@example.com", "password": "GraduateDesign123!", "displayName": "收尾测试", "consent": True},
         )
         headers = {"Authorization": f"Bearer {registered.json()['data']['accessToken']}"}
         created = client.post(

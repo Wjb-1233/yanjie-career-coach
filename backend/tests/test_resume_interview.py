@@ -47,6 +47,7 @@ def test_resume_interview_upload_question_followup_and_clear(monkeypatch) -> Non
             response = client.post("/api/v1/auth/register", json={
                 "email": f"resume-{uuid4().hex[:8]}@example.com",
                 "password": "GraduateDesign123!", "displayName": name,
+                "consent": True,
             })
             assert response.status_code == 201
             return {"Authorization": f"Bearer {response.json()['data']['accessToken']}"}

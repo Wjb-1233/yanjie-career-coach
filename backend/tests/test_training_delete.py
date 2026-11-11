@@ -59,6 +59,7 @@ def test_delete_training_session_removes_related_data_and_protects_other_users()
             response = client.post("/api/v1/auth/register", json={
                 "email": f"delete-{label}-{uuid4().hex[:8]}@example.com",
                 "password": "GraduateDesign123!", "displayName": label,
+                "consent": True,
             })
             assert response.status_code == 201
             return response.json()["data"]["user"]["id"], {"Authorization": f"Bearer {response.json()['data']['accessToken']}"}

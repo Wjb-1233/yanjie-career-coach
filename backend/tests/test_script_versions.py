@@ -12,6 +12,7 @@ def test_script_versions_preserve_highlights_favorites_and_ownership() -> None:
             result = client.post("/api/v1/auth/register", json={
                 "email": f"script-{suffix}-{uuid4().hex[:8]}@example.com",
                 "password": "GraduateDesign123!", "displayName": suffix,
+                "consent": True,
             })
             tokens.append(result.json()["data"]["accessToken"])
         owner = {"Authorization": f"Bearer {tokens[0]}"}

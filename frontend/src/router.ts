@@ -9,11 +9,13 @@ const router = createRouter({
     { path: '/share/:token', name: 'share', component: () => import('@/views/ShareView.vue'), meta: { public: true } },
     { path: '/reset-password', name: 'reset-password', component: () => import('@/views/ResetPasswordView.vue'), meta: { public: true } },
     { path: '/verify-email', name: 'verify-email', component: () => import('@/views/VerifyEmailView.vue'), meta: { public: true } },
+    { path: '/privacy', name: 'privacy', component: () => import('@/views/PrivacyView.vue'), meta: { public: true, openToSignedIn: true } },
     { path: '/', name: 'dashboard', component: () => import('@/views/DashboardView.vue') },
     { path: '/voice', name: 'voice', component: () => import('@/views/VoiceCallView.vue') },
     { path: '/video', name: 'video', component: () => import('@/views/VideoInterviewView.vue') },
     { path: '/scenes', name: 'scenes', component: () => import('@/views/ScenesView.vue') },
     { path: '/my-scenes', name: 'my-scenes', component: () => import('@/views/MyScenesView.vue') },
+    { path: '/bank', name: 'bank', component: () => import('@/views/QuestionBankView.vue') },
     { path: '/scripts', name: 'scripts', component: () => import('@/views/ScriptStudioView.vue') },
     { path: '/scripts/saved', name: 'saved-scripts', component: () => import('@/views/SavedScriptsView.vue') },
     { path: '/favorites', name: 'favorites', component: () => import('@/views/FavoritesView.vue') },
@@ -34,7 +36,10 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const auth = useAuth()
   if (!auth.initialized.value) await auth.restore()
-  if (to.meta.public) return auth.user.value ? { name: auth.user.value.role === 'ADMIN' ? 'admin' : 'dashboard' } : true
+  if (to.meta.public) {
+    if (to.meta.openToSignedIn) return true
+    return auth.user.value ? { name: auth.user.value.role === 'ADMIN' ? 'admin' : 'dashboard' } : true
+  }
   if (!auth.user.value) return { name: 'login', query: { redirect: to.fullPath } }
   if (to.meta.admin && auth.user.value.role !== 'ADMIN') return { name: 'dashboard' }
   if (auth.user.value.role === 'ADMIN' && to.name !== 'admin' && to.name !== 'profile') return { name: 'admin' }

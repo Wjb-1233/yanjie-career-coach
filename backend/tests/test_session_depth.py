@@ -56,7 +56,7 @@ def test_create_session_persists_depth() -> None:
         email = f"depth-{uuid.uuid4().hex[:8]}@example.com"
         reg = client.post(
             "/api/v1/auth/register",
-            json={"email": email, "password": "DepthTest123!", "displayName": "追问强度"},
+            json={"email": email, "password": "DepthTest123!", "displayName": "追问强度", "consent": True},
         )
         token = reg.json()["data"]["accessToken"]
         headers = {"Authorization": f"Bearer {token}"}

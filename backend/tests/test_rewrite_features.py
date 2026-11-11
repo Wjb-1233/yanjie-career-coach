@@ -14,6 +14,7 @@ def _register(client: TestClient) -> dict[str, str]:
             "email": f"rw-{uuid4().hex[:8]}@example.com",
             "password": "GraduateDesign123!",
             "displayName": "改写测试",
+            "consent": True,
         },
     )
     return {"Authorization": f"Bearer {registered.json()['data']['accessToken']}"}

@@ -20,7 +20,7 @@ LONG_JD = """岗位职责：
 def _register(client: TestClient, prefix: str) -> dict[str, str]:
     response = client.post(
         "/api/v1/auth/register",
-        json={"email": f"{prefix}-{uuid4().hex[:8]}@example.com", "password": "DraftTest123!", "displayName": "起草"},
+        json={"email": f"{prefix}-{uuid4().hex[:8]}@example.com", "password": "DraftTest123!", "displayName": "起草", "consent": True},
     )
     return {"Authorization": f"Bearer {response.json()['data']['accessToken']}"}
 

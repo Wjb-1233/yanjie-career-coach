@@ -39,7 +39,7 @@ GOOD_SCORE = {
 def _register(client: TestClient, prefix: str) -> dict[str, str]:
     response = client.post(
         "/api/v1/auth/register",
-        json={"email": f"{prefix}-{uuid4().hex[:8]}@example.com", "password": "GraduateDesign123!", "displayName": "流程"},
+        json={"email": f"{prefix}-{uuid4().hex[:8]}@example.com", "password": "GraduateDesign123!", "displayName": "流程", "consent": True},
     )
     return {"Authorization": f"Bearer {response.json()['data']['accessToken']}"}
 

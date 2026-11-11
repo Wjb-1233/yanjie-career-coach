@@ -14,7 +14,7 @@ def test_admin_mutation_is_audited() -> None:
         email = f"audit-{uuid4().hex[:8]}@example.com"
         registered = client.post(
             "/api/v1/auth/register",
-            json={"email": email, "password": "AuditTest123!", "displayName": "审计"},
+            json={"email": email, "password": "AuditTest123!", "displayName": "审计", "consent": True},
         )
         token = registered.json()["data"]["accessToken"]
         headers = {"Authorization": f"Bearer {token}"}

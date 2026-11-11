@@ -9,7 +9,7 @@ def _headers(client: TestClient) -> dict:
     email = f"hint-{uuid.uuid4().hex[:8]}@example.com"
     reg = client.post(
         "/api/v1/auth/register",
-        json={"email": email, "password": "HintTest123!", "displayName": "提示"},
+        json={"email": email, "password": "HintTest123!", "displayName": "提示", "consent": True},
     )
     return {"Authorization": f"Bearer {reg.json()['data']['accessToken']}"}
 

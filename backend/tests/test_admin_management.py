@@ -14,6 +14,7 @@ def test_admin_can_manage_catalog_users_and_export_reports() -> None:
         student = client.post("/api/v1/auth/register", json={
             "email": f"admin-test-{uuid4().hex[:8]}@example.com",
             "password": "GraduateDesign123!", "displayName": "管理测试学员",
+            "consent": True,
         })
         student_data = student.json()["data"]
         student_headers = {"Authorization": f"Bearer {student_data['accessToken']}"}

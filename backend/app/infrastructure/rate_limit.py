@@ -1,4 +1,5 @@
 import asyncio
+import ipaddress
 import time
 from dataclasses import dataclass
 
@@ -88,12 +89,37 @@ class RateLimiter:
         return "redis" if self._remote_available else "memory"
 
 
+def resolve_client_ip(
+    xff_value: str | None,
+    peer_host: str | None,
+    trusted_proxy_count: int,
+) -> str:
+    """XFF 形如「客户端, 代理1, 代理2」，只有确认了可信跳数才能从右侧数着取。
+
+    trusted_proxy_count 为 0（默认）时不信任任何代理头，直接回落到 TCP 对端地址；
+    否则取右侧第 trusted_proxy_count 跳——左侧条目完全由客户端控制，取它等于让攻击者自选限流键。
+    跳数不够、条目为空或不是合法 IP 时同样回落到对端地址。
+    """
+    peer = (peer_host or "").strip() or "unknown"
+    if trusted_proxy_count <= 0:
+        return peer
+    hops = [item.strip() for item in (xff_value or "").split(",")]
+    if len(hops) < trusted_proxy_count:
+        return peer
+    candidate = hops[-trusted_proxy_count]
+    try:
+        ipaddress.ip_address(candidate)
+    except ValueError:
+        return peer
+    return candidate
+
+
 def client_identifier(request: Request) -> str:
-    if settings.environment == "production":
-        forwarded = request.headers.get("X-Forwarded-For", "").split(",", 1)[0].strip()
-        if forwarded:
-            return forwarded
-    return request.client.host if request.client else "unknown"
+    return resolve_client_ip(
+        request.headers.get("X-Forwarded-For"),
+        request.client.host if request.client else None,
+        settings.trusted_proxy_count,
+    )
 
 
 rate_limiter = RateLimiter()

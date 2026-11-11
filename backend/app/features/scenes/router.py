@@ -38,7 +38,7 @@ async def favorite_scenes(user: CurrentUser, session: DbSession) -> dict:
 
 @router.get("/{scene_id}")
 async def get_scene(scene_id: str, session: DbSession, user: CurrentUser) -> dict:
-    scene = await service.get_scene(session, scene_id)
+    scene = await service.get_scene(session, scene_id, user.id)
     return ok(SceneView.model_validate(_with_competency(scene)).model_dump(by_alias=True))
 
 

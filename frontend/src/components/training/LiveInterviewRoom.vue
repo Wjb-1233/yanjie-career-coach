@@ -33,6 +33,7 @@ const remaining = shallowRef(props.durationMinutes * 60)
 const preview = ref<HTMLVideoElement | null>(null)
 
 const turns = shallowRef<Array<{ question: string; answer: string; startMs?: number; endMs?: number }>>([])
+let wsTicket = ''
 let lastAnswer = ''
 let lastQuestion = ''
 let startedAt = 0
@@ -97,12 +98,25 @@ function openingLine(): string {
 function wsUrl(): string {
   const base = import.meta.env.VITE_API_BASE ?? '/api/v1'
   const scheme = location.protocol === 'https:' ? 'wss' : 'ws'
+  // WS 带不了 Authorization 头，用登录后取到的短时票据换连
+  const query = new URLSearchParams({ ticket: wsTicket })
   if (effectiveEngine.value === 'pipeline') {
-    const query = new URLSearchParams({ depth: props.depth ?? 'STANDARD', lang: props.language ?? 'zh' })
+    query.set('depth', props.depth ?? 'STANDARD')
+    query.set('lang', props.language ?? 'zh')
     if (props.scene?.id) query.set('sceneId', props.scene.id)
     return `${scheme}://${location.host}${base}/voice/ws/pipeline?${query.toString()}`
   }
-  return `${scheme}://${location.host}${base}/voice/ws`
+  return `${scheme}://${location.host}${base}/voice/ws?${query.toString()}`
+}
+
+async function fetchTicket(): Promise<boolean> {
+  try {
+    const issued = await api.post<ApiEnvelope<{ ticket: string; expiresIn: number }>>('/voice/ws-ticket')
+    wsTicket = issued.data.data.ticket
+    return Boolean(wsTicket)
+  } catch {
+    return false
+  }
 }
 
 function toBase64(buffer: ArrayBuffer): string {
@@ -230,6 +244,11 @@ async function start(): Promise<void> {
       return
     }
 
+    if (!(await fetchTicket())) {
+      if (seq === sessionSeq) fail('获取语音会话票据失败，请点「重新连接」再试')
+      return
+    }
+
     socket = new WebSocket(wsUrl())
     socket.onopen = async () => {
       if (seq !== sessionSeq) return
@@ -270,7 +289,7 @@ async function start(): Promise<void> {
       if (maybeFallback(event.code)) return
       const reasons: Record<number, string> = {
         4001: '语音服务未配置，请联系管理员',
-        4003: '语音服务已断开，请重新开始',
+        4003: '语音会话未授权或已断开，请重新开始',
         4004: '语音服务暂时不可用，请稍后重试',
         4005: '语音管线启动失败，可换标准引擎再试',
         4029: '当前语音并发已满，请稍后再试',
@@ -280,6 +299,14 @@ async function start(): Promise<void> {
   } catch {
     fail('无法读取语音服务状态')
   }
+}
+
+function retry(): void {
+  fallbackTried = false
+  fallbackNotice.value = ''
+  stop()
+  closing = false
+  void start()
 }
 
 function maybeFallback(code?: number): boolean {
@@ -504,6 +531,7 @@ onBeforeUnmount(stop)
     <div class="room-controls">
       <button class="button secondary" type="button" :disabled="status !== 'live'" @click="replayQuestion">重听问题</button>
       <button class="button secondary" type="button" :disabled="status !== 'live' || !reply" @click="interrupt">打断</button>
+      <button v-if="status === 'error'" class="button secondary" type="button" @click="retry">重新连接</button>
       <button class="button end" type="button" :disabled="status === 'saving' || status === 'connecting'" @click="stopAndReport(false)">
         <PhoneOff :size="15" :stroke-width="1.8" aria-hidden="true" />
         {{ status === 'saving' ? '正在生成报告…' : '结束面试' }}

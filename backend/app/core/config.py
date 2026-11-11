@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     redis_url: str = "redis://127.0.0.1:6379/0"
     redis_enabled: bool = False
     redis_password: SecretStr | None = None
+    # 反向代理层数：0=不信任任何代理头（限流键取 TCP 对端地址）；N=只从 X-Forwarded-For
+    # 右侧数第 N 跳取客户端地址，避免客户端伪造 XFF 自选限流键
+    trusted_proxy_count: int = Field(default=0, ge=0, le=10)
 
     jwt_secret: str = Field(
         default="development-secret-change-me-at-least-32-characters",

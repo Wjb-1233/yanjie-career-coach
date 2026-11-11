@@ -43,6 +43,8 @@ export function useAuth() {
         email,
         password,
         displayName,
+        // AuthForm 未勾选《隐私政策》时不会提交，请求到达这里即表示已同意
+        consent: true,
       })
       applyAuthResult(response.data.data)
     } finally {

@@ -7,7 +7,7 @@ async function login(page: import('@playwright/test').Page, request: import('@pl
   const email = `imm-${stamp}@example.com`
   const password = 'ImmTest12345!'
   const created = await request.post('/api/v1/auth/register', {
-    data: { email, password, displayName: '沉浸测试' },
+    data: { email, password, displayName: '沉浸测试', consent: true },
     headers: { Referer: 'http://127.0.0.1:5173/' },
   })
   const token = (await created.json()).data.accessToken

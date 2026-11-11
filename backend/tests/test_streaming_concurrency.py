@@ -19,6 +19,7 @@ async def test_streaming_auth_does_not_exhaust_database_pool() -> None:
                     "email": f"stream-{uuid4().hex[:8]}@example.com",
                     "password": "GraduateDesign123!",
                     "displayName": "并发测试学员",
+                    "consent": True,
                 },
             )
             assert registered.status_code == 201

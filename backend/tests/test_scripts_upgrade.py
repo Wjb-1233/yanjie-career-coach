@@ -22,7 +22,7 @@ def test_legacy_dimension_names_map_to_current() -> None:
 def _auth(client: TestClient) -> dict:
     response = client.post(
         "/api/v1/auth/register",
-        json={"email": f"script-{uuid4().hex[:8]}@example.com", "password": "ScriptTest123", "displayName": "话术"},
+        json={"email": f"script-{uuid4().hex[:8]}@example.com", "password": "ScriptTest123", "displayName": "话术", "consent": True},
     )
     assert response.status_code == 201, response.text
     return {"Authorization": f"Bearer {response.json()['data']['accessToken']}"}

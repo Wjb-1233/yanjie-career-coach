@@ -49,6 +49,7 @@ const form = reactive({
   password: '',
   displayName: '',
   confirmPassword: '',
+  consent: false,
 })
 
 const copy = computed(() => mode.value === 'login'
@@ -95,6 +96,10 @@ function submit() {
   }
   if (mode.value === 'register' && !displayName) {
     validationError.value = '请输入你的称呼。'
+    return
+  }
+  if (mode.value === 'register' && !form.consent) {
+    validationError.value = '请先阅读并同意《隐私政策》，再继续注册。'
     return
   }
 
@@ -206,9 +211,25 @@ function submit() {
       />
     </label>
 
+    <div v-if="mode === 'register'" class="consent-row">
+      <input
+        id="consent"
+        v-model="form.consent"
+        class="consent-box"
+        type="checkbox"
+        name="consent"
+        :disabled="loading"
+        @change="clearError"
+      />
+      <label class="consent-label" for="consent">我已阅读并同意</label>
+      <a class="privacy-link" href="/privacy" target="_blank" rel="noopener">《隐私政策》</a>
+    </div>
+
     <button class="button submit-button" type="submit" :disabled="loading">
       {{ loading ? copy.pending : copy.submit }}
     </button>
+
+    <p class="privacy-entry"><a class="privacy-link" href="/privacy" target="_blank" rel="noopener">《隐私政策》</a>：数据怎么用、保留多久、怎么导出与注销</p>
 
     <p class="privacy-note">密码只用于身份验证，页面不会把登录凭据保存在浏览器本地存储中。</p>
   </form>
@@ -250,6 +271,26 @@ function submit() {
 .field-invalid:focus { box-shadow: 0 0 0 3px rgba(224, 138, 128, .16) !important; }
 .submit-button { width: 100%; margin-top: 4px; }
 .privacy-note { margin: 0; color: var(--text-3); font-size: 11px; line-height: 1.7; text-align: center; }
+.privacy-entry { margin: 0; color: var(--text-3); font-size: 11.5px; line-height: 1.7; text-align: center; }
+
+.consent-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-2);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+.consent-box {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.consent-label { cursor: pointer; }
+.privacy-link { color: var(--accent-strong); text-decoration: none; border-bottom: 1px solid var(--accent-soft); }
 
 @media (max-width: 520px) {
   .auth-form { gap: 16px; }

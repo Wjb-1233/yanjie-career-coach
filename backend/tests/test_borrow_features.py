@@ -102,6 +102,7 @@ def _login(client: TestClient) -> dict[str, str]:
             "email": f"br-{uuid4().hex[:8]}@example.com",
             "password": "GraduateDesign123!",
             "displayName": "借鉴测试",
+            "consent": True,
         },
     )
     return {"Authorization": f"Bearer {registered.json()['data']['accessToken']}"}
