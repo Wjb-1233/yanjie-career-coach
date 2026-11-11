@@ -29,7 +29,6 @@ from app.features.dashboard.router import router as dashboard_router
 from app.features.evaluations.router import router as evaluations_router
 from app.features.health.router import router as health_router
 from app.features.plans.router import router as plans_router
-from app.features.questionbank.router import router as question_bank_router
 from app.features.scenes.mine_router import router as mine_scenes_router
 from app.features.scenes.router import router as scenes_router
 from app.features.share.router import router as share_router
@@ -243,7 +242,6 @@ for api_router in (
     ability_router,
     courses_router,
     plans_router,
-    question_bank_router,
     dashboard_router,
     admin_router,
     voice_router,

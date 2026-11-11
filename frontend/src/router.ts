@@ -15,7 +15,6 @@ const router = createRouter({
     { path: '/video', name: 'video', component: () => import('@/views/VideoInterviewView.vue') },
     { path: '/scenes', name: 'scenes', component: () => import('@/views/ScenesView.vue') },
     { path: '/my-scenes', name: 'my-scenes', component: () => import('@/views/MyScenesView.vue') },
-    { path: '/bank', name: 'bank', component: () => import('@/views/QuestionBankView.vue') },
     { path: '/scripts', name: 'scripts', component: () => import('@/views/ScriptStudioView.vue') },
     { path: '/scripts/saved', name: 'saved-scripts', component: () => import('@/views/SavedScriptsView.vue') },
     { path: '/favorites', name: 'favorites', component: () => import('@/views/FavoritesView.vue') },

@@ -86,7 +86,6 @@ USER_SCOPED_TABLES = (
     "skill_states",
     "model_usage_daily",
     "stories",
-    "question_bank_states",
     "mistake_states",
     "analysis_tasks",
     "training_plans",
@@ -153,7 +152,7 @@ def _row_counts(user_id: str, session_ids: list[str]) -> dict[str, int]:
 
 
 def _seed_child_rows(user_id: str, session_id: str, scene_id: str) -> None:
-    """补齐只靠接口造不出来的行：技能状态、用量、收藏、话术、题库掌握度。"""
+    """补齐只靠接口造不出来的行：技能状态、用量、收藏、话术。"""
 
     async def run() -> None:
         from datetime import UTC, datetime, timedelta
@@ -162,7 +161,6 @@ def _seed_child_rows(user_id: str, session_id: str, scene_id: str) -> None:
         from app.db.models import (
             Favorite,
             ModelUsageDaily,
-            QuestionBankState,
             RefreshToken,
             Script,
             SkillState,
@@ -188,7 +186,6 @@ def _seed_child_rows(user_id: str, session_id: str, scene_id: str) -> None:
                         action="a",
                         result="r",
                     ),
-                    QuestionBankState(user_id=user_id, question_id="q-1"),
                     ModelUsageDaily(user_id=user_id, day="2025-01-02", calls=3),
                 ]
             )
