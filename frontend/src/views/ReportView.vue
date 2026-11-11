@@ -256,21 +256,62 @@ function starHint(answer: string): string {
   return missing.length ? `缺${missing.join('、')}` : '四要素齐全'
 }
 
-// 教练查看链接（只读 + 时间点批注）
+// 教练查看链接（只读 + 时间点批注 + 可撤销 + 服务端打印版报告）
+const API_BASE = import.meta.env.VITE_API_BASE ?? '/api/v1'
 const shareLink = shallowRef('')
+const shareToken = shallowRef('')
+const shareNote = shallowRef('')
 const shareBusy = shallowRef(false)
+const revokingShare = shallowRef(false)
+
+async function issueShareLink(): Promise<{ url: string; token: string }> {
+  const response = await api.post<ApiEnvelope<{ url: string; expiresAt: number }>>(`/share/training-sessions/${session.value!.id}`)
+  const url = response.data.data.url
+  return { url, token: url.split('/').filter(Boolean).pop() ?? '' }
+}
 
 async function createShareLink(): Promise<void> {
   if (!session.value || shareBusy.value) return
   shareBusy.value = true
   try {
-    const response = await api.post<ApiEnvelope<{ url: string; expiresAt: number }>>(`/share/training-sessions/${session.value.id}`)
-    shareLink.value = `${location.origin}${response.data.data.url}`
+    const issued = await issueShareLink()
+    shareToken.value = issued.token
+    shareLink.value = `${location.origin}${issued.url}`
+    shareNote.value = ''
     await navigator.clipboard?.writeText(shareLink.value).catch(() => undefined)
   } catch (reason) {
     error.value = errorMessage(reason)
   } finally {
     shareBusy.value = false
+  }
+}
+
+async function openShareReport(): Promise<void> {
+  if (!session.value || shareBusy.value) return
+  shareBusy.value = true
+  try {
+    if (!shareToken.value) shareToken.value = (await issueShareLink()).token
+    if (!shareToken.value) return
+    window.open(`${API_BASE}/share/${shareToken.value}/report`, '_blank', 'noopener')
+  } catch (reason) {
+    error.value = errorMessage(reason)
+  } finally {
+    shareBusy.value = false
+  }
+}
+
+async function revokeShare(): Promise<void> {
+  if (!shareToken.value || revokingShare.value) return
+  revokingShare.value = true
+  try {
+    await api.delete(`/share/${shareToken.value}`)
+    shareToken.value = ''
+    shareLink.value = ''
+    shareNote.value = '已撤销：这个链接现在打不开了，需要时可以重新生成一个。'
+  } catch (reason) {
+    error.value = errorMessage(reason)
+  } finally {
+    revokingShare.value = false
   }
 }
 
@@ -433,7 +474,8 @@ onMounted(async () => {
         <p class="lead">评分是起点，不是结论。</p>
       </div>
       <div class="report-actions">
-        <button type="button" class="button secondary" @click="exportPdf">导出 PDF</button>
+        <button type="button" class="button secondary" @click="exportPdf">打印本页</button>
+        <button type="button" class="button secondary" :disabled="shareBusy" @click="openShareReport">导出报告</button>
         <button class="button secondary" type="button" :disabled="shareBusy" @click="createShareLink">
           {{ shareBusy ? '生成中…' : shareLink ? '链接已复制' : '生成教练链接' }}
         </button>
@@ -548,10 +590,21 @@ onMounted(async () => {
         </ol>
       </section>
 
-      <section v-if="shareLink" class="share-note panel">
+      <section v-if="shareLink || shareNote" class="share-note panel">
         <h2>教练查看链接</h2>
-        <p>链接 7 天内有效，只能查看这份报告、录像与转写，并可添加时间点批注；不能修改评分。</p>
-        <code>{{ shareLink }}</code>
+        <template v-if="shareLink">
+          <p>链接 7 天内有效，只能查看这份报告、录像与转写，并可添加时间点批注；不能修改评分。撤销后立即失效。</p>
+          <code>{{ shareLink }}</code>
+          <div class="share-actions">
+            <button type="button" class="button secondary compact" :disabled="revokingShare" @click="revokeShare">
+              {{ revokingShare ? '撤销中…' : '撤销分享链接' }}
+            </button>
+            <button type="button" class="button secondary compact" :disabled="shareBusy" @click="openShareReport">
+              打开打印版报告
+            </button>
+          </div>
+        </template>
+        <p v-else class="share-revoked">{{ shareNote }}</p>
       </section>
 
       <section v-if="session?.recordingUrl && compareSession?.recordingUrl" class="compare-video panel">
@@ -1036,6 +1089,8 @@ onMounted(async () => {
 .share-note h2 { margin: 0 0 6px; }
 .share-note p { margin: 0 0 8px; color: var(--text-3); font-size: 12.5px; line-height: 1.7; }
 .share-note code { padding: 6px 10px; border-radius: 6px; background: var(--bg-2); color: var(--text-2); font-size: 12px; word-break: break-all; }
+.share-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.share-revoked { margin: 0; color: var(--accent-strong); font-size: 12.5px; }
 .actions-card header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .actions-card header span { color: var(--text-3); font-size: 11.5px; }
 .actions-card ol { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }

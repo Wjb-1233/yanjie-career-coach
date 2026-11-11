@@ -406,3 +406,13 @@ class CodingSubmission(Base):
     duration_ms: Mapped[int] = mapped_column(Integer, default=0)
     results: Mapped[list | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+
+
+class ShareRevocation(Base):
+    """已撤销的教练查看链接：令牌签名入库即失效，数据库是唯一真相。"""
+
+    __tablename__ = "share_revocations"
+
+    token_sig: Mapped[str] = mapped_column(String(64), primary_key=True)
+    session_id: Mapped[str] = mapped_column(String(36), index=True)
+    revoked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, nullable=False)
