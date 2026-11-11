@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 POLL_INTERVAL = 1.5
 # RUNNING 超过这个时间没更新，视为进程崩溃留下的任务
 STALE_RUNNING_MINUTES = 15
+# 录像真录了、题目与人脸指标也在，只是没转写出作答：降级出报告，不判失败
+TRANSCRIPT_EMPTY_REASON = "录像里没有识别到作答内容"
 _running: asyncio.Task | None = None
 _stop = asyncio.Event()
 
@@ -94,8 +96,9 @@ async def process_video_interview(task: AnalysisTask) -> None:
 
     words = delivery.get("words", []) if delivery else []
     turns = _split_turns(questions, words)
-    if not turns:
-        raise RuntimeError("录像里没有识别到作答内容")
+    # 转写为空是常见情况（静音、没对着麦克风说）：录像、切题片段与人脸指标仍可用，
+    # 这里降级出报告，而不是让整条任务失败、把用户前面录的像一起作废。
+    transcript_reason = None if turns else TRANSCRIPT_EMPTY_REASON
 
     if delivery:
         delivery.pop("words", None)
@@ -129,6 +132,8 @@ async def process_video_interview(task: AnalysisTask) -> None:
         "transcript": transcript,
         "segments": segments,
     }
+    if transcript_reason:
+        payload_out["transcriptReason"] = transcript_reason
 
     await _update(task.id, progress=70, stage="生成训练记录")
     async with session_factory() as session:
@@ -142,6 +147,7 @@ async def process_video_interview(task: AnalysisTask) -> None:
             engine="video",
             channel="VIDEO",
             recording_path=recording,
+            degraded_reason=transcript_reason,
         )
 
     await _update(task.id, progress=85, stage="生成评分报告")
@@ -155,12 +161,16 @@ async def process_video_interview(task: AnalysisTask) -> None:
         except Exception as exc:  # noqa: BLE001 - 评分失败不影响回放
             logger.warning("task.evaluate_failed error_type=%s", type(exc).__name__)
 
+    result: dict = {"sessionId": session_id, "vision": vision}
+    if transcript_reason:
+        result["degraded"] = True
+        result["transcriptReason"] = transcript_reason
     await _update(
         task.id,
         status="DONE",
         progress=100,
-        stage="完成",
-        result={"sessionId": session_id, "vision": vision},
+        stage="完成" if not transcript_reason else "完成（未识别到作答，已降级出报告）",
+        result=result,
     )
 
 

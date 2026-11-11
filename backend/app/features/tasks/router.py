@@ -28,6 +28,8 @@ async def read_task(task_id: str, user: CurrentUser) -> dict:
             "error": task.error,
             "sessionId": (task.result or {}).get("sessionId"),
             "vision": (task.result or {}).get("vision"),
+            "degraded": bool((task.result or {}).get("degraded")),
+            "transcriptReason": (task.result or {}).get("transcriptReason"),
             "queue": eta,
         }
     )

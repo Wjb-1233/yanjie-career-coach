@@ -21,7 +21,7 @@ def test_complete_turn_endpoint_supports_phone_flow() -> None:
     with TestClient(app) as client:
         registered = client.post(
             "/api/v1/auth/register",
-            json={"email": f"phone-{uuid4().hex[:8]}@example.com", "password": "GraduateDesign123!", "displayName": "手机测试学员"},
+            json={"email": f"phone-{uuid4().hex[:8]}@example.com", "password": "GraduateDesign123!", "displayName": "手机测试学员", "consent": True},
         )
         headers = {"Authorization": f"Bearer {registered.json()['data']['accessToken']}"}
         scene_id = client.get("/api/v1/scenes", headers=headers).json()["data"][0]["id"]
@@ -65,6 +65,7 @@ def test_health_auth_and_scene_flow() -> None:
                 "email": email,
                 "password": "GraduateDesign123!",
                 "displayName": "测试学员",
+                "consent": True,
             },
         )
         assert registered.status_code == 201
@@ -107,6 +108,7 @@ def test_training_plan_can_be_opened_and_checked_in() -> None:
                 "email": email,
                 "password": "GraduateDesign123!",
                 "displayName": "计划测试学员",
+                "consent": True,
             },
         )
         token = registered.json()["data"]["accessToken"]
@@ -132,11 +134,12 @@ def test_training_plan_can_be_opened_and_checked_in() -> None:
         assert finished.status_code == 200
         assert client.get("/api/v1/dashboard", headers=headers).json()["data"]["trainingCount"] == 1
 
-        # 本用例没有可用模型，评分走降级路径：按业务规则此时不生成计划
+        # 本用例没有可用模型，评分走降级路径：降级同样生成计划（兜底分支），否则主线断掉
         assert finished.json()["data"]["degraded"] is True
         plans = client.get("/api/v1/training-plans", headers=headers)
         assert plans.status_code == 200
-        assert plans.json()["data"] == []
+        assert len(plans.json()["data"]) == 1, "降级评分也要有「能力提升」入口"
+        assert finished.json()["data"]["planId"], "降级时 finish 应返回非空 planId"
 
 
 def test_login_rate_limit_returns_retry_after() -> None:
@@ -170,6 +173,7 @@ def test_evaluation_degraded_status_survives_reload(monkeypatch) -> None:
                 "email": f"degraded-{uuid4().hex[:8]}@example.com",
                 "password": "GraduateDesign123!",
                 "displayName": "降级报告测试",
+                "consent": True,
             },
         )
         headers = {"Authorization": f"Bearer {registered.json()['data']['accessToken']}"}

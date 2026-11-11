@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -20,6 +21,16 @@ if not settings.database_url.startswith("sqlite"):
 
 engine = create_async_engine(settings.database_url, **engine_options)
 session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+
+if engine.dialect.name == "sqlite":
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def _enable_sqlite_foreign_keys(dbapi_connection, _record) -> None:
+        """SQLite 默认不校验外键：模型里 27 个 ondelete=CASCADE 只在 MySQL 上生效。"""
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:

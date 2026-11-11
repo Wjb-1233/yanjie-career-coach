@@ -1,5 +1,6 @@
 """教练查看链接：只读、可批注、过期与篡改都拒绝。"""
 
+import asyncio
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -10,7 +11,7 @@ from app.main import app
 def _register(client: TestClient, prefix: str) -> dict[str, str]:
     response = client.post(
         "/api/v1/auth/register",
-        json={"email": f"{prefix}-{uuid4().hex[:8]}@example.com", "password": "GraduateDesign123!", "displayName": "分享"},
+        json={"email": f"{prefix}-{uuid4().hex[:8]}@example.com", "password": "GraduateDesign123!", "displayName": "分享", "consent": True},
     )
     return {"Authorization": f"Bearer {response.json()['data']['accessToken']}"}
 
@@ -79,3 +80,66 @@ def test_expired_share_link_is_gone() -> None:
         response = client.get(f"/api/v1/share/{token}")
         assert response.status_code == 410
         assert response.json()["title"] == "SHARE_EXPIRED"
+
+def _share_token(client: TestClient, headers: dict[str, str], session_id: str) -> str:
+    url = client.post(f"/api/v1/share/training-sessions/{session_id}", headers=headers).json()["data"]["url"]
+    return url.rsplit("/", 1)[-1]
+
+
+def _store_delivery(session_id: str, delivery: dict) -> None:
+    async def run() -> None:
+        from app.db.base import session_factory
+        from app.db.models import TrainingSession
+
+        async with session_factory() as db:
+            training = await db.get(TrainingSession, session_id)
+            training.delivery = delivery
+            await db.commit()
+
+    asyncio.run(run())
+
+
+def test_text_session_share_has_transcript() -> None:
+    """文字训练结束不写 delivery.transcript，分享页也要能看到逐轮问答。"""
+    with TestClient(app, client=(f"share-{uuid4().hex}", 50043)) as client:
+        headers = _register(client, "textshare")
+        session_id = _finished_session(client, headers)
+        token = _share_token(client, headers, session_id)
+
+        payload = client.get(f"/api/v1/share/{token}").json()["data"]
+        transcript = payload["transcript"]
+        assert len(transcript) == 2, transcript
+        assert [item["roundNo"] for item in transcript] == [1, 2]
+        assert transcript[0]["text"] == "第1轮：先说结论，再补依据。"
+        assert transcript[1]["text"] == "第2轮：先说结论，再补依据。"
+        assert all(item["question"] for item in transcript)
+        assert all(item["edited"] is False for item in transcript)
+        assert all(item["startMs"] is None and item["confidence"] is None for item in transcript)
+
+        # 与打印版报告同一批轮次
+        report = client.get(f"/api/v1/share/{token}/report")
+        assert "第 1 题" in report.text
+        assert "第 2 题" in report.text
+
+
+def test_share_prefers_stored_transcript() -> None:
+    """已有 transcript（视频任务或人工修正写入）时保持原样，不回退到消息表。"""
+    with TestClient(app, client=(f"share-{uuid4().hex}", 50044)) as client:
+        headers = _register(client, "storedshare")
+        session_id = _finished_session(client, headers)
+        stored = [
+            {
+                "roundNo": 9,
+                "question": "修正后的问题",
+                "text": "修正后的回答",
+                "startMs": 0,
+                "endMs": 1200,
+                "confidence": 0.9,
+                "edited": True,
+            }
+        ]
+        _store_delivery(session_id, {"transcript": stored})
+        token = _share_token(client, headers, session_id)
+
+        payload = client.get(f"/api/v1/share/{token}").json()["data"]
+        assert payload["transcript"] == stored

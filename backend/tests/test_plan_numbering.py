@@ -1,4 +1,4 @@
-"""计划编号、累积与降级不生成计划的回归测试。"""
+"""计划编号、累积与降级仍生成计划（走兜底分支）的回归测试。"""
 
 from uuid import uuid4
 
@@ -37,7 +37,7 @@ SCORE = {
 def _register(client: TestClient, prefix: str) -> dict[str, str]:
     response = client.post(
         "/api/v1/auth/register",
-        json={"email": f"{prefix}-{uuid4().hex[:8]}@example.com", "password": "GraduateDesign123!", "displayName": "计划编号"},
+        json={"email": f"{prefix}-{uuid4().hex[:8]}@example.com", "password": "GraduateDesign123!", "displayName": "计划编号", "consent": True},
     )
     return {"Authorization": f"Bearer {response.json()['data']['accessToken']}"}
 
@@ -80,7 +80,7 @@ def test_each_evaluation_creates_numbered_plan(monkeypatch) -> None:
         assert all(plan["status"] == "ACTIVE" for plan in plans), "未完成的计划应累积保留"
 
 
-def test_degraded_evaluation_creates_no_plan(monkeypatch) -> None:
+def test_degraded_evaluation_still_creates_plan(monkeypatch) -> None:
     async def unavailable(*_args, **_kwargs):
         raise TimeoutError("model down")
 
@@ -102,7 +102,7 @@ def test_degraded_evaluation_creates_no_plan(monkeypatch) -> None:
         assert finished.json()["data"]["degraded"] is True
 
         plans = client.get("/api/v1/training-plans", headers=headers).json()["data"]
-        assert plans == [], "降级评分不应生成计划"
+        assert len(plans) == 1, "降级评分同样生成计划（走 generate_plan 的兜底分支）"
 
 
 def test_plan_session_requires_six_rounds_and_auto_completes(monkeypatch) -> None:

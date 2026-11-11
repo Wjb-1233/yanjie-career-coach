@@ -287,9 +287,11 @@ async def evaluate_session(
 
     # 每次新评分都生成一份带序号的新计划；未完成的旧计划继续保留（最多同时进行 3 份）
     # 但由计划任务发起的训练不再另起一份计划，避免边做计划边生出新计划
-    if create_plan and not degraded and not training.plan_id:
+    # 降级评分同样生成计划：generate_plan 自带 fallback_plan 兜底（离线也能给出微课与任务），
+    # 若在降级时短路，「能力提升」入口会整条断掉
+    if create_plan and not training.plan_id:
         await create_training_plan(
-            session, user_id, payload, training, user_messages, allow_generation=True
+            session, user_id, payload, training, user_messages, allow_generation=not degraded
         )
     await session.commit()
     return await to_view(session, evaluation)
