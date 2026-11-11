@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
 import { Mic, PhoneOff } from 'lucide-vue-next'
 
+import PermissionDialog from '@/components/media/PermissionDialog.vue'
 import { api } from '@/lib/api'
 import type { ApiEnvelope, Scene } from '@/lib/types'
 
@@ -36,6 +37,12 @@ const micLevel = shallowRef(0)
 const silentSeconds = shallowRef(0)
 const remaining = shallowRef(props.durationMinutes * 60)
 const preview = ref<HTMLVideoElement | null>(null)
+// 申请麦克风/摄像头的两步交互：先明说「请求已发出」，被拒绝时换成三步引导
+const micWaiting = ref(false)
+const showMicGuide = ref(false)
+const micDevices = computed<Array<'camera' | 'microphone'>>(() =>
+  isVideo.value ? ['camera', 'microphone'] : ['microphone'],
+)
 
 const turns = shallowRef<Array<{ question: string; answer: string; startMs?: number; endMs?: number }>>([])
 let wsTicket = ''
@@ -375,9 +382,20 @@ function retry(): void {
 
 // 权限被拒后浏览器不会再弹框，用户改完站点设置再点这里重试一次
 function retryMic(): void {
+  showMicGuide.value = false
   micIssue.value = ''
   error.value = ''
   retry()
+}
+
+let micWaitTimer = 0
+
+function endMicWaiting(): void {
+  if (micWaitTimer) {
+    window.clearTimeout(micWaitTimer)
+    micWaitTimer = 0
+  }
+  micWaiting.value = false
 }
 
 function maybeFallback(code?: number): boolean {
@@ -443,15 +461,29 @@ async function startMic(): Promise<void> {
     micIssue.value = 'unsupported'
     return
   }
+  micWaiting.value = true
+  micWaitTimer = window.setTimeout(() => {
+    micWaitTimer = 0
+    if (micOn.value) {
+      micWaiting.value = false
+      return
+    }
+    endMicWaiting()
+    fail('20 秒内没有等到浏览器的授权结果：如果没看到授权弹窗，点「重新申请权限」再试，或按提示改站点设置')
+  }, 20000)
   try {
     micStream = await navigator.mediaDevices.getUserMedia({
       audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
       ...(isVideo.value ? { video: { width: 1280, height: 720, facingMode: 'user' } } : {}),
     })
   } catch (reason) {
+    endMicWaiting()
     micIssue.value = micIssueKind(reason)
+    // 已被拒绝时浏览器不会再弹窗，直接把三步引导摆出来
+    if (micIssue.value === 'permission') showMicGuide.value = true
     return
   }
+  endMicWaiting()
   if (isVideo.value && preview.value) {
     preview.value.srcObject = micStream
     await preview.value.play().catch(() => undefined)
@@ -655,11 +687,13 @@ onBeforeUnmount(stop)
 
     <div v-if="error" class="room-error-block" role="alert">
       <p class="room-error">{{ error }}</p>
-      <ol v-if="micSteps.length" class="room-steps">
+      <ol v-if="micSteps.length && !showMicGuide" class="room-steps">
         <li v-for="(step, index) in micSteps" :key="index">{{ step }}</li>
       </ol>
       <div class="room-fix">
-        <button v-if="micIssue" class="button secondary" type="button" @click="retryMic">重新申请权限</button>
+        <button v-if="micIssue" class="button secondary" type="button" @click="retryMic">
+          {{ micIssue === 'permission' ? '重新申请麦克风权限' : '重新申请权限' }}
+        </button>
         <button v-else class="button secondary" type="button" @click="retry">重新连接</button>
         <button v-if="isVideo" class="button secondary" type="button" @click="emit('switchVoice')">改用语音面试</button>
       </div>
@@ -674,6 +708,9 @@ onBeforeUnmount(stop)
       </button>
       <span class="mic-state"><Mic :size="13" :stroke-width="1.8" aria-hidden="true" />{{ micOn ? '麦克风已开启' : '等待麦克风' }} · 已进行 {{ rounds }} 轮</span>
     </div>
+
+    <PermissionDialog v-if="micWaiting" variant="waiting" :devices="micDevices" />
+    <PermissionDialog v-if="showMicGuide" variant="denied" :devices="micDevices" @retry="retryMic" @close="showMicGuide = false" />
   </section>
 </template>
 

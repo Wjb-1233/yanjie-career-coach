@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Camera, Mic, Volume2 } from 'lucide-vue-next'
 
+import PermissionDialog from '@/components/media/PermissionDialog.vue'
 import LiveInterviewRoom from '@/components/training/LiveInterviewRoom.vue'
 import { api, errorMessage } from '@/lib/api'
 import type { ApiEnvelope, Scene } from '@/lib/types'
@@ -34,7 +35,34 @@ const speakerOk = ref(false)
 const networkLabel = shallowRef('检测中')
 const checking = ref(false)
 
+// 权限状态要能自己显示出来，用户才知道该点按钮还是该去改站点设置
+type PermState = 'unknown' | 'prompt' | 'granted' | 'denied' | 'unsupported'
+const cameraPerm = shallowRef<PermState>('unknown')
+const microphonePerm = shallowRef<PermState>('unknown')
+const waitingForAllow = ref(false)
+const showGuide = ref(false)
+const mediaDevices = ['camera', 'microphone'] as Array<'camera' | 'microphone'>
+
 const ready = computed(() => cameraOn.value && micHeard.value)
+
+function permLabel(state: PermState): string {
+  if (state === 'granted') return '已允许'
+  if (state === 'denied') return '已被拒绝'
+  if (state === 'prompt') return '未申请'
+  if (state === 'unsupported') return '无法探测'
+  return '未检测'
+}
+
+const permissionText = computed(
+  () => `摄像头权限：${permLabel(cameraPerm.value)} · 麦克风权限：${permLabel(microphonePerm.value)}`,
+)
+
+const guideDevices = computed<Array<'camera' | 'microphone'>>(() => {
+  const denied: Array<'camera' | 'microphone'> = []
+  if (cameraPerm.value === 'denied') denied.push('camera')
+  if (microphonePerm.value === 'denied') denied.push('microphone')
+  return denied.length ? denied : mediaDevices
+})
 
 const deviceSteps = computed<string[]>(() => {
   if (deviceIssue.value === 'permission') {
@@ -72,6 +100,34 @@ let audioContext: AudioContext | null = null
 let analyser: AnalyserNode | null = null
 let levelFrame = 0
 
+async function permissionState(name: 'camera' | 'microphone'): Promise<PermState> {
+  if (!navigator.permissions?.query) return 'unsupported'
+  try {
+    // Chrome 支持 camera / microphone 两个名字，但 TS 的 PermissionName 联合类型里还没收录
+    const status = await navigator.permissions.query({ name } as unknown as PermissionDescriptor)
+    return status.state as PermState
+  } catch {
+    return 'unsupported'
+  }
+}
+
+async function probePermissions(): Promise<void> {
+  cameraPerm.value = await permissionState('camera')
+  microphonePerm.value = await permissionState('microphone')
+}
+
+let waitTimer = 0
+// 超时之后旧请求可能才回来，用序号让它作废，避免状态被迟到的结果覆盖
+let attemptNo = 0
+
+function endWaiting(): void {
+  if (waitTimer) {
+    window.clearTimeout(waitTimer)
+    waitTimer = 0
+  }
+  waitingForAllow.value = false
+}
+
 async function openCamera(): Promise<void> {
   if (!navigator.mediaDevices?.getUserMedia) {
     deviceIssue.value = window.isSecureContext ? 'unsupported' : 'insecure'
@@ -80,9 +136,30 @@ async function openCamera(): Promise<void> {
   }
   checking.value = true
   error.value = ''
+  showGuide.value = false
+  // (1) 先探测并展示权限状态，用户不用自己去浏览器菜单里猜
+  await probePermissions()
+  // (2) 发起请求的同时把「已经发出去了」明说在页面上，否则用户会以为按钮没反应
+  waitingForAllow.value = true
+  const seq = ++attemptNo
+  waitTimer = window.setTimeout(() => {
+    waitTimer = 0
+    attemptNo += 1
+    waitingForAllow.value = false
+    checking.value = false
+    if (cameraOn.value) return
+    error.value = '20 秒内没有等到浏览器的授权结果。如果没看到授权弹窗，点「重新申请权限」再试，或按下面的步骤改站点设置'
+  }, 20000)
   try {
     closeCamera()
-    stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 }, audio: true })
+    const next = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 }, audio: true })
+    if (seq !== attemptNo) {
+      next.getTracks().forEach((track) => track.stop())
+      return
+    }
+    stream = next
+    endWaiting()
+    error.value = ''
     if (preview.value) {
       preview.value.srcObject = stream
       await preview.value.play().catch(() => undefined)
@@ -92,9 +169,21 @@ async function openCamera(): Promise<void> {
     const track = stream.getVideoTracks()[0]
     cameraLabel.value = `已就绪 ${track?.getSettings().width ?? 1280}×${track?.getSettings().height ?? 720}`
     watchMicrophone()
+    // (5) 授权成功后刷新状态文字；查询结果可能滞后，真实拿到的流才是准的
+    await probePermissions()
+    cameraPerm.value = 'granted'
+    microphonePerm.value = 'granted'
   } catch (reason) {
+    if (seq !== attemptNo) return
+    endWaiting()
     deviceIssue.value = deviceReason(reason)
     error.value = deviceMessage(deviceIssue.value)
+    if (deviceIssue.value === 'permission') {
+      // (4) 浏览器不会再弹窗：交给三步引导弹窗，而不是只留一行报错
+      cameraPerm.value = 'denied'
+      microphonePerm.value = 'denied'
+      showGuide.value = true
+    }
   } finally {
     checking.value = false
   }
@@ -195,6 +284,8 @@ function onEnded(sessionId: string): void {
 }
 
 onMounted(async () => {
+  // 进页面就先摆出权限状态：「未申请 / 已允许 / 已被拒绝」，别让用户自己去浏览器菜单里找
+  await probePermissions()
   const connection = (navigator as unknown as { connection?: { effectiveType?: string; downlink?: number } }).connection
   networkLabel.value = navigator.onLine
     ? `${connection?.effectiveType ?? 'online'}${connection?.downlink ? ` · ${Math.round(connection.downlink)} Mbps` : ''}`
@@ -230,7 +321,7 @@ void errorMessage
 
       <div v-if="error" class="device-error" role="alert">
         <p class="error-banner">{{ error }}</p>
-        <ol v-if="deviceSteps.length" class="device-steps">
+        <ol v-if="deviceSteps.length && !showGuide" class="device-steps">
           <li v-for="(step, index) in deviceSteps" :key="index">{{ step }}</li>
         </ol>
         <div class="device-actions">
@@ -247,11 +338,13 @@ void errorMessage
           <div v-if="!cameraOn" class="preview-empty">
             <Camera :size="22" :stroke-width="1.6" aria-hidden="true" />
             <span>摄像头未开启</span>
-            <button class="button secondary" type="button" :disabled="checking" @click="openCamera">
-              {{ checking ? '正在检测…' : '检测设备' }}
+            <button class="button" type="button" :disabled="checking" @click="openCamera">
+              {{ checking ? '正在申请…' : '开启摄像头和麦克风' }}
             </button>
+            <small class="perm-tip">点击后浏览器会弹出授权窗口，在里面点「允许」即可。</small>
           </div>
         </div>
+        <p class="perm-status">{{ permissionText }}</p>
 
         <div class="checks">
           <div class="check">
@@ -315,6 +408,9 @@ void errorMessage
           <span class="hint">{{ ready ? '准备好就坐下开始' : deviceIssue ? '设备未就绪：按上面的步骤处理后再开始' : '先检测设备并说一句话' }}</span>
         </footer>
       </section>
+
+      <PermissionDialog v-if="waitingForAllow" variant="waiting" :devices="mediaDevices" />
+      <PermissionDialog v-if="showGuide" variant="denied" :devices="guideDevices" @retry="openCamera" @close="showGuide = false" />
     </template>
 
     <LiveInterviewRoom
@@ -338,7 +434,9 @@ void errorMessage
 .setup { margin-top: 10px; padding: 24px; display: grid; gap: 20px; }
 .preview-wrap { position: relative; border-radius: 14px; overflow: hidden; background: #0b0b0e; aspect-ratio: 16 / 9; }
 .preview { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-.preview-empty { position: absolute; inset: 0; display: grid; place-items: center; gap: 10px; color: rgba(255, 255, 255, .78); font-size: 13px; }
+.preview-empty { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 10px; padding: 20px; color: rgba(255, 255, 255, .78); font-size: 13px; text-align: center; }
+.perm-status { margin: -6px 0 0; color: var(--text-3); font-size: 12px; line-height: 1.6; }
+.perm-tip { max-width: 320px; color: rgba(255, 255, 255, .45); font-size: 11.5px; line-height: 1.7; }
 .checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .check { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; }
 .check-icon { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: var(--overlay-2); color: var(--text-2); font-size: 11px; }

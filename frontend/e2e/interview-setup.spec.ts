@@ -36,7 +36,7 @@ test('语音面试：时长挡位与开始入口，无录制字样', async ({ pa
 test('视频面试：设备预检、时长挡位，无“开始录制”', async ({ page, request }) => {
   const sceneId = await login(page, request)
   await page.goto(`/video?sceneId=${sceneId}`)
-  await expect(page.getByRole('button', { name: '检测设备' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /开启摄像头和麦克风|正在申请/ })).toBeVisible()
   await expect(page.getByRole('button', { name: '30 分钟' })).toBeVisible()
   await expect(page.getByRole('button', { name: '60 分钟' })).toBeVisible()
   await expect(page.getByText(/开始录制|录答模式/)).toHaveCount(0)
