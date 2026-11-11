@@ -22,6 +22,8 @@ const engine = shallowRef<'doubao' | 'pipeline'>('doubao')
 const depth = shallowRef<'STANDARD' | 'THREE_LAYER' | 'PRESSURE'>(initialDepth)
 const advanced = shallowRef(false)
 const error = shallowRef('')
+// 权限/设备问题要能指出具体原因，才谈得上“可执行的处理”
+const deviceIssue = shallowRef<'' | 'permission' | 'device' | 'busy' | 'insecure' | 'unsupported'>('')
 const preview = ref<HTMLVideoElement | null>(null)
 
 const cameraOn = ref(false)
@@ -34,6 +36,37 @@ const checking = ref(false)
 
 const ready = computed(() => cameraOn.value && micHeard.value)
 
+const deviceSteps = computed<string[]>(() => {
+  if (deviceIssue.value === 'permission') {
+    return [
+      '点浏览器地址栏左侧的图标（锁形或调节滑块）',
+      '打开「站点设置」，把「摄像头」和「麦克风」都改成「允许」',
+      '回到本页点「重新申请权限」；如果仍然读不到设备，刷新页面后重来',
+    ]
+  }
+  if (deviceIssue.value === 'busy') return ['关掉正在占用摄像头的程序（会议、录屏、直播软件）', '点「重新申请权限」重新检测']
+  if (deviceIssue.value === 'device') return ['确认摄像头和麦克风已连接，并在系统设置里可见', '点「重新申请权限」重新检测']
+  if (deviceIssue.value === 'insecure') return ['用 http://localhost 或 https 地址打开本页，浏览器才允许使用摄像头']
+  return []
+})
+
+function deviceReason(reason: unknown): '' | 'permission' | 'device' | 'busy' | 'insecure' | 'unsupported' {
+  const name = (reason as DOMException)?.name ?? ''
+  if (!window.isSecureContext) return 'insecure'
+  if (name === 'NotAllowedError' || name === 'SecurityError') return 'permission'
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'OverconstrainedError') return 'device'
+  if (name === 'NotReadableError' || name === 'TrackStartError') return 'busy'
+  return 'unsupported'
+}
+
+function deviceMessage(kind: '' | 'permission' | 'device' | 'busy' | 'insecure' | 'unsupported'): string {
+  if (kind === 'permission') return '摄像头或麦克风权限被拒绝，视频面试无法开始'
+  if (kind === 'device') return '没有找到摄像头或麦克风'
+  if (kind === 'busy') return '摄像头被其他程序占用，视频面试无法开始'
+  if (kind === 'insecure') return '当前地址不能使用摄像头：需要 localhost 或 https'
+  return '这个浏览器不支持摄像头，请用 Chrome / Edge 最新版'
+}
+
 let stream: MediaStream | null = null
 let audioContext: AudioContext | null = null
 let analyser: AnalyserNode | null = null
@@ -41,7 +74,8 @@ let levelFrame = 0
 
 async function openCamera(): Promise<void> {
   if (!navigator.mediaDevices?.getUserMedia) {
-    error.value = '当前浏览器不支持摄像头，请使用 Chrome / Edge 最新版，或改用语音面试'
+    deviceIssue.value = window.isSecureContext ? 'unsupported' : 'insecure'
+    error.value = deviceMessage(deviceIssue.value)
     return
   }
   checking.value = true
@@ -54,16 +88,13 @@ async function openCamera(): Promise<void> {
       await preview.value.play().catch(() => undefined)
     }
     cameraOn.value = true
+    deviceIssue.value = ''
     const track = stream.getVideoTracks()[0]
     cameraLabel.value = `已就绪 ${track?.getSettings().width ?? 1280}×${track?.getSettings().height ?? 720}`
     watchMicrophone()
   } catch (reason) {
-    const name = (reason as DOMException)?.name
-    error.value = name === 'NotAllowedError'
-      ? '摄像头或麦克风权限被拒绝：允许后重试，或改用语音面试'
-      : name === 'NotFoundError'
-        ? '没有找到摄像头或麦克风：插好设备后重试，或改用语音面试'
-        : '无法打开摄像头或麦克风，请检查浏览器权限'
+    deviceIssue.value = deviceReason(reason)
+    error.value = deviceMessage(deviceIssue.value)
   } finally {
     checking.value = false
   }
@@ -72,7 +103,11 @@ async function openCamera(): Promise<void> {
 function watchMicrophone(): void {
   if (!stream) return
   const track = stream.getAudioTracks()[0]
-  if (!track) return
+  if (!track) {
+    deviceIssue.value = 'device'
+    error.value = '没有检测到麦克风：视频面试需要麦克风，插好后点「重新申请权限」'
+    return
+  }
   try {
     audioContext = new AudioContext()
     analyser = audioContext.createAnalyser()
@@ -137,8 +172,17 @@ function start(): void {
 }
 
 function switchToVoice(): void {
+  // 一键切语音：场景、追问强度、语言、训练计划任务原样带过去，用户不用重选
   closeCamera()
-  void router.push({ name: 'voice', query: { sceneId: sceneId.value, ...(planId.value ? { planId: planId.value, taskKey: taskKey.value } : {}) } })
+  void router.push({
+    name: 'voice',
+    query: {
+      sceneId: sceneId.value,
+      depth: depth.value,
+      lang: language,
+      ...(planId.value ? { planId: planId.value, taskKey: taskKey.value } : {}),
+    },
+  })
 }
 
 function onEnded(sessionId: string): void {
@@ -184,7 +228,18 @@ void errorMessage
         </div>
       </header>
 
-      <p v-if="error" class="error-banner">{{ error }}</p>
+      <div v-if="error" class="device-error" role="alert">
+        <p class="error-banner">{{ error }}</p>
+        <ol v-if="deviceSteps.length" class="device-steps">
+          <li v-for="(step, index) in deviceSteps" :key="index">{{ step }}</li>
+        </ol>
+        <div class="device-actions">
+          <button class="button secondary" type="button" :disabled="checking" @click="openCamera">
+            {{ checking ? '正在检测…' : '重新申请权限' }}
+          </button>
+          <button class="button secondary" type="button" @click="switchToVoice">改用语音面试</button>
+        </div>
+      </div>
 
       <section class="setup panel">
         <div class="preview-wrap">
@@ -257,7 +312,7 @@ void errorMessage
             开始面试
           </button>
           <button class="link" type="button" @click="switchToVoice">改用语音面试 →</button>
-          <span class="hint">{{ ready ? '准备好就坐下开始' : '先检测设备并说一句话' }}</span>
+          <span class="hint">{{ ready ? '准备好就坐下开始' : deviceIssue ? '设备未就绪：按上面的步骤处理后再开始' : '先检测设备并说一句话' }}</span>
         </footer>
       </section>
     </template>
@@ -271,6 +326,7 @@ void errorMessage
         :depth="depth"
         :language="language"
       @ended="onEnded"
+      @switch-voice="switchToVoice"
     />
   </div>
 </template>
@@ -302,5 +358,9 @@ void errorMessage
 .dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; }
 .advanced-toggle { width: fit-content; border: 0; background: transparent; color: var(--text-3); font-size: 12px; cursor: pointer; padding: 0; }
 .link { border: 0; background: transparent; color: var(--text-3); font-size: 12px; cursor: pointer; }
+.device-error { display: grid; gap: 10px; padding: 14px 16px; border: 1px solid var(--danger); border-radius: 12px; background: var(--bg-2); }
+.device-error .error-banner { margin: 0; }
+.device-steps { margin: 0; padding-left: 18px; color: var(--text-2); font-size: 12.5px; line-height: 1.9; }
+.device-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 @media (max-width: 720px) { .checks { grid-template-columns: 1fr; } }
 </style>

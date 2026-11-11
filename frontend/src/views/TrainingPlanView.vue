@@ -226,8 +226,8 @@ function stateOf(task: TrainingPlanTask | null): TaskState {
             <strong>{{ courseTask.lesson?.title ?? '针对性视频课' }}</strong>
             <span>{{ stateOf(courseTask).label }} · {{ courseTask.learningProgress }}%</span>
           </div>
-          <RouterLink v-if="!courseTask.completed && courseRoute" class="text-action" :to="courseRoute ?? '/plans'">
-            {{ courseTask.learningProgress > 0 ? '继续学习 →' : '开始学习 →' }}
+          <RouterLink v-if="courseRoute" class="text-action" :to="courseRoute ?? '/plans'">
+            {{ courseTask.completed ? '回看 →' : courseTask.learningProgress > 0 ? '继续学习 →' : '开始学习 →' }}
           </RouterLink>
           <span v-else class="done">已完成</span>
         </div>

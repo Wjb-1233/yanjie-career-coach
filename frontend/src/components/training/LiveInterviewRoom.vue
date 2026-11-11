@@ -7,6 +7,7 @@ import type { ApiEnvelope, Scene } from '@/lib/types'
 
 type Status = 'connecting' | 'live' | 'error' | 'saving'
 type Engine = 'doubao' | 'pipeline'
+type MicIssue = '' | 'permission' | 'device' | 'busy' | 'unsupported'
 
 const props = defineProps<{
   mode: 'voice' | 'video'
@@ -17,7 +18,7 @@ const props = defineProps<{
   language?: 'zh' | 'en'
 }>()
 
-const emit = defineEmits<{ ended: [sessionId: string]; failed: [message: string] }>()
+const emit = defineEmits<{ ended: [sessionId: string]; failed: [message: string]; switchVoice: [] }>()
 
 const status = shallowRef<Status>('connecting')
 const effectiveEngine = shallowRef<Engine>(props.engine)
@@ -29,6 +30,10 @@ const heard = shallowRef('')
 const reply = shallowRef('')
 const rounds = shallowRef(0)
 const micOn = shallowRef(false)
+// 麦克风为什么没声音：一律给用户可执行的原因，不做静默失败
+const micIssue = shallowRef<MicIssue>('')
+const micLevel = shallowRef(0)
+const silentSeconds = shallowRef(0)
 const remaining = shallowRef(props.durationMinutes * 60)
 const preview = ref<HTMLVideoElement | null>(null)
 
@@ -47,6 +52,8 @@ let micStream: MediaStream | null = null
 let processor: ScriptProcessorNode | null = null
 let source: MediaStreamAudioSourceNode | null = null
 let playbackAt = 0
+let audioPlayingUntil = 0
+let lastLevelAt = 0
 let pending = new Float32Array(0)
 let recorder: MediaRecorder | null = null
 const recordedChunks: Blob[] = []
@@ -67,6 +74,18 @@ const turnHint = computed(() => {
   return rounds.value === 0 ? '听清问题后直接回答，说完停一下' : '轮到你了，直接说；说完停一下'
 })
 
+const liveStatus = computed(() => {
+  if (status.value === 'connecting') return '正在接通面试官…'
+  if (status.value === 'saving') return '正在整理报告…'
+  if (status.value === 'error') return '连接中断'
+  if (turnState.value === 'speaking') return '面试官正在说…'
+  if (turnState.value === 'heard' || turnState.value === 'thinking') return '已收到你的回答，面试官正在想下一个问题…'
+  if (!micOn.value) return '等待麦克风'
+  if (silentSeconds.value >= 8) return '还没听到声音：确认麦克风没静音、没选错设备'
+  if (micLevel.value > 0.03) return '正在听你说…'
+  return rounds.value === 0 ? '请直接开口回答' : '轮到你了，直接说'
+})
+
 const statusLabel = computed(() => {
   if (status.value === 'connecting') return '正在接通面试官'
   if (status.value === 'saving') return '正在整理报告'
@@ -78,7 +97,7 @@ function instructions(): string {
   const current = props.scene
   let base = props.language === 'en'
     ? 'You are an English-speaking interviewer. Ask one question at a time in English, briefly acknowledge the answer, then ask one specific follow-up. Keep every reply under 40 words. Do not answer for the candidate.'
-    : '你是一名中文面试官，正在模拟真实面试。候选人说话后，你先简短回应，再追问一个具体问题，每次不超过 60 字。不要自问自答，不要长时间独白。'
+    : '你是一名中文面试官，正在模拟真实面试。候选人说话后，你先简短回应，再追问一个具体问题，每次不超过 60 字。不要自问自答，不要长时间独白。开场白已由系统播报，你不需要再自我介绍或重新问候，直接回应候选人的回答。'
   if (props.depth === 'THREE_LAYER') {
     base += ' 本场启用三层追问：先确认基础知识与事实，再让候选人比较方案优劣，最后给出复杂或异常场景；每轮只推进一层。'
   } else if (props.depth === 'PRESSURE') {
@@ -90,9 +109,15 @@ function instructions(): string {
 
 function openingLine(): string {
   const current = props.scene
-  if (!current) return props.language === 'en' ? "Hello, I'm your interviewer today. Please start with a brief self-introduction." : '你好，我是今天的面试官，请先做个自我介绍。'
-  if (props.language === 'en') return "Hello, I'm your interviewer today. Please start with a brief self-introduction." 
-  return `你好，我是${current.roleName}，今天这场是${current.category}。${current.openingLine || '请先简单介绍一下自己。'}`
+  const fallback = props.language === 'en'
+    ? "Hello, I'm your interviewer today. Please start with a brief self-introduction."
+    : '你好，我是今天的面试官，请先做个自我介绍。'
+  if (!current) return fallback
+  // 场景开场白本身就是完整一句（常含自己的问候），不能再用模板前缀拼一遍，否则会被念/显示两遍
+  const scripted = (current.openingLine ?? '').trim()
+  if (scripted) return scripted
+  if (props.language === 'en') return "Hello, I'm your interviewer today. Please start with a brief self-introduction."
+  return `你好，我是${current.roleName}，今天这场是${current.category}。请先简单介绍一下自己。`
 }
 
 function wsUrl(): string {
@@ -133,21 +158,42 @@ function fromBase64(text: string): Uint8Array {
   return bytes
 }
 
-function playPcm(base64: string): void {
+function playback(): AudioContext {
   if (!playbackContext) playbackContext = new AudioContext({ sampleRate: 24000 })
-  const bytes = fromBase64(base64)
-  const samples = new Float32Array(bytes.length / 2)
-  const view = new DataView(bytes.buffer)
-  for (let i = 0; i < samples.length; i += 1) samples[i] = view.getInt16(i * 2, true) / 32768
+  // 自动播放策略下新建的上下文可能是 suspended，不 resume 就没有声音
+  if (playbackContext.state === 'suspended') void playbackContext.resume()
+  return playbackContext
+}
 
-  const buffer = playbackContext.createBuffer(1, samples.length, 24000)
+function queuePcm(samples: Float32Array): void {
+  if (!samples.length) return
+  const context = playback()
+  const buffer = context.createBuffer(1, samples.length, 24000)
   buffer.copyToChannel(samples, 0)
-  const node = playbackContext.createBufferSource()
+  const node = context.createBufferSource()
   node.buffer = buffer
-  node.connect(playbackContext.destination)
-  playbackAt = Math.max(playbackAt, playbackContext.currentTime + 0.05)
+  node.connect(context.destination)
+  playbackAt = Math.max(playbackAt, context.currentTime + 0.05)
   node.start(playbackAt)
   playbackAt += buffer.duration
+  audioPlayingUntil = playbackAt
+  if (turnState.value !== 'speaking') turnState.value = 'speaking'
+}
+
+function toSamples(data: Uint8Array): Float32Array {
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+  const samples = new Float32Array(Math.floor(data.byteLength / 2))
+  for (let i = 0; i < samples.length; i += 1) samples[i] = view.getInt16(i * 2, true) / 32768
+  return samples
+}
+
+function playPcm(base64: string): void {
+  queuePcm(toSamples(fromBase64(base64)))
+}
+
+function playPcmBinary(data: ArrayBuffer): void {
+  // 本地管线发的是 24k s16le 裸 PCM，之前这段被当成 JSON 丢掉了，用户听不到面试官说话
+  queuePcm(toSamples(new Uint8Array(data)))
 }
 
 function handleEvent(raw: string): void {
@@ -193,7 +239,8 @@ function handleEvent(raw: string): void {
     socket?.send(JSON.stringify({ type: 'speech_text_buffer.commit', text: openingLine() }))
   }
   if (type.endsWith('transcription.delta')) {
-    heard.value = `${heard.value}${event.delta ?? ''}`
+    // 豆包的 delta 是“当前这一句的最新转写”，累积拼接会把同一句重复十几遍
+    heard.value = String(event.delta ?? '')
   } else if (type.endsWith('transcription.completed')) {
     lastAnswer = String(event.transcript ?? heard.value)
     heard.value = lastAnswer
@@ -233,6 +280,9 @@ async function start(): Promise<void> {
   reply.value = ''
   rounds.value = 0
   turnState.value = 'idle'
+  micIssue.value = ''
+  micLevel.value = 0
+  silentSeconds.value = 0
   remaining.value = props.durationMinutes * 60
 
   const seq = ++sessionSeq
@@ -250,6 +300,8 @@ async function start(): Promise<void> {
     }
 
     socket = new WebSocket(wsUrl())
+    // 本地管线回的是裸 PCM 二进制帧；不收成 ArrayBuffer 就没法播放
+    socket.binaryType = 'arraybuffer'
     socket.onopen = async () => {
       if (seq !== sessionSeq) return
       if (effectiveEngine.value === 'doubao') {
@@ -272,11 +324,21 @@ async function start(): Promise<void> {
       status.value = 'live'
       startedAt = Date.now()
       turnStartedAt = startedAt
-      await startMic()
       beginCountdown()
+      // 拿不到麦克风就必须停下来告诉用户原因，否则界面显示“进行中”却永远没有反应
+      await startMic()
+      if (micIssue.value) {
+        fail(micIssueMessage(micIssue.value))
+        return
+      }
+      silentSeconds.value = 0
     }
     socket.onmessage = (message) => {
       if (seq !== sessionSeq) return
+      if (message.data instanceof ArrayBuffer) {
+        playPcmBinary(message.data)
+        return
+      }
       handleEvent(String(message.data))
     }
     socket.onerror = () => {
@@ -294,7 +356,9 @@ async function start(): Promise<void> {
         4005: '语音管线启动失败，可换标准引擎再试',
         4029: '当前语音并发已满，请稍后再试',
       }
-      fail(reasons[event.code] ?? '连接已断开，请重新开始面试')
+      // 服务端 close reason 里带的是可读原因（如“语音管线启动失败：模型未配置”），优先用它
+      const reason = (event.reason ?? '').trim()
+      fail(reason || reasons[event.code] || '连接已断开，请重新开始面试')
     }
   } catch {
     fail('无法读取语音服务状态')
@@ -307,6 +371,13 @@ function retry(): void {
   stop()
   closing = false
   void start()
+}
+
+// 权限被拒后浏览器不会再弹框，用户改完站点设置再点这里重试一次
+function retryMic(): void {
+  micIssue.value = ''
+  error.value = ''
+  retry()
 }
 
 function maybeFallback(code?: number): boolean {
@@ -331,22 +402,63 @@ function beginCountdown(): void {
   if (countdown) clearInterval(countdown)
   countdown = setInterval(() => {
     remaining.value -= 1
+    // 浏览器把音频上下文挂起时（自动播放策略），用户会以为“没反应”，这里自动恢复
+    if (audioContext && audioContext.state === 'suspended') void audioContext.resume()
+    if (playbackContext && playbackContext.state === 'suspended') void playbackContext.resume()
+    if (turnState.value === 'speaking' && audioPlayingUntil <= (playbackContext?.currentTime ?? 0)) turnState.value = 'idle'
+    silentSeconds.value = micLevel.value > 0.03 || !micOn.value ? 0 : silentSeconds.value + 1
     if (remaining.value <= 0) {
       stopAndReport(true)
     }
   }, 1000)
 }
 
+function micIssueKind(reason: unknown): MicIssue {
+  const name = (reason as DOMException)?.name ?? ''
+  if (!window.isSecureContext) return 'permission'
+  if (name === 'NotAllowedError' || name === 'SecurityError') return 'permission'
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'OverconstrainedError') return 'device'
+  if (name === 'NotReadableError' || name === 'TrackStartError') return 'busy'
+  return 'unsupported'
+}
+
+function micIssueMessage(kind: MicIssue): string {
+  if (kind === 'permission') return '麦克风权限被拒绝，面试官听不到你说话'
+  if (kind === 'device') return '没有找到可用的麦克风：插好设备后点「重新申请权限」'
+  if (kind === 'busy') return '麦克风被其他程序占用（会议软件/录音工具），关掉后点「重新申请权限」'
+  return '当前页面无法使用麦克风：请用 Chrome / Edge 打开 localhost 或 https 地址'
+}
+
+const micSteps = computed<string[]>(() => {
+  if (micIssue.value !== 'permission') return []
+  return [
+    '点浏览器地址栏左侧的图标（锁形或调节滑块）',
+    '打开「站点设置」，把「麦克风」' + (isVideo.value ? '和「摄像头」' : '') + '改成「允许」',
+    '回到本页点「重新申请权限」；改不动就刷新页面后重新开始',
+  ]
+})
+
 async function startMic(): Promise<void> {
-  micStream = await navigator.mediaDevices.getUserMedia({
-    audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
-    ...(isVideo.value ? { video: { width: 1280, height: 720, facingMode: 'user' } } : {}),
-  })
+  if (!navigator.mediaDevices?.getUserMedia) {
+    micIssue.value = 'unsupported'
+    return
+  }
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+      ...(isVideo.value ? { video: { width: 1280, height: 720, facingMode: 'user' } } : {}),
+    })
+  } catch (reason) {
+    micIssue.value = micIssueKind(reason)
+    return
+  }
   if (isVideo.value && preview.value) {
     preview.value.srcObject = micStream
     await preview.value.play().catch(() => undefined)
   }
   audioContext = new AudioContext()
+  // Chrome 里新建的上下文可能是 suspended，不 resume 就收不到 onaudioprocess
+  if (audioContext.state === 'suspended') await audioContext.resume()
   source = audioContext.createMediaStreamSource(micStream)
   if (typeof MediaRecorder !== 'undefined') {
     recordedChunks.length = 0
@@ -361,6 +473,14 @@ async function startMic(): Promise<void> {
   processor.onaudioprocess = (event) => {
     if (socket?.readyState !== WebSocket.OPEN || !audioContext) return
     const input = event.inputBuffer.getChannelData(0)
+    // 电平是用户唯一能立刻看到的“麦克风在工作”的证据
+    let peak = 0
+    for (let i = 0; i < input.length; i += 8) peak = Math.max(peak, Math.abs(input[i]))
+    const now = performance.now()
+    if (now - lastLevelAt > 100) {
+      micLevel.value = Math.min(1, peak * 4)
+      lastLevelAt = now
+    }
     const resampled = resample(input, audioContext.sampleRate, 16000)
     const merged = new Float32Array(pending.length + resampled.length)
     merged.set(pending)
@@ -509,6 +629,10 @@ onBeforeUnmount(stop)
           <span class="voice-avatar">{{ (scene?.roleName ?? '面')[0] }}</span>
           <strong>{{ scene?.roleName ?? 'AI 面试官' }}</strong>
           <p>{{ statusLabel }} · 剩余 {{ timeLabel }}</p>
+          <p class="voice-status" :class="{ speaking: turnState === 'speaking', hearing: micLevel > 0.03 }">{{ liveStatus }}</p>
+          <div class="voice-meter" :class="{ hot: micLevel > 0.03 }" aria-hidden="true">
+            <i :style="{ width: `${Math.max(3, Math.round(micLevel * 100))}%` }" />
+          </div>
           <div class="wave" :class="{ active: status === 'live' }" aria-hidden="true">
             <i v-for="n in 28" :key="n" :style="{ animationDelay: `${n * 35}ms` }" />
           </div>
@@ -516,22 +640,34 @@ onBeforeUnmount(stop)
       </template>
     </div>
 
-    <div class="live-transcript" aria-live="polite">
+    <!-- 纯语音不显示文字气泡：只保留状态，用户要的是“看不见字但听得见” -->
+    <div v-if="isVideo" class="live-transcript" aria-live="polite">
       <div class="line"><span class="who">我</span><p>{{ heard || (status === 'live' ? '面试官问完后，直接说话即可…' : '正在准备…') }}</p></div>
       <div class="line reply"><span class="who">面试官</span><p>{{ reply || '—' }}</p></div>
     </div>
+    <p v-else class="voice-note">语音面试不显示文字气泡；转写只在后台用于生成评分报告。</p>
 
     <p v-if="fallbackNotice" class="fallback">{{ fallbackNotice }}</p>
-    <p v-if="turnHint" class="turn-hint">
+    <p v-if="turnHint && isVideo" class="turn-hint">
       <i class="dot" :class="turnState" aria-hidden="true" />
       {{ turnHint }}
     </p>
-    <p v-if="error" class="room-error">{{ error }}</p>
+
+    <div v-if="error" class="room-error-block" role="alert">
+      <p class="room-error">{{ error }}</p>
+      <ol v-if="micSteps.length" class="room-steps">
+        <li v-for="(step, index) in micSteps" :key="index">{{ step }}</li>
+      </ol>
+      <div class="room-fix">
+        <button v-if="micIssue" class="button secondary" type="button" @click="retryMic">重新申请权限</button>
+        <button v-else class="button secondary" type="button" @click="retry">重新连接</button>
+        <button v-if="isVideo" class="button secondary" type="button" @click="emit('switchVoice')">改用语音面试</button>
+      </div>
+    </div>
 
     <div class="room-controls">
       <button class="button secondary" type="button" :disabled="status !== 'live'" @click="replayQuestion">重听问题</button>
       <button class="button secondary" type="button" :disabled="status !== 'live' || !reply" @click="interrupt">打断</button>
-      <button v-if="status === 'error'" class="button secondary" type="button" @click="retry">重新连接</button>
       <button class="button end" type="button" :disabled="status === 'saving' || status === 'connecting'" @click="stopAndReport(false)">
         <PhoneOff :size="15" :stroke-width="1.8" aria-hidden="true" />
         {{ status === 'saving' ? '正在生成报告…' : '结束面试' }}
@@ -566,7 +702,17 @@ onBeforeUnmount(stop)
 .who { color: var(--text-3); font-size: 12px; padding-top: 4px; }
 .line p { margin: 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-2); color: var(--text); line-height: 1.8; min-height: 44px; }
 .line.reply p { background: var(--card); }
+.voice-status { font-size: 13px !important; color: rgba(255, 255, 255, .82) !important; }
+.voice-status.hearing { color: #9be3b4 !important; }
+.voice-status.speaking { color: var(--accent) !important; }
+.voice-meter { width: 190px; height: 4px; border-radius: 99px; background: rgba(255, 255, 255, .16); overflow: hidden; }
+.voice-meter i { display: block; height: 100%; background: var(--accent); transition: width .1s linear; }
+.voice-meter.hot i { background: #48c97a; }
+.voice-note { margin: 0; color: var(--text-3); font-size: 12px; }
+.room-error-block { display: grid; gap: 10px; padding: 14px 16px; border: 1px solid var(--danger); border-radius: 12px; background: var(--bg-2); }
 .room-error { margin: 0; color: var(--danger); font-size: 12.5px; }
+.room-steps { margin: 0; padding-left: 18px; color: var(--text-2); font-size: 12.5px; line-height: 1.9; }
+.room-fix { display: flex; gap: 10px; flex-wrap: wrap; }
 .fallback { margin: 0; color: var(--accent-strong); font-size: 12px; }
 .turn-hint { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--text-2); font-size: 12.5px; }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); }

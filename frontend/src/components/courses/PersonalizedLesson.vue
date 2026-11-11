@@ -43,7 +43,7 @@ async function buildVideo(): Promise<void> {
     // 首次渲染要跑 Remotion，给足 3 分钟
     const response = await api.post<ApiEnvelope<{ url: string; chapters?: typeof chapters.value }>>(
       `/training-plans/${props.plan.id}/lesson/video`,
-      { task_key: 'course' },
+      { task_key: props.task.key },
       { timeout: 180_000 },
     )
     const payload = response.data.data
@@ -133,7 +133,7 @@ onMounted(async () => {
         <h1>{{ courseTitle }}</h1>
       </div>
       <div class="course-tools">
-        <span class="tag" v-if="props.task.completed">已完成</span>
+        <span class="tag" v-if="props.task.completed">已完成 · 可回看</span>
         <button class="ghost" type="button" :disabled="lessonGenerating || videoBuilding" @click="loadLesson(true); buildVideo()">
           <RefreshCw :size="13" :stroke-width="1.8" aria-hidden="true" />
           换一门
@@ -184,6 +184,22 @@ onMounted(async () => {
       </button>
     </nav>
 
+    <section v-if="lesson" class="reading" aria-label="课程文字版">
+      <p v-if="lesson.intro" class="course-intro">{{ lesson.intro }}</p>
+      <ol v-if="lesson.steps.length" class="reading-steps">
+        <li v-for="(step, index) in lesson.steps" :key="step.title">
+          <span class="no">{{ String(index + 1).padStart(2, '0') }}</span>
+          <div>
+            <strong>{{ step.title }}</strong>
+            <p>{{ step.explanation }}</p>
+            <p v-if="step.example" class="example">例：{{ step.example }}</p>
+          </div>
+        </li>
+      </ol>
+      <p v-if="lesson.exercise" class="exercise">练习：{{ lesson.exercise }}</p>
+      <p v-if="props.task.practiceFeedback" class="feedback">上次练习反馈：{{ props.task.practiceFeedback }}</p>
+    </section>
+
     <footer class="course-foot">
       <div class="progress">
         <span>观看 {{ watchedPercent }}%<template v-if="duration"> · 共 {{ Math.round(duration / 60) }} 分钟</template></span>
@@ -218,6 +234,15 @@ onMounted(async () => {
 .chapters button { display: inline-flex; align-items: center; gap: 8px; flex: none; padding: 8px 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); color: var(--text-2); font-size: 12px; cursor: pointer; }
 .chapters button.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-strong); }
 .chapters .no { color: var(--text-3); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.reading { display: grid; gap: 12px; padding-top: 14px; border-top: 1px solid var(--divider); }
+.reading-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.reading-steps li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; }
+.reading-steps .no { padding-top: 2px; color: var(--text-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+.reading-steps strong { display: block; color: var(--text); font-size: 13.5px; font-weight: 600; }
+.reading-steps p { margin: 4px 0 0; color: var(--text-2); font-size: 13px; line-height: 1.8; }
+.reading-steps .example { color: var(--text-3); }
+.exercise, .feedback { margin: 0; color: var(--text-2); font-size: 13px; line-height: 1.8; }
+.feedback { color: var(--text-3); }
 .course-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 14px; border-top: 1px solid var(--divider); }
 .progress { display: grid; gap: 6px; min-width: 220px; color: var(--text-3); font-size: 12px; }
 .bar { height: 5px; border-radius: 99px; background: var(--track); overflow: hidden; }
